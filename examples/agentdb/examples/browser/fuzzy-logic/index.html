@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fuzzy Logic Controller - AgentDB WASM Demo</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Courier New', monospace;
+      background: hsl(0 0% 12%);
+      color: hsl(0 0% 90%);
+      padding: 2rem;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 2rem;
+      padding-bottom: 1rem;
+      border-bottom: 2px solid hsl(195 100% 60%);
+    }
+
+    h1 {
+      color: hsl(195 100% 60%);
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .subtitle {
+      color: hsl(0 0% 60%);
+      font-size: 0.9rem;
+    }
+
+    .demo-grid {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    .control-panel {
+      background: hsl(0 0% 16%);
+      padding: 1.5rem;
+      border-radius: 8px;
+      border: 1px solid hsl(0 0% 20%);
+      height: fit-content;
+    }
+
+    .control-section {
+      margin-bottom: 1.5rem;
+    }
+
+    .control-section h3 {
+      color: hsl(195 100% 60%);
+      font-size: 0.9rem;
+      margin-bottom: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .control-group {
+      margin-bottom: 1rem;
+    }
+
+    label {
+      display: block;
+      color: hsl(0 0% 70%);
+      font-size: 0.85rem;
+      margin-bottom: 0.3rem;
+    }
+
+    input[type="number"],
+    input[type="range"] {
+      width: 100%;
+      background: hsl(0 0% 12%);
+      border: 1px solid hsl(0 0% 30%);
+      color: hsl(0 0% 90%);
+      padding: 0.5rem;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+    }
+
+    input[type="range"] {
+      padding: 0;
+    }
+
+    .value-display {
+      color: hsl(195 100% 60%);
+      font-weight: bold;
+      margin-left: 0.5rem;
+    }
+
+    button {
+      width: 100%;
+      padding: 0.8rem;
+      background: hsl(195 100% 60%);
+      color: hsl(0 0% 12%);
+      border: none;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: 0.5rem;
+    }
+
+    button:hover {
+      background: hsl(195 100% 70%);
+      transform: translateY(-1px);
+    }
+
+    button.secondary {
+      background: hsl(0 0% 25%);
+      color: hsl(0 0% 90%);
+    }
+
+    button.secondary:hover {
+      background: hsl(0 0% 30%);
+    }
+
+    .visualization {
+      background: hsl(0 0% 16%);
+      padding: 1.5rem;
+      border-radius: 8px;
+      border: 1px solid hsl(0 0% 20%);
+    }
+
+    canvas {
+      width: 100%;
+      height: 350px;
+      background: hsl(0 0% 12%);
+      border: 1px solid hsl(0 0% 20%);
+      border-radius: 4px;
+      margin-bottom: 1rem;
+    }
+
+    .output-panel {
+      background: hsl(0 0% 12%);
+      padding: 1.5rem;
+      border-radius: 4px;
+      border: 1px solid hsl(0 0% 20%);
+      margin-top: 1rem;
+    }
+
+    .output-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+    }
+
+    .output-card {
+      text-align: center;
+      padding: 1rem;
+      background: hsl(0 0% 16%);
+      border-radius: 4px;
+      border: 1px solid hsl(0 0% 20%);
+    }
+
+    .output-label {
+      color: hsl(0 0% 60%);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 0.5rem;
+    }
+
+    .output-value {
+      color: hsl(195 100% 60%);
+      font-size: 1.8rem;
+      font-weight: bold;
+    }
+
+    .output-unit {
+      color: hsl(0 0% 70%);
+      font-size: 0.9rem;
+      margin-top: 0.3rem;
+    }
+
+    .info-section {
+      background: hsl(0 0% 16%);
+      padding: 1.5rem;
+      border-radius: 8px;
+      border: 1px solid hsl(0 0% 20%);
+      margin-bottom: 2rem;
+    }
+
+    .info-section h3 {
+      color: hsl(195 100% 60%);
+      margin-bottom: 1rem;
+    }
+
+    .info-section p {
+      color: hsl(0 0% 70%);
+      margin-bottom: 0.5rem;
+      font-size: 0.9rem;
+    }
+
+    .use-cases {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-top: 1rem;
+    }
+
+    .use-case-tag {
+      background: hsl(195 100% 60% / 0.2);
+      color: hsl(195 100% 60%);
+      padding: 0.3rem 0.8rem;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      border: 1px solid hsl(195 100% 60% / 0.3);
+    }
+
+    .rules-display {
+      background: hsl(0 0% 12%);
+      padding: 1rem;
+      border-radius: 4px;
+      border: 1px solid hsl(0 0% 20%);
+      margin-top: 1rem;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .rule-item {
+      color: hsl(0 0% 70%);
+      font-size: 0.85rem;
+      margin-bottom: 0.5rem;
+      padding: 0.5rem;
+      background: hsl(0 0% 16%);
+      border-radius: 4px;
+      border-left: 3px solid hsl(195 100% 60%);
+    }
+
+    .rule-item.active {
+      background: hsl(195 100% 60% / 0.1);
+      color: hsl(195 100% 60%);
+      border-left-color: hsl(120 60% 60%);
+    }
+
+    .firing-strength {
+      color: hsl(120 60% 60%);
+      font-weight: bold;
+      margin-left: 0.5rem;
+    }
+
+    .log {
+      background: hsl(0 0% 12%);
+      padding: 1rem;
+      border-radius: 4px;
+      border: 1px solid hsl(0 0% 20%);
+      max-height: 120px;
+      overflow-y: auto;
+      font-size: 0.8rem;
+      margin-top: 1rem;
+    }
+
+    .log-entry {
+      color: hsl(0 0% 70%);
+      margin-bottom: 0.3rem;
+    }
+
+    .log-entry.success {
+      color: hsl(120 60% 60%);
+    }
+
+    .log-entry.error {
+      color: hsl(0 60% 60%);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🎛️ Fuzzy Logic Controller</h1>
+      <p class="subtitle">Temperature control system with fuzzy inference using AgentDB WASM</p>
+    </header>
+
+    <div class="info-section">
+      <h3>About This Demo</h3>
+      <p>This demo implements a fuzzy logic temperature controller that adjusts heating/cooling power based on current temperature and rate of change.</p>
+      <p>The system uses triangular membership functions, Mamdani inference, and centroid defuzzification to provide smooth, human-like control decisions.</p>
+      <div class="use-cases">
+        <div class="use-case-tag">HVAC Systems</div>
+        <div class="use-case-tag">Process Control</div>
+        <div class="use-case-tag">Robotics</div>
+        <div class="use-case-tag">Autonomous Vehicles</div>
+        <div class="use-case-tag">Decision Support</div>
+      </div>
+    </div>
+
+    <div class="demo-grid">
+      <div class="control-panel">
+        <div class="control-section">
+          <h3>Crisp Inputs</h3>
+
+          <div class="control-group">
+            <label>Current Temperature: <span class="value-display" id="tempDisplay">20</span>°C</label>
+            <input type="range" id="temperature" min="0" max="40" value="20" step="0.5">
+          </div>
+
+          <div class="control-group">
+            <label>Rate of Change: <span class="value-display" id="rateDisplay">0.0</span>°C/min</label>
+            <input type="range" id="rate" min="-5" max="5" value="0" step="0.1">
+          </div>
+
+          <div class="control-group">
+            <label>Target Temperature: <span class="value-display" id="targetDisplay">22</span>°C</label>
+            <input type="range" id="target" min="15" max="30" value="22" step="0.5">
+          </div>
+        </div>
+
+        <div class="control-section">
+          <h3>Visualization</h3>
+          <div class="control-group">
+            <label>
+              <input type="radio" name="vizType" value="membership" checked> Membership Functions
+            </label>
+            <label>
+              <input type="radio" name="vizType" value="rules"> Rule Firing Strength
+            </label>
+            <label>
+              <input type="radio" name="vizType" value="defuzz"> Defuzzification
+            </label>
+          </div>
+        </div>
+
+        <button id="computeBtn">Compute Output</button>
+        <button id="resetBtn" class="secondary">Reset</button>
+      </div>
+
+      <div class="visualization">
+        <canvas id="chart"></canvas>
+
+        <div class="output-panel">
+          <div class="output-grid">
+            <div class="output-card">
+              <div class="output-label">Power Output</div>
+              <div class="output-value" id="powerOutput">0</div>
+              <div class="output-unit">% (- = Cool, + = Heat)</div>
+            </div>
+            <div class="output-card">
+              <div class="output-label">Error</div>
+              <div class="output-value" id="errorValue">+2.0</div>
+              <div class="output-unit">°C from target</div>
+            </div>
+            <div class="output-card">
+              <div class="output-label">Action</div>
+              <div class="output-value" id="actionValue" style="font-size: 1.4rem;">-</div>
+              <div class="output-unit">System recommendation</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="rules-display" id="rulesDisplay">
+          <div class="rule-item">IF temp is COLD AND rate is NEGATIVE THEN power is HIGH_HEAT</div>
+          <div class="rule-item">IF temp is COLD AND rate is ZERO THEN power is MEDIUM_HEAT</div>
+          <div class="rule-item">IF temp is COMFORTABLE AND rate is ZERO THEN power is NO_CHANGE</div>
+          <div class="rule-item">IF temp is HOT AND rate is POSITIVE THEN power is HIGH_COOL</div>
+          <div class="rule-item">IF temp is HOT AND rate is ZERO THEN power is MEDIUM_COOL</div>
+        </div>
+
+        <div class="log" id="log">
+          <div class="log-entry">System initialized. Ready to compute...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { SQLiteVectorDB } from "https://unpkg.com/agentdb@1.0.7/dist/agentdb.min.js";
+
+    let db = null;
+
+    // UI Elements
+    const tempInput = document.getElementById('temperature');
+    const rateInput = document.getElementById('rate');
+    const targetInput = document.getElementById('target');
+    const computeBtn = document.getElementById('computeBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const canvas = document.getElementById('chart');
+    const ctx = canvas.getContext('2d');
+
+    // Set canvas size
+    canvas.width = canvas.offsetWidth;
+    canvas.height = 350;
+
+    // Fuzzy membership functions (triangular)
+    function triangular(x, a, b, c) {
+      if (x <= a || x >= c) return 0;
+      if (x === b) return 1;
+      if (x < b) return (x - a) / (b - a);
+      return (c - x) / (c - b);
+    }
+
+    // Temperature membership functions
+    const tempMF = {
+      cold: (x) => triangular(x, 0, 0, 15),
+      cool: (x) => triangular(x, 10, 17, 20),
+      comfortable: (x) => triangular(x, 18, 22, 25),
+      warm: (x) => triangular(x, 23, 28, 33),
+      hot: (x) => triangular(x, 30, 40, 40)
+    };
+
+    // Rate of change membership functions
+    const rateMF = {
+      negative: (x) => triangular(x, -5, -5, -1),
+      zero: (x) => triangular(x, -2, 0, 2),
+      positive: (x) => triangular(x, 1, 5, 5)
+    };
+
+    // Power output membership functions
+    const powerMF = {
+      high_cool: (x) => triangular(x, -100, -100, -60),
+      medium_cool: (x) => triangular(x, -80, -50, -20),
+      low_cool: (x) => triangular(x, -40, -20, 0),
+      no_change: (x) => triangular(x, -10, 0, 10),
+      low_heat: (x) => triangular(x, 0, 20, 40),
+      medium_heat: (x) => triangular(x, 20, 50, 80),
+      high_heat: (x) => triangular(x, 60, 100, 100)
+    };
+
+    // Fuzzy rules (IF-THEN)
+    const rules = [
+      { if: { temp: 'cold', rate: 'negative' }, then: 'high_heat', desc: 'Cold & Falling → High Heat' },
+      { if: { temp: 'cold', rate: 'zero' }, then: 'medium_heat', desc: 'Cold & Stable → Medium Heat' },
+      { if: { temp: 'cold', rate: 'positive' }, then: 'low_heat', desc: 'Cold & Rising → Low Heat' },
+      { if: { temp: 'cool', rate: 'negative' }, then: 'medium_heat', desc: 'Cool & Falling → Medium Heat' },
+      { if: { temp: 'cool', rate: 'zero' }, then: 'low_heat', desc: 'Cool & Stable → Low Heat' },
+      { if: { temp: 'cool', rate: 'positive' }, then: 'no_change', desc: 'Cool & Rising → No Change' },
+      { if: { temp: 'comfortable', rate: 'negative' }, then: 'low_heat', desc: 'Comfortable & Falling → Low Heat' },
+      { if: { temp: 'comfortable', rate: 'zero' }, then: 'no_change', desc: 'Comfortable & Stable → No Change' },
+      { if: { temp: 'comfortable', rate: 'positive' }, then: 'low_cool', desc: 'Comfortable & Rising → Low Cool' },
+      { if: { temp: 'warm', rate: 'negative' }, then: 'no_change', desc: 'Warm & Falling → No Change' },
+      { if: { temp: 'warm', rate: 'zero' }, then: 'low_cool', desc: 'Warm & Stable → Low Cool' },
+      { if: { temp: 'warm', rate: 'positive' }, then: 'medium_cool', desc: 'Warm & Rising → Medium Cool' },
+      { if: { temp: 'hot', rate: 'negative' }, then: 'low_cool', desc: 'Hot & Falling → Low Cool' },
+      { if: { temp: 'hot', rate: 'zero' }, then: 'medium_cool', desc: 'Hot & Stable → Medium Cool' },
+      { if: { temp: 'hot', rate: 'positive' }, then: 'high_cool', desc: 'Hot & Rising → High Cool' }
+    ];
+
+    // Fuzzification
+    function fuzzify(temp, rate) {
+      return {
+        temp: {
+          cold: tempMF.cold(temp),
+          cool: tempMF.cool(temp),
+          comfortable: tempMF.comfortable(temp),
+          warm: tempMF.warm(temp),
+          hot: tempMF.hot(temp)
+        },
+        rate: {
+          negative: rateMF.negative(rate),
+          zero: rateMF.zero(rate),
+          positive: rateMF.positive(rate)
+        }
+      };
+    }
+
+    // Rule evaluation (Mamdani inference)
+    function evaluateRules(fuzzyInputs) {
+      const activations = [];
+
+      for (const rule of rules) {
+        const tempDegree = fuzzyInputs.temp[rule.if.temp];
+        const rateDegree = fuzzyInputs.rate[rule.if.rate];
+        const strength = Math.min(tempDegree, rateDegree); // AND operator
+
+        if (strength > 0) {
+          activations.push({
+            output: rule.then,
+            strength,
+            desc: rule.desc
+          });
+        }
+      }
+
+      return activations;
+    }
+
+    // Defuzzification (Centroid method)
+    function defuzzify(activations) {
+      const resolution = 200;
+      const min = -100;
+      const max = 100;
+      const step = (max - min) / resolution;
+
+      let numerator = 0;
+      let denominator = 0;
+
+      for (let i = 0; i <= resolution; i++) {
+        const x = min + i * step;
+        let maxMembership = 0;
+
+        for (const activation of activations) {
+          const membership = Math.min(activation.strength, powerMF[activation.output](x));
+          maxMembership = Math.max(maxMembership, membership);
+        }
+
+        numerator += x * maxMembership;
+        denominator += maxMembership;
+      }
+
+      return denominator === 0 ? 0 : numerator / denominator;
+    }
+
+    // Update displays
+    function updateDisplays() {
+      const temp = parseFloat(tempInput.value);
+      const rate = parseFloat(rateInput.value);
+      const target = parseFloat(targetInput.value);
+
+      document.getElementById('tempDisplay').textContent = temp.toFixed(1);
+      document.getElementById('rateDisplay').textContent = rate.toFixed(1);
+      document.getElementById('targetDisplay').textContent = target.toFixed(1);
+
+      const error = target - temp;
+      document.getElementById('errorValue').textContent = (error >= 0 ? '+' : '') + error.toFixed(1);
+    }
+
+    tempInput.addEventListener('input', updateDisplays);
+    rateInput.addEventListener('input', updateDisplays);
+    targetInput.addEventListener('input', updateDisplays);
+
+    // Compute fuzzy output
+    computeBtn.addEventListener('click', async () => {
+      const temp = parseFloat(tempInput.value);
+      const rate = parseFloat(rateInput.value);
+      const target = parseFloat(targetInput.value);
+
+      logMessage('Computing fuzzy inference...');
+
+      // Fuzzification
+      const fuzzyInputs = fuzzify(temp, rate);
+      logMessage(`Fuzzification complete. Temp memberships: ${Object.entries(fuzzyInputs.temp).filter(([k,v]) => v > 0).map(([k,v]) => `${k}(${v.toFixed(2)})`).join(', ')}`);
+
+      // Rule evaluation
+      const activations = evaluateRules(fuzzyInputs);
+      logMessage(`${activations.length} rules fired`);
+
+      // Update rules display
+      updateRulesDisplay(activations);
+
+      // Defuzzification
+      const crispOutput = defuzzify(activations);
+      document.getElementById('powerOutput').textContent = crispOutput.toFixed(1);
+
+      // Determine action
+      let action;
+      if (crispOutput < -30) action = 'HIGH COOL';
+      else if (crispOutput < -10) action = 'COOL';
+      else if (crispOutput < 10) action = 'MAINTAIN';
+      else if (crispOutput < 30) action = 'HEAT';
+      else action = 'HIGH HEAT';
+
+      document.getElementById('actionValue').textContent = action;
+
+      logMessage(`Output: ${crispOutput.toFixed(1)}% → ${action}`, 'success');
+
+      // Store in AgentDB
+      await storeInference(temp, rate, crispOutput, activations);
+
+      // Render visualization
+      renderVisualization(temp, rate, fuzzyInputs, activations, crispOutput);
+    });
+
+    // Update rules display
+    function updateRulesDisplay(activations) {
+      const container = document.getElementById('rulesDisplay');
+      container.innerHTML = '';
+
+      for (const rule of rules) {
+        const activation = activations.find(a => a.desc === rule.desc);
+        const div = document.createElement('div');
+        div.className = activation && activation.strength > 0 ? 'rule-item active' : 'rule-item';
+        div.textContent = rule.desc;
+
+        if (activation && activation.strength > 0) {
+          const strength = document.createElement('span');
+          strength.className = 'firing-strength';
+          strength.textContent = ` [${(activation.strength * 100).toFixed(0)}%]`;
+          div.appendChild(strength);
+        }
+
+        container.appendChild(div);
+      }
+    }
+
+    // Store inference in AgentDB
+    async function storeInference(temp, rate, output, activations) {
+      if (!db) return;
+
+      try {
+        const embedding = new Array(128).fill(0).map((_, i) => {
+          if (i === 0) return temp / 40;
+          if (i === 1) return (rate + 5) / 10;
+          if (i === 2) return (output + 100) / 200;
+          return Math.random() * 0.1;
+        });
+
+        await db.insert({
+          embedding,
+          metadata: {
+            id: `inference_${Date.now()}`,
+            temperature: temp,
+            rate,
+            output,
+            activations: activations.length,
+            timestamp: Date.now()
+          }
+        });
+
+        logMessage('Inference stored in AgentDB');
+      } catch (error) {
+        logMessage(`Storage error: ${error.message}`, 'error');
+      }
+    }
+
+    // Render visualization
+    function renderVisualization(temp, rate, fuzzyInputs, activations, output) {
+      const vizType = document.querySelector('input[name="vizType"]:checked').value;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = 'hsl(0 0% 12%)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      if (vizType === 'membership') {
+        drawMembershipFunctions(temp, rate, fuzzyInputs);
+      } else if (vizType === 'rules') {
+        drawRuleFiring(activations);
+      } else {
+        drawDefuzzification(activations, output);
+      }
+    }
+
+    // Draw membership functions
+    function drawMembershipFunctions(temp, rate, fuzzyInputs) {
+      const width = canvas.width;
+      const height = canvas.height;
+      const padding = 40;
+      const graphHeight = (height - 3 * padding) / 2;
+
+      // Temperature membership functions
+      ctx.fillStyle = 'hsl(0 0% 70%)';
+      ctx.font = '14px "Courier New"';
+      ctx.fillText('Temperature Membership Functions', padding, 20);
+
+      const tempColors = {
+        cold: 'hsl(210 100% 60%)',
+        cool: 'hsl(180 100% 60%)',
+        comfortable: 'hsl(120 60% 60%)',
+        warm: 'hsl(45 100% 60%)',
+        hot: 'hsl(0 100% 60%)'
+      };
+
+      Object.entries(tempMF).forEach(([name, func]) => {
+        ctx.strokeStyle = tempColors[name];
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+
+        for (let x = 0; x <= 40; x += 0.5) {
+          const px = padding + (x / 40) * (width - 2 * padding);
+          const py = padding + 30 + graphHeight * (1 - func(x));
+
+          if (x === 0) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
+        }
+
+        ctx.stroke();
+      });
+
+      // Current temperature line
+      const tempX = padding + (temp / 40) * (width - 2 * padding);
+      ctx.strokeStyle = 'hsl(195 100% 60%)';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([5, 5]);
+      ctx.beginPath();
+      ctx.moveTo(tempX, padding + 30);
+      ctx.lineTo(tempX, padding + 30 + graphHeight);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Rate membership functions
+      ctx.fillStyle = 'hsl(0 0% 70%)';
+      ctx.fillText('Rate of Change Membership Functions', padding, padding + graphHeight + 60);
+
+      const rateColors = {
+        negative: 'hsl(210 100% 60%)',
+        zero: 'hsl(120 60% 60%)',
+        positive: 'hsl(0 100% 60%)'
+      };
+
+      Object.entries(rateMF).forEach(([name, func]) => {
+        ctx.strokeStyle = rateColors[name];
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+
+        for (let x = -5; x <= 5; x += 0.1) {
+          const px = padding + ((x + 5) / 10) * (width - 2 * padding);
+          const py = padding + graphHeight + 90 + graphHeight * (1 - func(x));
+
+          if (x === -5) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
+        }
+
+        ctx.stroke();
+      });
+
+      // Current rate line
+      const rateX = padding + ((rate + 5) / 10) * (width - 2 * padding);
+      ctx.strokeStyle = 'hsl(195 100% 60%)';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([5, 5]);
+      ctx.beginPath();
+      ctx.moveTo(rateX, padding + graphHeight + 90);
+      ctx.lineTo(rateX, padding + graphHeight + 90 + graphHeight);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    // Draw rule firing strengths
+    function drawRuleFiring(activations) {
+      const width = canvas.width;
+      const height = canvas.height;
+      const padding = 40;
+      const barHeight = 25;
+      const gap = 5;
+
+      ctx.fillStyle = 'hsl(0 0% 70%)';
+      ctx.font = '14px "Courier New"';
+      ctx.fillText('Rule Firing Strengths', padding, 20);
+
+      activations.sort((a, b) => b.strength - a.strength);
+
+      activations.forEach((activation, i) => {
+        const y = 40 + i * (barHeight + gap);
+        const barWidth = (width - 2 * padding - 100) * activation.strength;
+
+        // Bar
+        ctx.fillStyle = 'hsl(195 100% 60%)';
+        ctx.fillRect(padding, y, barWidth, barHeight);
+
+        // Border
+        ctx.strokeStyle = 'hsl(0 0% 30%)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(padding, y, width - 2 * padding - 100, barHeight);
+
+        // Label
+        ctx.fillStyle = 'hsl(0 0% 90%)';
+        ctx.font = '12px "Courier New"';
+        ctx.fillText(activation.desc, padding + 5, y + 17);
+
+        // Strength value
+        ctx.fillStyle = 'hsl(195 100% 60%)';
+        ctx.fillText((activation.strength * 100).toFixed(0) + '%', width - padding - 80, y + 17);
+      });
+    }
+
+    // Draw defuzzification
+    function drawDefuzzification(activations, crispOutput) {
+      const width = canvas.width;
+      const height = canvas.height;
+      const padding = 40;
+      const graphHeight = height - 2 * padding - 50;
+
+      ctx.fillStyle = 'hsl(0 0% 70%)';
+      ctx.font = '14px "Courier New"';
+      ctx.fillText('Defuzzification (Centroid Method)', padding, 20);
+
+      // Draw output membership functions with clipping
+      const powerColors = {
+        high_cool: 'hsl(210 100% 60%)',
+        medium_cool: 'hsl(190 100% 60%)',
+        low_cool: 'hsl(170 80% 60%)',
+        no_change: 'hsl(120 60% 60%)',
+        low_heat: 'hsl(45 80% 60%)',
+        medium_heat: 'hsl(30 100% 60%)',
+        high_heat: 'hsl(0 100% 60%)'
+      };
+
+      // Aggregate output
+      const resolution = 200;
+      const aggregated = [];
+      for (let i = 0; i <= resolution; i++) {
+        const x = -100 + (i / resolution) * 200;
+        let maxMembership = 0;
+
+        for (const activation of activations) {
+          const membership = Math.min(activation.strength, powerMF[activation.output](x));
+          maxMembership = Math.max(maxMembership, membership);
+        }
+
+        aggregated.push(maxMembership);
+      }
+
+      // Draw aggregated shape
+      ctx.fillStyle = 'hsl(195 100% 60% / 0.3)';
+      ctx.strokeStyle = 'hsl(195 100% 60%)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+
+      for (let i = 0; i <= resolution; i++) {
+        const px = padding + (i / resolution) * (width - 2 * padding);
+        const py = padding + 50 + graphHeight * (1 - aggregated[i]);
+
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+
+      ctx.lineTo(width - padding, padding + 50 + graphHeight);
+      ctx.lineTo(padding, padding + 50 + graphHeight);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      // Centroid line
+      const centroidX = padding + ((crispOutput + 100) / 200) * (width - 2 * padding);
+      ctx.strokeStyle = 'hsl(120 60% 60%)';
+      ctx.lineWidth = 3;
+      ctx.setLineDash([5, 5]);
+      ctx.beginPath();
+      ctx.moveTo(centroidX, padding + 50);
+      ctx.lineTo(centroidX, padding + 50 + graphHeight);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Labels
+      ctx.fillStyle = 'hsl(120 60% 60%)';
+      ctx.font = '12px "Courier New"';
+      ctx.fillText(`Crisp Output: ${crispOutput.toFixed(1)}%`, centroidX + 10, padding + 60);
+
+      ctx.fillStyle = 'hsl(0 0% 70%)';
+      ctx.fillText('-100 (Cool)', padding, height - padding + 20);
+      ctx.fillText('0', padding + (width - 2 * padding) / 2 - 5, height - padding + 20);
+      ctx.fillText('+100 (Heat)', width - padding - 80, height - padding + 20);
+    }
+
+    // Log message
+    function logMessage(message, type = 'normal') {
+      const log = document.getElementById('log');
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${type}`;
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      log.insertBefore(entry, log.firstChild);
+
+      while (log.children.length > 50) {
+        log.removeChild(log.lastChild);
+      }
+    }
+
+    // Reset
+    resetBtn.addEventListener('click', () => {
+      tempInput.value = 20;
+      rateInput.value = 0;
+      targetInput.value = 22;
+      updateDisplays();
+
+      document.getElementById('powerOutput').textContent = '0';
+      document.getElementById('actionValue').textContent = '-';
+
+      const container = document.getElementById('rulesDisplay');
+      container.innerHTML = rules.map(r => `<div class="rule-item">${r.desc}</div>`).join('');
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      logMessage('System reset', 'success');
+    });
+
+    // Visualization type change
+    document.querySelectorAll('input[name="vizType"]').forEach(radio => {
+      radio.addEventListener('change', () => {
+        // Trigger recompute to update visualization
+        if (document.getElementById('powerOutput').textContent !== '0') {
+          computeBtn.click();
+        }
+      });
+    });
+
+    // Initialize AgentDB WASM
+    async function initAgentDB() {
+      try {
+        console.log('Initializing AgentDB v1.0.7 from CDN...');
+        db = new SQLiteVectorDB({ memoryMode: true, backend: "wasm" });
+        await db.initializeAsync();
+        logMessage('✅ AgentDB WASM v1.0.7 initialized', 'success');
+        console.log('✅ AgentDB WASM v1.0.7 initialized');
+      } catch (error) {
+        logMessage(`AgentDB initialization failed: ${error.message}`, 'error');
+        logMessage('Continuing without storage...', 'error');
+      }
+    }
+
+    // Initialize
+    initAgentDB();
+    updateDisplays();
+  </script>
+</body>
+</html>

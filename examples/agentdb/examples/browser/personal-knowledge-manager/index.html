@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Personal Knowledge Manager - AgentDB</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+      background: hsl(0 0% 12%);
+      color: hsl(0 0% 95%);
+      min-height: 100vh;
+      padding: 2rem;
+    }
+
+    .container { max-width: 1600px; margin: 0 auto; }
+
+    header {
+      background: hsl(0 0% 15%);
+      border: 1px solid hsl(0 0% 25%);
+      border-radius: 16px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 6px 24px hsl(222 20% 0% / 0.24);
+    }
+
+    h1 {
+      color: hsl(195 100% 60%);
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .subtitle { color: hsl(0 0% 85%); font-size: 1.1rem; }
+
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .card {
+      background: hsl(0 0% 15%);
+      border: 1px solid hsl(0 0% 25%);
+      border-radius: 16px;
+      padding: 2rem;
+      box-shadow: 0 6px 24px hsl(222 20% 0% / 0.24);
+    }
+
+    .card.full-width { grid-column: 1 / -1; }
+    .card h2 {
+      color: hsl(0 0% 95%);
+      margin-bottom: 1rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .status-indicator {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    .status-active { background: #10b981; }
+    .status-searching { background: #3b82f6; }
+    .status-organizing { background: #f59e0b; }
+    .status-idle { background: #6b7280; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .input-group {
+      margin-bottom: 1.5rem;
+    }
+
+    .input-label {
+      display: block;
+      margin-bottom: 0.75rem;
+      color: hsl(0 0% 85%);
+      font-weight: 500;
+    }
+
+    .text-input {
+      width: 100%;
+      background: hsl(0 0% 18%);
+      border: 1px solid hsl(0 0% 25%);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      color: hsl(0 0% 95%);
+      font-size: 1rem;
+      font-family: inherit;
+    }
+
+    .text-area {
+      width: 100%;
+      background: hsl(0 0% 18%);
+      border: 1px solid hsl(0 0% 25%);
+      border-radius: 8px;
+      padding: 1rem;
+      color: hsl(0 0% 95%);
+      font-size: 0.95rem;
+      font-family: inherit;
+      resize: vertical;
+      min-height: 150px;
+      line-height: 1.6;
+    }
+
+    .text-input:focus, .text-area:focus {
+      outline: none;
+      border-color: hsl(195 100% 60%);
+    }
+
+    .btn {
+      padding: 0.75rem 1.5rem;
+      background: hsl(195 100% 60%);
+      color: hsl(0 0% 10%);
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn:hover:not(:disabled) { opacity: 0.85; transform: translateY(-1px); }
+    .btn-secondary {
+      background: hsl(0 0% 18%);
+      color: hsl(195 100% 60%);
+      border: 1px solid hsl(0 0% 25%);
+    }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-group { display: flex; gap: 12px; flex-wrap: wrap; }
+
+    .knowledge-item {
+      background: hsl(0 0% 18%);
+      border: 1px solid hsl(0 0% 25%);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+
+    .knowledge-item:hover {
+      border-color: hsl(195 100% 60%);
+      transform: translateX(4px);
+    }
+
+    .knowledge-title {
+      color: hsl(195 100% 60%);
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+      font-size: 1.1rem;
+    }
+
+    .knowledge-content {
+      color: hsl(0 0% 85%);
+      line-height: 1.7;
+      margin-bottom: 0.75rem;
+    }
+
+    .knowledge-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 0.75rem;
+      border-top: 1px solid hsl(0 0% 25%);
+    }
+
+    .knowledge-tags {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .tag {
+      background: hsl(195 100% 60% / 0.2);
+      color: hsl(195 100% 60%);
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+
+    .knowledge-date {
+      color: hsl(0 0% 60%);
+      font-size: 0.85rem;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .stat-box {
+      background: hsl(0 0% 18%);
+      border: 1px solid hsl(0 0% 25%);
+      padding: 1rem;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 1.8rem;
+      font-weight: bold;
+      color: hsl(195 100% 60%);
+    }
+
+    .stat-label {
+      font-size: 0.85rem;
+      color: hsl(0 0% 75%);
+      margin-top: 0.25rem;
+    }
+
+    .search-result {
+      background: hsl(120 60% 50% / 0.1);
+      border: 1px solid hsl(120 60% 50% / 0.3);
+    }
+
+    .relevance-score {
+      background: hsl(270 100% 60% / 0.2);
+      color: hsl(270 100% 60%);
+      padding: 4px 12px;
+      border-radius: 16px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 3rem 2rem;
+      color: hsl(0 0% 60%);
+      font-style: italic;
+    }
+
+    .spinner {
+      border: 3px solid hsl(0 0% 25%);
+      border-top: 3px solid hsl(195 100% 60%);
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 1200px) {
+      .main-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1><span>🧠</span> Personal Knowledge Manager</h1>
+      <p class="subtitle">AI-Powered Knowledge Base with Semantic Search</p>
+    </header>
+
+    <div class="main-grid">
+      <div class="card">
+        <h2>➕ Add Knowledge</h2>
+        <div class="input-group">
+          <label class="input-label">Title</label>
+          <input type="text" id="knowledgeTitle" class="text-input" placeholder="e.g., Machine Learning Basics">
+        </div>
+        <div class="input-group">
+          <label class="input-label">Content</label>
+          <textarea id="knowledgeContent" class="text-area" placeholder="Enter your notes, insights, or information..."></textarea>
+        </div>
+        <div class="btn-group">
+          <button id="saveBtn" class="btn">
+            💾 Save Knowledge
+          </button>
+          <button id="autoTagBtn" class="btn-secondary">
+            🏷️ Auto-Tag with AI
+          </button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>
+          <span class="status-indicator status-idle" id="systemStatus"></span>
+          Knowledge Base Stats
+        </h2>
+        <div class="stats-grid">
+          <div class="stat-box">
+            <div class="stat-value" id="totalItems">0</div>
+            <div class="stat-label">Items</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-value" id="totalTags">0</div>
+            <div class="stat-label">Tags</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-value" id="searchesPerformed">0</div>
+            <div class="stat-label">Searches</div>
+          </div>
+        </div>
+
+        <div class="input-group" style="margin-top: 2rem;">
+          <label class="input-label">🔍 Search Knowledge Base</label>
+          <input type="text" id="searchInput" class="text-input" placeholder="Enter search query...">
+        </div>
+        <div class="btn-group">
+          <button id="searchBtn" class="btn">
+            <span id="searchIcon">🔍</span>
+            <span id="searchText">Search</span>
+          </button>
+          <button id="clearSearchBtn" class="btn-secondary">
+            ❌ Clear
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card full-width">
+      <h2>📚 Knowledge Items</h2>
+      <div id="knowledgeContainer"></div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { SQLiteVectorDB } from 'https://unpkg.com/agentdb@1.0.7/dist/agentdb.min.js';
+
+    const state = {
+      db: null,
+      items: [],
+      tags: new Set(),
+      searchesPerformed: 0,
+      isProcessing: false
+    };
+
+    const SUPABASE_URL = 'https://yoyrnfdeqygvfpmhjwty.supabase.co';
+    const AI_ENDPOINT = `${SUPABASE_URL}/functions/v1/agentdb-ai`;
+
+    async function initializeDB() {
+      try {
+        state.db = new SQLiteVectorDB({ memoryMode: true, backend: 'wasm' });
+        await state.db.initializeAsync();
+        return true;
+      } catch (error) {
+        console.error('DB init failed:', error);
+        return false;
+      }
+    }
+
+    async function generateEmbedding(text) {
+      const words = text.toLowerCase().split(/\s+/);
+      const embedding = new Array(384).fill(0);
+      words.forEach((word, idx) => {
+        for (let i = 0; i < word.length; i++) {
+          const pos = (word.charCodeAt(i) + idx) % 384;
+          embedding[pos] += 0.1;
+        }
+      });
+      const mag = Math.sqrt(embedding.reduce((s, v) => s + v * v, 0));
+      return embedding.map(v => v / (mag || 1));
+    }
+
+    async function callGeminiAI(title, content) {
+      try {
+        const systemPrompt = `Extract 3-5 relevant tags from this note. Return only comma-separated tags, nothing else.`;
+
+        const response = await fetch(AI_ENDPOINT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'tag',
+            code: systemPrompt,
+            data: null,
+            context: `Title: ${title}\nContent: ${content}`,
+            model: 'google/gemini-2.5-flash'
+          })
+        });
+
+        if (!response.ok) throw new Error('AI request failed');
+        const result = await response.json();
+        return result.response.split(',').map(t => t.trim());
+      } catch (error) {
+        return [];
+      }
+    }
+
+    async function saveKnowledge() {
+      const title = document.getElementById('knowledgeTitle').value.trim();
+      const content = document.getElementById('knowledgeContent').value.trim();
+
+      if (!title || !content) {
+        alert('Please enter both title and content');
+        return;
+      }
+
+      if (!state.db) await initializeDB();
+
+      updateStatus('organizing');
+
+      try {
+        // Generate embedding
+        const text = `${title} ${content}`;
+        const embedding = await generateEmbedding(text);
+
+        // Auto-generate basic tags
+        const words = title.toLowerCase().split(/\s+/);
+        const basicTags = words.slice(0, 2);
+
+        // Create item
+        const item = {
+          id: Date.now(),
+          title,
+          content,
+          tags: basicTags,
+          date: new Date().toISOString(),
+          embedding
+        };
+
+        // Store in vector DB
+        await state.db.insert({
+          embedding,
+          metadata: {
+            id: item.id,
+            title: item.title,
+            content: item.content.substring(0, 200),
+            tags: item.tags
+          }
+        });
+
+        // Add to state
+        state.items.unshift(item);
+        item.tags.forEach(tag => state.tags.add(tag));
+
+        // Update UI
+        updateStats();
+        displayKnowledge();
+
+        // Clear inputs
+        document.getElementById('knowledgeTitle').value = '';
+        document.getElementById('knowledgeContent').value = '';
+
+        updateStatus('active');
+      } catch (error) {
+        console.error('Save error:', error);
+        updateStatus('idle');
+      }
+    }
+
+    async function autoTag() {
+      const title = document.getElementById('knowledgeTitle').value.trim();
+      const content = document.getElementById('knowledgeContent').value.trim();
+
+      if (!title || !content) {
+        alert('Please enter both title and content first');
+        return;
+      }
+
+      updateStatus('organizing');
+      const tags = await callGeminiAI(title, content);
+
+      if (tags.length > 0) {
+        alert(`Suggested tags: ${tags.join(', ')}\n\n(Tags will be added when you save)`);
+      }
+
+      updateStatus('idle');
+    }
+
+    async function searchKnowledge() {
+      const query = document.getElementById('searchInput').value.trim();
+      if (!query) {
+        displayKnowledge();
+        return;
+      }
+
+      if (!state.db) {
+        alert('No knowledge base yet. Add some items first!');
+        return;
+      }
+
+      updateStatus('searching');
+      updateSearchButton(true);
+      state.searchesPerformed++;
+      updateStats();
+
+      try {
+        const embedding = await generateEmbedding(query);
+        const results = await state.db.search(embedding, 5, 0.1);
+
+        if (results.length === 0) {
+          displayKnowledge([], true);
+        } else {
+          const items = results.map(r => {
+            const item = state.items.find(i => i.id === r.metadata.id);
+            return { ...item, relevance: Math.round((1 - r.distance) * 100) };
+          });
+          displayKnowledge(items, false, true);
+        }
+
+        updateStatus('active');
+      } catch (error) {
+        console.error('Search error:', error);
+        updateStatus('idle');
+      } finally {
+        updateSearchButton(false);
+      }
+    }
+
+    function displayKnowledge(items = state.items, isEmpty = false, isSearch = false) {
+      const container = document.getElementById('knowledgeContainer');
+
+      if (isEmpty || items.length === 0) {
+        container.innerHTML = '<div class="empty-state">No knowledge items found. Add some to get started!</div>';
+        return;
+      }
+
+      container.innerHTML = items.map(item => `
+        <div class="knowledge-item ${isSearch ? 'search-result' : ''}">
+          <div class="knowledge-title">${item.title}</div>
+          <div class="knowledge-content">${item.content}</div>
+          <div class="knowledge-meta">
+            <div class="knowledge-tags">
+              ${item.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+            </div>
+            ${isSearch ? `<div class="relevance-score">${item.relevance}% match</div>` : `<div class="knowledge-date">${new Date(item.date).toLocaleDateString()}</div>`}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function updateStats() {
+      document.getElementById('totalItems').textContent = state.items.length;
+      document.getElementById('totalTags').textContent = state.tags.size;
+      document.getElementById('searchesPerformed').textContent = state.searchesPerformed;
+    }
+
+    function updateStatus(status) {
+      document.getElementById('systemStatus').className = 'status-indicator status-' + status;
+    }
+
+    function updateSearchButton(loading) {
+      const icon = document.getElementById('searchIcon');
+      const text = document.getElementById('searchText');
+      const btn = document.getElementById('searchBtn');
+
+      if (loading) {
+        icon.innerHTML = '<div class="spinner"></div>';
+        text.textContent = 'Searching...';
+        btn.disabled = true;
+      } else {
+        icon.textContent = '🔍';
+        text.textContent = 'Search';
+        btn.disabled = false;
+      }
+    }
+
+    // Event listeners
+    document.getElementById('saveBtn').addEventListener('click', saveKnowledge);
+    document.getElementById('autoTagBtn').addEventListener('click', autoTag);
+    document.getElementById('searchBtn').addEventListener('click', searchKnowledge);
+    document.getElementById('clearSearchBtn').addEventListener('click', () => {
+      document.getElementById('searchInput').value = '';
+      displayKnowledge();
+    });
+
+    // Initialize
+    updateStats();
+    displayKnowledge();
+
+    // Add some demo data
+    setTimeout(async () => {
+      if (!state.db) await initializeDB();
+
+      const demoItems = [
+        { title: 'Machine Learning Basics', content: 'Machine learning is a subset of AI that enables systems to learn and improve from experience without being explicitly programmed.', tags: ['ml', 'ai'] },
+        { title: 'React Hooks Guide', content: 'Hooks let you use state and other React features without writing a class. useState and useEffect are the most common hooks.', tags: ['react', 'javascript'] },
+        { title: 'Vector Databases', content: 'Vector databases store and query high-dimensional vectors efficiently, enabling semantic search and similarity matching in AI applications.', tags: ['database', 'ai'] }
+      ];
+
+      for (const demo of demoItems) {
+        const embedding = await generateEmbedding(`${demo.title} ${demo.content}`);
+        const item = {
+          id: Date.now() + Math.random(),
+          ...demo,
+          date: new Date().toISOString(),
+          embedding
+        };
+
+        await state.db.insert({
+          embedding,
+          metadata: {
+            id: item.id,
+            title: item.title,
+            content: item.content,
+            tags: item.tags
+          }
+        });
+
+        state.items.push(item);
+        demo.tags.forEach(tag => state.tags.add(tag));
+      }
+
+      updateStats();
+      displayKnowledge();
+    }, 1000);
+  </script>
+</body>
+</html>

@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>K-Nearest Neighbors - AgentDB WASM Demo</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+      background: hsl(0 0% 12%);
+      color: hsl(0 0% 90%);
+      padding: 2rem;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      color: hsl(195 100% 60%);
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+    }
+
+    .subtitle {
+      color: hsl(0 0% 60%);
+      margin-bottom: 2rem;
+      font-size: 0.95rem;
+    }
+
+    .demo-grid {
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .card {
+      background: hsl(0 0% 15%);
+      border: 1px solid hsl(0 0% 25%);
+      border-radius: 16px;
+      padding: 1.5rem;
+      box-shadow: 0 6px 24px hsl(222 20% 0% / 0.24);
+    }
+
+    .card h2 {
+      color: hsl(195 100% 60%);
+      font-size: 1.2rem;
+      margin-bottom: 1rem;
+      font-weight: 600;
+    }
+
+    #canvas-container {
+      position: relative;
+      background: hsl(0 0% 10%);
+      border-radius: 8px;
+      overflow: hidden;
+      height: 500px;
+      cursor: crosshair;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    label {
+      color: hsl(0 0% 70%);
+      font-size: 0.9rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .value-display {
+      color: hsl(195 100% 60%);
+      font-weight: 600;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      height: 6px;
+      background: hsl(0 0% 25%);
+      border-radius: 8px;
+      outline: none;
+      -webkit-appearance: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      background: hsl(195 100% 60%);
+      border-radius: 50%;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      background: hsl(195 100% 70%);
+      transform: scale(1.1);
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      background: hsl(195 100% 60%);
+      border-radius: 50%;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+    }
+
+    .class-selector {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.5rem;
+    }
+
+    .class-btn {
+      background: hsl(0 0% 20%);
+      color: hsl(0 0% 90%);
+      border: 2px solid hsl(0 0% 30%);
+      border-radius: 8px;
+      padding: 0.75rem;
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .class-btn:hover {
+      border-color: hsl(0 0% 40%);
+      transform: translateY(-1px);
+    }
+
+    .class-btn.active {
+      border-color: hsl(195 100% 60%);
+      box-shadow: 0 0 12px hsl(195 100% 60% / 0.3);
+    }
+
+    .class-btn.class-a { background: hsl(210 100% 40%); }
+    .class-btn.class-b { background: hsl(340 100% 40%); }
+    .class-btn.class-c { background: hsl(150 60% 40%); }
+
+    button {
+      background: hsl(195 100% 60%);
+      color: hsl(0 0% 10%);
+      border: none;
+      border-radius: 8px;
+      padding: 0.75rem 1.5rem;
+      font-family: inherit;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    button:hover {
+      background: hsl(195 100% 70%);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px hsl(195 100% 60% / 0.3);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    button.secondary {
+      background: hsl(0 0% 25%);
+      color: hsl(0 0% 90%);
+    }
+
+    button.secondary:hover {
+      background: hsl(0 0% 30%);
+      box-shadow: 0 4px 12px hsl(0 0% 0% / 0.3);
+    }
+
+    button.danger {
+      background: hsl(0 70% 50%);
+      color: white;
+    }
+
+    button.danger:hover {
+      background: hsl(0 70% 60%);
+      box-shadow: 0 4px 12px hsl(0 70% 50% / 0.3);
+    }
+
+    .button-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    .metric-card {
+      background: hsl(0 0% 10%);
+      border-radius: 8px;
+      padding: 1rem;
+      border: 1px solid hsl(0 0% 20%);
+    }
+
+    .metric-label {
+      color: hsl(0 0% 60%);
+      font-size: 0.85rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .metric-value {
+      color: hsl(195 100% 60%);
+      font-size: 1.5rem;
+      font-weight: 600;
+    }
+
+    .info-section {
+      background: hsl(0 0% 18%);
+      border-radius: 8px;
+      padding: 1rem;
+      margin-top: 1rem;
+    }
+
+    .info-section h3 {
+      color: hsl(195 100% 60%);
+      font-size: 0.95rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .info-section ul {
+      list-style: none;
+      color: hsl(0 0% 70%);
+      font-size: 0.85rem;
+    }
+
+    .info-section li {
+      padding: 0.25rem 0;
+      padding-left: 1rem;
+      position: relative;
+    }
+
+    .info-section li:before {
+      content: "→";
+      position: absolute;
+      left: 0;
+      color: hsl(195 100% 60%);
+    }
+
+    .status {
+      color: hsl(0 0% 60%);
+      font-size: 0.85rem;
+      padding: 0.5rem;
+      background: hsl(0 0% 10%);
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .prediction-box {
+      background: hsl(0 0% 10%);
+      border-radius: 8px;
+      padding: 1rem;
+      text-align: center;
+      margin-top: 1rem;
+    }
+
+    .prediction-box .label {
+      color: hsl(0 0% 60%);
+      font-size: 0.85rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .prediction-box .result {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: hsl(195 100% 60%);
+    }
+
+    .legend {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 1rem;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.85rem;
+    }
+
+    .legend-color {
+      width: 16px;
+      height: 16px;
+      border-radius: 4px;
+    }
+
+    @media (max-width: 968px) {
+      .demo-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>K-Nearest Neighbors with AgentDB WASM</h1>
+    <p class="subtitle">Interactive classification demo with vector storage</p>
+
+    <div class="demo-grid">
+      <div class="card">
+        <h2>Visualization</h2>
+        <div id="canvas-container">
+          <canvas id="canvas"></canvas>
+        </div>
+        <div class="status" id="status">Select a class and click to add training points</div>
+        <div class="legend">
+          <div class="legend-item">
+            <div class="legend-color" style="background: hsl(210 100% 60%)"></div>
+            <span>Class A</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color" style="background: hsl(340 100% 60%)"></div>
+            <span>Class B</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color" style="background: hsl(150 60% 60%)"></div>
+            <span>Class C</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Controls</h2>
+        <div class="controls">
+          <div class="control-group">
+            <label>Select Class</label>
+            <div class="class-selector">
+              <button class="class-btn class-a active" data-class="a">Class A</button>
+              <button class="class-btn class-b" data-class="b">Class B</button>
+              <button class="class-btn class-c" data-class="c">Class C</button>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <label>
+              K Neighbors
+              <span class="value-display" id="k-value">3</span>
+            </label>
+            <input type="range" id="k-slider" min="1" max="15" step="1" value="3">
+          </div>
+
+          <div class="button-group">
+            <button id="test-mode-btn" class="secondary">Test Mode</button>
+            <button id="clear-btn" class="danger">Clear All</button>
+          </div>
+
+          <div class="prediction-box">
+            <div class="label">Last Prediction</div>
+            <div class="result" id="prediction-result">-</div>
+          </div>
+
+          <div class="metrics">
+            <div class="metric-card">
+              <div class="metric-label">Points</div>
+              <div class="metric-value" id="points-count">0</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Class A</div>
+              <div class="metric-value" id="class-a-count">0</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Class B</div>
+              <div class="metric-value" id="class-b-count">0</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">AgentDB</div>
+              <div class="metric-value" id="db-status">Init...</div>
+            </div>
+          </div>
+
+          <div class="info-section">
+            <h3>Use Cases</h3>
+            <ul>
+              <li>Recommendation systems</li>
+              <li>Pattern recognition</li>
+              <li>Anomaly detection</li>
+              <li>Document classification</li>
+            </ul>
+          </div>
+
+          <div class="info-section">
+            <h3>How to Use</h3>
+            <ul>
+              <li>Select a class (A, B, or C)</li>
+              <li>Click to add training points</li>
+              <li>Adjust K value</li>
+              <li>Use test mode to predict</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { SQLiteVectorDB } from "https://unpkg.com/agentdb@1.0.7/dist/agentdb.min.js";
+
+    let db = null;
+
+    async function initDB() {
+      try {
+        console.log('Initializing AgentDB v1.0.7 from CDN...');
+        db = new SQLiteVectorDB({ memoryMode: true, backend: "wasm" });
+        await db.initializeAsync();
+        document.getElementById('db-status').textContent = '✓';
+        document.getElementById('db-status').style.color = 'hsl(120 60% 60%)';
+        console.log('✅ AgentDB WASM v1.0.7 initialized');
+      } catch (error) {
+        console.error('AgentDB init error:', error);
+        document.getElementById('db-status').textContent = '✗';
+        document.getElementById('db-status').style.color = 'hsl(0 70% 60%)';
+      }
+    }
+
+    // Canvas setup
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const container = document.getElementById('canvas-container');
+
+    const resizeCanvas = () => {
+      const rect = container.getBoundingClientRect();
+      canvas.width = rect.width;
+      canvas.height = rect.height;
+      draw();
+    };
+
+    // Data and state
+    let points = [];
+    let currentClass = 'a';
+    let testMode = false;
+    let k = 3;
+
+    const classColors = {
+      a: { fill: 'hsl(210 100% 60%)', bg: 'hsl(210 100% 60% / 0.1)' },
+      b: { fill: 'hsl(340 100% 60%)', bg: 'hsl(340 100% 60% / 0.1)' },
+      c: { fill: 'hsl(150 60% 60%)', bg: 'hsl(150 60% 60% / 0.1)' }
+    };
+
+    // UI elements
+    const classButtons = document.querySelectorAll('.class-btn');
+    const kSlider = document.getElementById('k-slider');
+    const kValue = document.getElementById('k-value');
+    const testModeBtn = document.getElementById('test-mode-btn');
+    const clearBtn = document.getElementById('clear-btn');
+    const status = document.getElementById('status');
+
+    // Event listeners
+    classButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        classButtons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentClass = btn.dataset.class;
+        if (!testMode) {
+          status.textContent = `Click to add Class ${currentClass.toUpperCase()} points`;
+        }
+      });
+    });
+
+    kSlider.addEventListener('input', (e) => {
+      k = parseInt(e.target.value);
+      kValue.textContent = k;
+      draw();
+    });
+
+    testModeBtn.addEventListener('click', () => {
+      testMode = !testMode;
+      testModeBtn.textContent = testMode ? 'Training Mode' : 'Test Mode';
+      testModeBtn.classList.toggle('secondary');
+      status.textContent = testMode
+        ? 'Click anywhere to test prediction'
+        : `Click to add Class ${currentClass.toUpperCase()} points`;
+      canvas.style.cursor = testMode ? 'pointer' : 'crosshair';
+    });
+
+    clearBtn.addEventListener('click', () => {
+      points = [];
+      updateMetrics();
+      draw();
+      document.getElementById('prediction-result').textContent = '-';
+      status.textContent = 'All data cleared';
+    });
+
+    canvas.addEventListener('click', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / canvas.width;
+      const y = (e.clientY - rect.top) / canvas.height;
+
+      if (testMode) {
+        // Predict
+        const prediction = predict(x, y);
+        document.getElementById('prediction-result').textContent =
+          `Class ${prediction.class.toUpperCase()} (${(prediction.confidence * 100).toFixed(1)}%)`;
+
+        // Temporarily show test point
+        drawTestPoint(x, y, prediction.neighbors);
+
+        status.textContent = `Predicted: Class ${prediction.class.toUpperCase()}`;
+      } else {
+        // Add training point
+        points.push({ x, y, class: currentClass });
+        updateMetrics();
+        draw();
+
+        // Store in AgentDB
+        if (db) {
+          const vector = [x, y, currentClass === 'a' ? 1 : 0, currentClass === 'b' ? 1 : 0, currentClass === 'c' ? 1 : 0];
+          db.insert({
+            embedding: vector,
+            metadata: { type: 'training', class: currentClass, timestamp: Date.now() }
+          }).catch(console.error);
+        }
+
+        status.textContent = `Added Class ${currentClass.toUpperCase()} point (${points.length} total)`;
+      }
+    });
+
+    // KNN prediction
+    function predict(x, y) {
+      if (points.length === 0) {
+        return { class: 'a', confidence: 0, neighbors: [] };
+      }
+
+      // Calculate distances
+      const distances = points.map(point => ({
+        point,
+        distance: Math.sqrt(Math.pow(point.x - x, 2) + Math.pow(point.y - y, 2))
+      }));
+
+      // Get k nearest neighbors
+      distances.sort((a, b) => a.distance - b.distance);
+      const neighbors = distances.slice(0, Math.min(k, distances.length));
+
+      // Vote
+      const votes = { a: 0, b: 0, c: 0 };
+      neighbors.forEach(n => votes[n.point.class]++);
+
+      // Find winner
+      const winner = Object.entries(votes).reduce((a, b) =>
+        votes[a[0]] > votes[b[0]] ? a : b
+      );
+
+      return {
+        class: winner[0],
+        confidence: winner[1] / neighbors.length,
+        neighbors: neighbors.map(n => n.point)
+      };
+    }
+
+    function updateMetrics() {
+      document.getElementById('points-count').textContent = points.length;
+      document.getElementById('class-a-count').textContent =
+        points.filter(p => p.class === 'a').length;
+      document.getElementById('class-b-count').textContent =
+        points.filter(p => p.class === 'b').length;
+
+      const classC = document.getElementById('class-b-count').parentElement;
+      classC.querySelector('.metric-label').textContent = 'Class C';
+      classC.querySelector('.metric-value').id = 'class-c-count';
+      document.getElementById('class-c-count').textContent =
+        points.filter(p => p.class === 'c').length;
+    }
+
+    // Draw function
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Draw decision boundaries (voronoi-style)
+      if (points.length > 0 && k > 0) {
+        const step = 10;
+        ctx.globalAlpha = 0.15;
+
+        for (let x = 0; x < canvas.width; x += step) {
+          for (let y = 0; y < canvas.height; y += step) {
+            const prediction = predict(x / canvas.width, y / canvas.height);
+            ctx.fillStyle = classColors[prediction.class].fill;
+            ctx.fillRect(x, y, step, step);
+          }
+        }
+
+        ctx.globalAlpha = 1;
+      }
+
+      // Draw grid
+      ctx.strokeStyle = 'hsl(0 0% 20%)';
+      ctx.lineWidth = 1;
+
+      for (let i = 0; i <= 10; i++) {
+        const x = (i / 10) * canvas.width;
+        const y = (i / 10) * canvas.height;
+
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+      }
+
+      // Draw points
+      points.forEach(point => {
+        const px = point.x * canvas.width;
+        const py = point.y * canvas.height;
+
+        ctx.fillStyle = classColors[point.class].fill;
+        ctx.beginPath();
+        ctx.arc(px, py, 8, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = 'hsl(0 0% 10%)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      });
+    }
+
+    function drawTestPoint(x, y, neighbors) {
+      const px = x * canvas.width;
+      const py = y * canvas.height;
+
+      // Draw connections to neighbors
+      ctx.strokeStyle = 'hsl(195 100% 60% / 0.3)';
+      ctx.lineWidth = 2;
+      neighbors.forEach(neighbor => {
+        ctx.beginPath();
+        ctx.moveTo(px, py);
+        ctx.lineTo(neighbor.x * canvas.width, neighbor.y * canvas.height);
+        ctx.stroke();
+      });
+
+      // Draw test point
+      ctx.fillStyle = 'hsl(195 100% 60%)';
+      ctx.beginPath();
+      ctx.arc(px, py, 10, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = 'white';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      // Reset after 2 seconds
+      setTimeout(draw, 2000);
+    }
+
+    // Initialize
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+    initDB();
+    updateMetrics();
+  </script>
+</body>
+</html>

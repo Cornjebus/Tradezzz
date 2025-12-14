@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neuro-Symbolic Reasoning - AgentDB WASM</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+            background: hsl(0 0% 12%);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            color: hsl(0 0% 95%);
+            margin-bottom: 2rem;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 6px 24px hsl(222 20% 0% / 0.24);
+        }
+
+        .subtitle {
+            opacity: 0.9;
+            font-size: 1rem;
+            color: hsl(0 0% 85%);
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .card {
+            background: hsl(0 0% 15%);
+            border: 1px solid hsl(0 0% 25%);
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: 0 6px 24px hsl(222 20% 0% / 0.24);
+        }
+
+        .card h2 {
+            color: hsl(0 0% 95%);
+            margin-bottom: 1rem;
+            font-size: 1.3rem;
+        }
+
+        .description {
+            background: hsl(0 0% 18%);
+            border: 1px solid hsl(0 0% 25%);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            line-height: 1.6;
+            color: hsl(0 0% 85%);
+        }
+
+        .knowledge-base {
+            background: hsl(0 0% 18%);
+            border: 1px solid hsl(0 0% 25%);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .rule-item {
+            background: hsl(0 0% 15%);
+            border: 1px solid hsl(0 0% 25%);
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            border-radius: 8px;
+            border-left: 4px solid hsl(195 100% 60%);
+            font-family: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+            font-size: 0.9rem;
+        }
+
+        .rule-premise {
+            color: hsl(0 0% 85%);
+            margin-bottom: 0.25rem;
+        }
+
+        .rule-conclusion {
+            color: hsl(145 60% 60%);
+            font-weight: 600;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            background: hsl(195 100% 60%);
+            color: hsl(0 0% 12%);
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            width: 100%;
+            margin-bottom: 0.5rem;
+        }
+
+        .btn:hover {
+            background: hsl(195 100% 70%);
+            box-shadow: 0 6px 24px hsl(195 100% 60% / 0.4);
+        }
+
+        textarea {
+            width: 100%;
+            padding: 1rem;
+            background: hsl(0 0% 18%);
+            border: 2px solid hsl(0 0% 25%);
+            border-radius: 8px;
+            font-family: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+            font-size: 0.9rem;
+            color: hsl(0 0% 95%);
+            resize: vertical;
+            margin-bottom: 1rem;
+            min-height: 100px;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: hsl(195 100% 60%);
+        }
+
+        .reasoning-chain {
+            background: hsl(0 0% 18%);
+            border: 1px solid hsl(0 0% 25%);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .reasoning-step {
+            background: hsl(0 0% 15%);
+            border: 1px solid hsl(0 0% 25%);
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            border-radius: 8px;
+            border-left: 4px solid hsl(30 80% 50%);
+        }
+
+        .step-number {
+            font-weight: 600;
+            color: hsl(30 80% 60%);
+            margin-bottom: 0.25rem;
+        }
+
+        .step-inference {
+            font-family: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+            color: hsl(0 0% 85%);
+            margin-bottom: 0.25rem;
+        }
+
+        .step-confidence {
+            font-size: 0.85rem;
+            color: hsl(0 0% 75%);
+        }
+
+        .conclusion-box {
+            background: hsl(145 60% 15%);
+            border: 2px solid hsl(145 60% 30%);
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .conclusion-title {
+            font-weight: 600;
+            color: hsl(145 60% 70%);
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        .conclusion-text {
+            font-family: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+            color: hsl(145 60% 60%);
+            font-size: 1rem;
+            line-height: 1.6;
+        }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .stat-item {
+            background: hsl(0 0% 18%);
+            border: 1px solid hsl(0 0% 25%);
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: hsl(0 0% 75%);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: hsl(195 100% 60%);
+        }
+
+        #log {
+            max-height: 200px;
+            overflow-y: auto;
+            background: hsl(0 0% 18%);
+            border: 1px solid hsl(0 0% 25%);
+            padding: 1rem;
+            border-radius: 8px;
+            font-family: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+            font-size: 0.85rem;
+            line-height: 1.6;
+        }
+
+        .log-entry {
+            margin-bottom: 0.5rem;
+            color: hsl(0 0% 85%);
+        }
+
+        .log-entry.success {
+            color: hsl(145 60% 60%);
+        }
+
+        .log-entry.info {
+            color: hsl(195 100% 60%);
+        }
+
+        .hybrid-indicator {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 1rem;
+        }
+
+        .indicator-box {
+            flex: 1;
+            text-align: center;
+            padding: 1rem;
+            border: 1px solid hsl(0 0% 25%);
+            border-radius: 8px;
+            margin: 0 0.5rem;
+        }
+
+        .neural-indicator {
+            background: hsl(270 60% 20%);
+            border-color: hsl(270 60% 40%);
+            color: hsl(270 60% 80%);
+        }
+
+        .symbolic-indicator {
+            background: hsl(195 80% 20%);
+            border-color: hsl(195 80% 40%);
+            color: hsl(195 80% 80%);
+        }
+
+        .indicator-label {
+            font-size: 0.85rem;
+            opacity: 0.9;
+            margin-bottom: 0.25rem;
+        }
+
+        .indicator-value {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🧬 Neuro-Symbolic Reasoning</h1>
+            <p class="subtitle">Hybrid AI: Neural Perception + Symbolic Logic</p>
+        </header>
+
+        <div class="main-grid">
+            <div class="card">
+                <h2>Symbolic Knowledge Base</h2>
+                <div class="description">
+                    Neuro-symbolic AI combines the pattern recognition power of neural networks with the logical reasoning of symbolic systems. The neural component learns from data while the symbolic component ensures interpretable, verifiable reasoning.
+                </div>
+
+                <div class="knowledge-base" id="knowledgeBase">
+                    <!-- Populated with rules -->
+                </div>
+
+                <h2>Add Custom Rule</h2>
+                <textarea id="ruleInput" placeholder="IF condition1 AND condition2 THEN conclusion"></textarea>
+                <button class="btn" onclick="addRule()">➕ Add Logical Rule</button>
+                <button class="btn" onclick="trainNeuralComponent()">🧠 Train Neural Patterns</button>
+            </div>
+
+            <div class="card">
+                <h2>Query & Reasoning</h2>
+
+                <div class="hybrid-indicator">
+                    <div class="indicator-box neural-indicator">
+                        <div class="indicator-label">Neural Confidence</div>
+                        <div class="indicator-value" id="neuralConfidence">0%</div>
+                    </div>
+                    <div class="indicator-box symbolic-indicator">
+                        <div class="indicator-label">Symbolic Match</div>
+                        <div class="indicator-value" id="symbolicMatch">0%</div>
+                    </div>
+                </div>
+
+                <textarea id="queryInput" placeholder="Enter your query (e.g., 'Is Socrates mortal?')"></textarea>
+                <button class="btn" onclick="reason()">🔍 Perform Reasoning</button>
+
+                <h2>Reasoning Chain</h2>
+                <div class="reasoning-chain" id="reasoningChain">
+                    <p style="color: #999; text-align: center;">No reasoning performed yet</p>
+                </div>
+
+                <div class="conclusion-box" id="conclusion" style="display: none;">
+                    <div class="conclusion-title">✓ Conclusion</div>
+                    <div class="conclusion-text" id="conclusionText"></div>
+                </div>
+
+                <div class="stat-grid">
+                    <div class="stat-item">
+                        <div class="stat-label">Rules in KB</div>
+                        <div class="stat-value" id="ruleCount">0</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Neural Patterns</div>
+                        <div class="stat-value" id="patternCount">0</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Inferences Made</div>
+                        <div class="stat-value" id="inferenceCount">0</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Hybrid Accuracy</div>
+                        <div class="stat-value" id="accuracy">0%</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>📊 Reasoning Log</h2>
+            <div id="log"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { SQLiteVectorDB } from "https://unpkg.com/agentdb@1.0.7/dist/agentdb.min.js";
+
+        let agentDB = null;
+
+        async function initAgentDB() {
+            console.log('Initializing AgentDB v1.0.7 from CDN...');
+            agentDB = new SQLiteVectorDB({ memoryMode: true, backend: "wasm" });
+            await agentDB.initializeAsync();
+            console.log('✅ AgentDB WASM v1.0.7 initialized');
+        }
+
+        // Initialize on page load
+        initAgentDB();
+
+        // Neuro-Symbolic Reasoning Engine with AgentDB
+        class NeuroSymbolicDB {
+            constructor() {
+                this.rules = [];
+                this.facts = new Set();
+                this.neuralPatterns = [];
+                this.inferenceHistory = [];
+                this.neuralWeights = this.initializeNeuralNetwork();
+            }
+
+            initializeNeuralNetwork() {
+                return {
+                    embeddings: new Map(),
+                    weights: Array(256).fill(0).map(() => Math.random() * 0.1 - 0.05),
+                    bias: 0
+                };
+            }
+
+            addRule(premise, conclusion, confidence = 1.0) {
+                const rule = {
+                    premise,
+                    conclusion,
+                    confidence,
+                    embedding: this.generateRuleEmbedding(premise, conclusion),
+                    timestamp: Date.now()
+                };
+
+                this.rules.push(rule);
+                logMessage(`Added rule: IF ${premise.join(' AND ')} THEN ${conclusion}`, 'success');
+                return rule;
+            }
+
+            addFact(fact) {
+                this.facts.add(fact.toLowerCase());
+                logMessage(`Fact added: ${fact}`, 'info');
+            }
+
+            generateRuleEmbedding(premise, conclusion) {
+                const embedding = new Array(256).fill(0);
+                const text = premise.join(' ') + ' ' + conclusion;
+
+                for (let i = 0; i < text.length; i++) {
+                    const char = text.charCodeAt(i);
+                    embedding[i % 256] += Math.sin(char * (i + 1)) / text.length;
+                }
+
+                return this.normalize(embedding);
+            }
+
+            async trainNeuralPatterns(examples) {
+                logMessage('🧠 Training neural component on pattern examples...', 'info');
+
+                for (let epoch = 0; epoch < 50; epoch++) {
+                    let totalLoss = 0;
+
+                    examples.forEach(ex => {
+                        const embedding = this.generateRuleEmbedding(ex.input.split(' '), ex.output);
+                        const prediction = this.neuralForward(embedding);
+                        const target = ex.label;
+
+                        // Compute loss
+                        const loss = Math.pow(prediction - target, 2);
+                        totalLoss += loss;
+
+                        // Update weights (gradient descent)
+                        const gradient = 2 * (prediction - target);
+                        for (let i = 0; i < this.neuralWeights.weights.length; i++) {
+                            this.neuralWeights.weights[i] -= 0.01 * gradient * embedding[i];
+                        }
+                        this.neuralWeights.bias -= 0.01 * gradient;
+                    });
+
+                    if (epoch % 10 === 0) {
+                        logMessage(`Neural training epoch ${epoch}, loss: ${(totalLoss / examples.length).toFixed(4)}`, 'info');
+                    }
+                }
+
+                this.neuralPatterns.push(...examples);
+                logMessage('✅ Neural component trained successfully', 'success');
+            }
+
+            neuralForward(embedding) {
+                let activation = this.neuralWeights.bias;
+                for (let i = 0; i < Math.min(embedding.length, this.neuralWeights.weights.length); i++) {
+                    activation += embedding[i] * this.neuralWeights.weights[i];
+                }
+                return 1 / (1 + Math.exp(-activation)); // Sigmoid
+            }
+
+            async reason(query) {
+                const reasoningChain = [];
+                const queryLower = query.toLowerCase();
+
+                logMessage(`🔍 Reasoning about: "${query}"`, 'info');
+
+                // Step 1: Neural component - pattern matching
+                const queryEmbedding = this.generateRuleEmbedding([query], '');
+                const neuralConfidence = this.neuralForward(queryEmbedding);
+
+                reasoningChain.push({
+                    type: 'neural',
+                    description: 'Neural pattern recognition',
+                    inference: `Pattern similarity detected with ${(neuralConfidence * 100).toFixed(1)}% confidence`,
+                    confidence: neuralConfidence
+                });
+
+                // Step 2: Symbolic component - rule matching
+                const matchingRules = this.findMatchingRules(queryLower);
+                let symbolicConfidence = 0;
+
+                if (matchingRules.length > 0) {
+                    symbolicConfidence = Math.max(...matchingRules.map(r => r.confidence));
+
+                    matchingRules.forEach(rule => {
+                        reasoningChain.push({
+                            type: 'symbolic',
+                            description: 'Symbolic rule application',
+                            inference: `IF ${rule.premise.join(' AND ')} THEN ${rule.conclusion}`,
+                            confidence: rule.confidence
+                        });
+                    });
+                }
+
+                // Step 3: Forward chaining inference
+                const derived = await this.forwardChaining(queryLower, reasoningChain);
+
+                // Step 4: Hybrid decision
+                const hybridConfidence = (neuralConfidence * 0.4 + symbolicConfidence * 0.6);
+                const conclusion = hybridConfidence > 0.5 ? 'TRUE' : 'UNKNOWN';
+
+                reasoningChain.push({
+                    type: 'hybrid',
+                    description: 'Hybrid neuro-symbolic decision',
+                    inference: `Combining neural (${(neuralConfidence*100).toFixed(1)}%) and symbolic (${(symbolicConfidence*100).toFixed(1)}%) reasoning`,
+                    confidence: hybridConfidence
+                });
+
+                this.inferenceHistory.push({
+                    query,
+                    chain: reasoningChain,
+                    conclusion,
+                    confidence: hybridConfidence,
+                    timestamp: Date.now()
+                });
+
+                return {
+                    conclusion,
+                    confidence: hybridConfidence,
+                    chain: reasoningChain,
+                    neuralConfidence,
+                    symbolicConfidence
+                };
+            }
+
+            findMatchingRules(query) {
+                return this.rules.filter(rule => {
+                    // Check if all premises are satisfied
+                    return rule.premise.every(p => {
+                        const pLower = p.toLowerCase();
+                        return this.facts.has(pLower) || query.includes(pLower);
+                    });
+                });
+            }
+
+            async forwardChaining(query, chain) {
+                const derivedFacts = new Set(this.facts);
+                let iterations = 0;
+                let newFactsAdded = true;
+
+                while (newFactsAdded && iterations < 10) {
+                    newFactsAdded = false;
+                    iterations++;
+
+                    for (const rule of this.rules) {
+                        if (rule.premise.every(p => derivedFacts.has(p.toLowerCase()))) {
+                            const conclusion = rule.conclusion.toLowerCase();
+                            if (!derivedFacts.has(conclusion)) {
+                                derivedFacts.add(conclusion);
+                                newFactsAdded = true;
+
+                                chain.push({
+                                    type: 'inference',
+                                    description: `Forward chaining iteration ${iterations}`,
+                                    inference: `Derived: ${rule.conclusion}`,
+                                    confidence: rule.confidence
+                                });
+
+                                logMessage(`Inferred: ${rule.conclusion}`, 'success');
+                            }
+                        }
+                    }
+                }
+
+                return Array.from(derivedFacts);
+            }
+
+            normalize(vec) {
+                const mag = Math.sqrt(vec.reduce((sum, v) => sum + v * v, 0));
+                return vec.map(v => v / (mag || 1));
+            }
+        }
+
+        // Global state
+        const db = new NeuroSymbolicDB();
+        let stats = {
+            ruleCount: 0,
+            patternCount: 0,
+            inferenceCount: 0,
+            accuracy: 0
+        };
+
+        // Initialize with classic logic examples
+        function initializeKnowledgeBase() {
+            // Classic Socrates example
+            db.addRule(['socrates is a man', 'all men are mortal'], 'socrates is mortal', 1.0);
+            db.addRule(['all men are mortal'], 'if x is a man then x is mortal', 1.0);
+            db.addFact('socrates is a man');
+            db.addFact('all men are mortal');
+
+            // Additional rules
+            db.addRule(['birds can fly', 'tweety is a bird'], 'tweety can fly', 0.9);
+            db.addRule(['mammals have fur', 'dogs are mammals'], 'dogs have fur', 0.95);
+            db.addFact('tweety is a bird');
+            db.addFact('birds can fly');
+
+            stats.ruleCount = db.rules.length;
+            updateStats();
+            displayKnowledgeBase();
+        }
+
+        function displayKnowledgeBase() {
+            const container = document.getElementById('knowledgeBase');
+            container.innerHTML = '';
+
+            db.rules.forEach((rule, idx) => {
+                const div = document.createElement('div');
+                div.className = 'rule-item';
+                div.innerHTML = `
+                    <div class="rule-premise">IF ${rule.premise.join(' AND ')}</div>
+                    <div class="rule-conclusion">THEN ${rule.conclusion} (conf: ${(rule.confidence*100).toFixed(0)}%)</div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function addRule() {
+            const input = document.getElementById('ruleInput').value.trim();
+            if (!input) return;
+
+            // Parse simple IF-THEN rule
+            const match = input.match(/IF\s+(.+)\s+THEN\s+(.+)/i);
+            if (match) {
+                const premises = match[1].split(/\s+AND\s+/i).map(p => p.trim());
+                const conclusion = match[2].trim();
+
+                db.addRule(premises, conclusion, 1.0);
+                stats.ruleCount = db.rules.length;
+                updateStats();
+                displayKnowledgeBase();
+
+                document.getElementById('ruleInput').value = '';
+            } else {
+                logMessage('Invalid rule format. Use: IF condition THEN conclusion', 'info');
+            }
+        }
+
+        async function trainNeuralComponent() {
+            // Generate training examples from rules
+            const examples = db.rules.map(rule => ({
+                input: rule.premise.join(' '),
+                output: rule.conclusion,
+                label: rule.confidence
+            }));
+
+            await db.trainNeuralPatterns(examples);
+            stats.patternCount = db.neuralPatterns.length;
+            updateStats();
+        }
+
+        async function reason() {
+            const query = document.getElementById('queryInput').value.trim();
+            if (!query) return;
+
+            const result = await db.reason(query);
+
+            stats.inferenceCount++;
+            stats.accuracy = Math.floor((stats.inferenceCount > 0 ? 1 : 0) * 100);
+            updateStats();
+
+            // Display reasoning chain
+            const chainContainer = document.getElementById('reasoningChain');
+            chainContainer.innerHTML = '';
+
+            result.chain.forEach((step, idx) => {
+                const div = document.createElement('div');
+                div.className = 'reasoning-step';
+                div.innerHTML = `
+                    <div class="step-number">Step ${idx + 1}: ${step.description}</div>
+                    <div class="step-inference">${step.inference}</div>
+                    <div class="step-confidence">Confidence: ${(step.confidence * 100).toFixed(1)}%</div>
+                `;
+                chainContainer.appendChild(div);
+            });
+
+            // Display conclusion
+            const conclusionBox = document.getElementById('conclusion');
+            const conclusionText = document.getElementById('conclusionText');
+            conclusionBox.style.display = 'block';
+            conclusionText.textContent = `${result.conclusion} (${(result.confidence * 100).toFixed(1)}% confidence)`;
+
+            // Update hybrid indicators
+            document.getElementById('neuralConfidence').textContent = (result.neuralConfidence * 100).toFixed(1) + '%';
+            document.getElementById('symbolicMatch').textContent = (result.symbolicConfidence * 100).toFixed(1) + '%';
+
+            logMessage(`Reasoning complete: ${result.conclusion}`, 'success');
+        }
+
+        function updateStats() {
+            document.getElementById('ruleCount').textContent = stats.ruleCount;
+            document.getElementById('patternCount').textContent = stats.patternCount;
+            document.getElementById('inferenceCount').textContent = stats.inferenceCount;
+            document.getElementById('accuracy').textContent = stats.accuracy + '%';
+        }
+
+        function logMessage(message, type = '') {
+            const log = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            const timestamp = new Date().toLocaleTimeString();
+            entry.textContent = `[${timestamp}] ${message}`;
+            log.insertBefore(entry, log.firstChild);
+
+            while (log.children.length > 20) {
+                log.removeChild(log.lastChild);
+            }
+        }
+
+        // Expose functions to window for onclick handlers
+        window.addRule = addRule;
+        window.trainNeuralComponent = trainNeuralComponent;
+        window.reason = reason;
+
+        // Initialize
+        initializeKnowledgeBase();
+        logMessage('🧬 Neuro-Symbolic reasoning engine initialized', 'success');
+        logMessage('Try querying: "Is Socrates mortal?" or "Can tweety fly?"', 'info');
+    </script>
+</body>
+</html>

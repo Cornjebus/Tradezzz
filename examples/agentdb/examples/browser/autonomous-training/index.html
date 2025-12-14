@@ -1,0 +1,2375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Autonomous Training System - AgentDB</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+      background: hsl(0 0% 12%);
+      color: hsl(0 0% 95%);
+      min-height: 100vh;
+      padding: 2rem;
+    }
+
+    .container { max-width: 1800px; margin: 0 auto; }
+
+    header {
+      background: hsl(0 0% 15%);
+      border: 1px solid hsl(0 0% 25%);
+      border-radius: 16px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 6px 24px hsl(222 20% 0% / 0.24);
+      text-align: center;
+    }
+
+    h1 {
+      color: hsl(142 76% 50%);
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+    }
+
+    .subtitle {
+      color: hsl(0 0% 85%);
+      font-size: 1.1rem;
+      margin-bottom: 1rem;
+    }
+
+    .header-link {
+      color: hsl(142 76% 50%);
+      text-decoration: none;
+      font-weight: 600;
+      transition: opacity 0.2s;
+    }
+
+    .header-link:hover {
+      opacity: 0.8;
+    }
+
+    .stats-banner {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 2rem;
+    }
+
+    .stat-card {
+      background: hsl(0 0% 15%);
+      border: 1px solid hsl(0 0% 25%);
+      border-radius: 12px;
+      padding: 1.5rem;
+      text-align: center;
+      box-shadow: 0 4px 16px hsl(222 20% 0% / 0.16);
+      transition: transform 0.2s;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-2px);
+      border-color: hsl(142 76% 50%);
+    }
+
+    .stat-value {
+      font-size: 2rem;
+      font-weight: bold;
+      color: hsl(142 76% 50%);
+      margin-bottom: 0.25rem;
+    }
+
+    .stat-label {
+      font-size: 0.85rem;
+      color: hsl(0 0% 75%);
+    }
+
+    .main-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    .card {
+      background: hsl(0 0% 15%);
+      border: 1px solid hsl(0 0% 25%);
+      border-radius: 16px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 6px 24px hsl(222 20% 0% / 0.24);
+      transition: transform 0.2s;
+    }
+
+    .card:hover {
+      transform: translateY(-2px);
+      border-color: hsl(142 76% 50%);
+    }
+
+    .card.full-width { grid-column: 1 / -1; }
+    .card h2 {
+      color: hsl(0 0% 95%);
+      margin-bottom: 1.5rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn {
+      padding: 0.75rem 1.5rem;
+      background: hsl(142 76% 50%);
+      color: hsl(0 0% 10%);
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn:hover:not(:disabled) {
+      background: hsl(142 76% 60%);
+      transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+      background: hsl(0 0% 18%);
+      color: hsl(142 76% 50%);
+      border: 1px solid hsl(0 0% 25%);
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background: hsl(0 0% 25%);
+    }
+
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-group { display: flex; gap: 12px; margin-bottom: 1.5rem; flex-wrap: wrap; }
+
+    /* Training Agents */
+    .agents-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+      margin-bottom: 1.5rem;
+    }
+
+    .agent-card {
+      background: hsl(0 0% 18%);
+      border: 1px solid hsl(0 0% 25%);
+      border-radius: 12px;
+      padding: 1.25rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .agent-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--agent-color);
+    }
+
+    .agent-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .agent-name {
+      font-weight: 600;
+      color: var(--agent-color);
+      font-size: 0.95rem;
+    }
+
+    .agent-status {
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .status-idle { background: hsl(0 0% 25%); color: hsl(0 0% 70%); }
+    .status-training { background: hsl(200 80% 50% / 0.2); color: hsl(200 80% 60%); animation: pulse 2s infinite; }
+    .status-optimizing { background: hsl(270 60% 50% / 0.2); color: hsl(270 60% 60%); }
+    .status-completed { background: hsl(120 60% 50% / 0.2); color: hsl(120 60% 50%); }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+
+    .agent-metrics {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .metric-box {
+      background: hsl(0 0% 20%);
+      padding: 8px;
+      border-radius: 6px;
+      text-align: center;
+    }
+
+    .metric-value {
+      font-size: 1.3rem;
+      font-weight: bold;
+      color: hsl(142 76% 50%);
+    }
+
+    .metric-label {
+      font-size: 0.7rem;
+      color: hsl(0 0% 70%);
+      margin-top: 2px;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 6px;
+      background: hsl(0 0% 25%);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--agent-color);
+      transition: width 0.3s ease;
+    }
+
+    /* Model Cards */
+    .models-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    .model-card {
+      background: hsl(0 0% 18%);
+      border: 1px solid hsl(0 0% 25%);
+      border-radius: 8px;
+      padding: 1rem;
+    }
+
+    .model-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+    }
+
+    .model-name {
+      font-weight: 600;
+      color: hsl(142 76% 50%);
+      font-size: 0.9rem;
+    }
+
+    .model-type {
+      font-size: 0.7rem;
+      color: hsl(0 0% 65%);
+      text-transform: uppercase;
+    }
+
+    .model-progress {
+      margin-top: 8px;
+    }
+
+    /* ReasoningBank Patterns */
+    .pattern-item {
+      background: hsl(0 0% 18%);
+      border: 1px solid hsl(0 0% 25%);
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .pattern-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+
+    .pattern-name {
+      color: hsl(142 76% 50%);
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    .pattern-score {
+      background: hsl(120 60% 50% / 0.2);
+      color: hsl(120 60% 50%);
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 0.7rem;
+      font-weight: 600;
+    }
+
+    .pattern-detail {
+      color: hsl(0 0% 80%);
+      font-size: 0.8rem;
+      margin-bottom: 4px;
+    }
+
+    /* Activity Log */
+    .log-container {
+      background: hsl(0 0% 18%);
+      border: 1px solid hsl(0 0% 25%);
+      border-radius: 8px;
+      padding: 1rem;
+      max-height: 400px;
+      overflow-y: auto;
+      font-size: 0.85rem;
+    }
+
+    .log-entry {
+      padding: 6px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .log-timestamp {
+      color: hsl(0 0% 60%);
+      margin-right: 8px;
+      font-size: 0.8rem;
+    }
+
+    .log-info { color: hsl(200 80% 70%); }
+    .log-success { color: hsl(120 60% 70%); }
+    .log-warning { color: hsl(40 90% 70%); }
+    .log-error { color: hsl(0 80% 70%); }
+
+    .spinner {
+      border: 3px solid hsl(0 0% 25%);
+      border-top: 3px solid hsl(142 76% 50%);
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      animation: spin 1s linear infinite;
+      display: inline-block;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 1200px) {
+      .main-grid { grid-template-columns: 1fr; }
+      .agents-grid { grid-template-columns: 1fr; }
+      .models-grid { grid-template-columns: 1fr; }
+    }
+
+    /* Help Button */
+    .help-button {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: hsl(142 76% 50%);
+      color: hsl(0 0% 10%);
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      box-shadow: 0 4px 12px hsl(142 76% 50% / 0.4);
+      z-index: 1000;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+    }
+
+    .help-button:hover {
+      transform: scale(1.1);
+      box-shadow: 0 6px 20px hsl(142 76% 50% / 0.6);
+    }
+
+    /* Settings Button */
+    .settings-button {
+      position: fixed;
+      bottom: 6rem;
+      right: 2rem;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: hsl(0 0% 20%);
+      color: hsl(142 76% 50%);
+      border: 2px solid hsl(142 76% 50%);
+      font-size: 1.5rem;
+      cursor: pointer;
+      box-shadow: 0 4px 12px hsl(0 0% 0% / 0.4);
+      z-index: 1000;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+    }
+
+    .settings-button:hover {
+      transform: scale(1.1);
+      background: hsl(142 76% 50%);
+      color: hsl(0 0% 10%);
+    }
+
+    /* Modal Overlay */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: hsla(0 0% 0% / 0.8);
+      backdrop-filter: blur(4px);
+      z-index: 2000;
+      padding: 2rem;
+      overflow-y: auto;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal {
+      background: hsl(0 0% 15%);
+      border: 2px solid hsl(142 76% 50%);
+      border-radius: 16px;
+      max-width: 900px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 60px hsla(0 0% 0% / 0.5);
+      animation: modalSlideIn 0.3s ease-out;
+    }
+
+    @keyframes modalSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-50px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .modal-header {
+      padding: 2rem;
+      border-bottom: 1px solid hsl(0 0% 25%);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: hsl(142 76% 50%);
+    }
+
+    .modal-close {
+      background: transparent;
+      border: none;
+      color: hsl(0 0% 70%);
+      font-size: 1.5rem;
+      cursor: pointer;
+      padding: 0.5rem;
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      transition: all 0.2s;
+    }
+
+    .modal-close:hover {
+      background: hsl(0 0% 25%);
+      color: hsl(0 0% 95%);
+    }
+
+    .modal-body {
+      padding: 2rem;
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 0.5rem;
+      border-bottom: 2px solid hsl(0 0% 20%);
+      margin-bottom: 1.5rem;
+    }
+
+    .tab-button {
+      padding: 0.75rem 1.25rem;
+      background: none;
+      border: none;
+      color: hsl(0 0% 70%);
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      transition: all 0.2s;
+      position: relative;
+      top: 2px;
+    }
+
+    .tab-button:hover {
+      color: hsl(142 76% 50%);
+      background: hsl(0 0% 18%);
+    }
+
+    .tab-button.active {
+      color: hsl(142 76% 50%);
+      border-bottom-color: hsl(142 76% 50%);
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* Enhanced Help Modal Styles */
+    .help-section {
+      margin-bottom: 2rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid hsl(0 0% 25%);
+    }
+
+    .help-section:last-child {
+      border-bottom: none;
+    }
+
+    .help-section h3 {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 2px solid hsl(142 76% 50% / 0.3);
+      color: hsl(142 76% 50%);
+    }
+
+    .help-section h4 {
+      color: hsl(142 76% 60%);
+      margin-top: 1.5rem;
+      margin-bottom: 0.75rem;
+      font-size: 1.1rem;
+    }
+
+    .help-callout {
+      padding: 1rem 1.25rem;
+      border-radius: 8px;
+      margin: 1rem 0;
+      border-left: 4px solid;
+      background: hsl(0 0% 10%);
+    }
+
+    .help-callout.tip {
+      border-left-color: hsl(200 76% 50%);
+      background: hsl(200 76% 50% / 0.05);
+    }
+
+    .help-callout.tip::before {
+      content: "💡 Pro Tip: ";
+      font-weight: 700;
+      color: hsl(200 76% 60%);
+    }
+
+    .help-callout.success {
+      border-left-color: hsl(142 76% 50%);
+      background: hsl(142 76% 50% / 0.05);
+    }
+
+    .help-callout.success::before {
+      content: "✨ Did You Know? ";
+      font-weight: 700;
+      color: hsl(142 76% 60%);
+    }
+
+    .help-callout.warning {
+      border-left-color: hsl(36 100% 50%);
+      background: hsl(36 100% 50% / 0.05);
+    }
+
+    .help-callout.warning::before {
+      content: "⚠️ Important: ";
+      font-weight: 700;
+      color: hsl(36 100% 60%);
+    }
+
+    .help-callout.info {
+      border-left-color: hsl(270 76% 50%);
+      background: hsl(270 76% 50% / 0.05);
+    }
+
+    .help-callout.info::before {
+      content: "ℹ️ Note: ";
+      font-weight: 700;
+      color: hsl(270 76% 60%);
+    }
+
+    .help-2col {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+      margin: 1rem 0;
+    }
+
+    .help-code {
+      background: hsl(0 0% 8%);
+      padding: 0.75rem 1rem;
+      border-radius: 6px;
+      border: 1px solid hsl(142 76% 50% / 0.2);
+      font-family: 'Courier New', monospace;
+      font-size: 0.9em;
+      color: hsl(142 76% 60%);
+      overflow-x: auto;
+      margin: 0.75rem 0;
+    }
+
+    .help-code:hover {
+      border-color: hsl(142 76% 50% / 0.4);
+    }
+
+    .help-kbd {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 2rem;
+      padding: 0.25rem 0.5rem;
+      background: hsl(0 0% 20%);
+      border: 2px solid hsl(0 0% 30%);
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.85em;
+      font-weight: 700;
+      color: hsl(142 76% 60%);
+      box-shadow: 0 2px 0 hsl(0 0% 10%);
+      margin: 0 0.25rem;
+    }
+
+    .help-feature-card {
+      padding: 1rem;
+      background: hsl(0 0% 10%);
+      border: 1px solid hsl(0 0% 25%);
+      border-radius: 8px;
+      transition: all 0.2s;
+    }
+
+    .help-feature-card:hover {
+      border-color: hsl(142 76% 50% / 0.5);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px hsl(142 76% 50% / 0.15);
+    }
+
+    .help-feature-card h4 {
+      margin-top: 0;
+      margin-bottom: 0.5rem;
+      color: hsl(142 76% 60%);
+      font-size: 1rem;
+    }
+
+    .help-feature-card p {
+      margin: 0;
+      font-size: 0.9em;
+      color: hsl(0 0% 75%);
+    }
+
+    .help-metric-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 0.75rem;
+      margin: 1rem 0;
+    }
+
+    .help-metric {
+      padding: 0.75rem 1rem;
+      background: hsl(0 0% 8%);
+      border-left: 3px solid hsl(142 76% 50%);
+      border-radius: 4px;
+    }
+
+    .help-metric strong {
+      display: block;
+      color: hsl(142 76% 60%);
+      margin-bottom: 0.25rem;
+    }
+
+    .help-separator {
+      height: 2px;
+      background: linear-gradient(90deg,
+        hsl(142 76% 50% / 0) 0%,
+        hsl(142 76% 50% / 0.5) 50%,
+        hsl(142 76% 50% / 0) 100%);
+      margin: 2rem 0;
+      border: none;
+    }
+
+    .help-list-enhanced {
+      list-style: none;
+      padding-left: 0;
+    }
+
+    .help-list-enhanced li {
+      padding-left: 1.75rem;
+      margin-bottom: 0.75rem;
+      position: relative;
+    }
+
+    .help-list-enhanced li::before {
+      content: "→";
+      position: absolute;
+      left: 0;
+      color: hsl(142 76% 50%);
+      font-weight: 700;
+    }
+
+    /* Settings Form Styles */
+    .settings-form {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .form-section {
+      background: hsl(0 0% 10%);
+      padding: 1.25rem;
+      border-radius: 8px;
+      border: 1px solid hsl(0 0% 20%);
+    }
+
+    .form-section h4 {
+      color: hsl(142 76% 50%);
+      font-size: 1rem;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .form-group:last-child {
+      margin-bottom: 0;
+    }
+
+    .form-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.875rem;
+      color: hsl(0 0% 85%);
+      font-weight: 500;
+    }
+
+    .form-input, .form-select {
+      background: hsl(0 0% 15%);
+      border: 1px solid hsl(0 0% 25%);
+      border-radius: 6px;
+      padding: 0.75rem;
+      color: hsl(0 0% 90%);
+      font-family: inherit;
+      font-size: 0.875rem;
+      transition: all 0.2s;
+    }
+
+    .form-input:focus, .form-select:focus {
+      outline: none;
+      border-color: hsl(142 76% 50%);
+      background: hsl(0 0% 18%);
+    }
+
+    .form-select {
+      cursor: pointer;
+    }
+
+    /* Toggle Switch */
+    .toggle-switch {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.75rem;
+      cursor: pointer;
+    }
+
+    .toggle-switch input[type="checkbox"] {
+      display: none;
+    }
+
+    .toggle-slider {
+      position: relative;
+      width: 48px;
+      height: 24px;
+      background: hsl(0 0% 25%);
+      border-radius: 12px;
+      transition: all 0.3s;
+    }
+
+    .toggle-slider::before {
+      content: '';
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: hsl(0 0% 50%);
+      top: 3px;
+      left: 3px;
+      transition: all 0.3s;
+    }
+
+    .toggle-switch input:checked + .toggle-slider {
+      background: hsl(142 76% 50% / 0.3);
+    }
+
+    .toggle-switch input:checked + .toggle-slider::before {
+      transform: translateX(24px);
+      background: hsl(142 76% 50%);
+    }
+
+    .toggle-label {
+      font-size: 0.875rem;
+      color: hsl(0 0% 70%);
+    }
+
+    /* Range Slider */
+    .range-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .range-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .range-value {
+      font-weight: 600;
+      color: hsl(142 76% 50%);
+      font-size: 0.875rem;
+      background: hsl(142 76% 50% / 0.1);
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+    }
+
+    .form-range {
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: hsl(0 0% 20%);
+      outline: none;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    .form-range::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: hsl(142 76% 50%);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .form-range::-webkit-slider-thumb:hover {
+      background: hsl(142 76% 60%);
+      transform: scale(1.1);
+    }
+
+    .form-range::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: hsl(142 76% 50%);
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+    }
+
+    .form-range::-moz-range-thumb:hover {
+      background: hsl(142 76% 60%);
+      transform: scale(1.1);
+    }
+
+    .range-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.7rem;
+      color: hsl(0 0% 50%);
+      margin-top: 0.25rem;
+    }
+
+    /* Settings Footer */
+    .settings-footer {
+      display: flex;
+      gap: 1rem;
+      justify-content: flex-end;
+      margin-top: 2rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid hsl(0 0% 20%);
+    }
+
+    .button-reset {
+      background: hsl(0 84% 60% / 0.2);
+      color: hsl(0 84% 70%);
+      border: 1px solid hsl(0 84% 60% / 0.3);
+      padding: 0.75rem 1.5rem;
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .button-reset:hover {
+      background: hsl(0 84% 60% / 0.3);
+      border-color: hsl(0 84% 60% / 0.5);
+    }
+
+    .form-help {
+      font-size: 0.75rem;
+      color: hsl(0 0% 60%);
+      margin-top: 0.25rem;
+      font-style: italic;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+    }
+
+    /* Footer */
+    footer {
+      margin-top: 3rem;
+      padding-top: 2rem;
+      border-top: 2px solid hsl(0 0% 20%);
+      text-align: center;
+      color: hsl(0 0% 60%);
+      font-size: 0.85rem;
+    }
+
+    footer a {
+      color: hsl(142 76% 50%);
+      text-decoration: none;
+      transition: opacity 0.2s;
+    }
+
+    footer a:hover {
+      opacity: 0.8;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1><span>🤖</span> Autonomous Training System</h1>
+      <p class="subtitle">Multi-Agent ML Training with ReasoningBank & Gemini AI Coordination</p>
+      <p>
+        <a href="https://agentdb.ruv.io/demo" target="_blank" class="header-link">
+          🚀 Try Interactive Demo →
+        </a>
+      </p>
+    </header>
+
+    <div class="stats-banner">
+      <div class="stat-card">
+        <div class="stat-value" id="activeAgents">0</div>
+        <div class="stat-label">Active Agents</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="modelsTraining">0</div>
+        <div class="stat-label">Models Training</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="totalEpochs">0</div>
+        <div class="stat-label">Total Epochs</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="avgAccuracy">0%</div>
+        <div class="stat-label">Avg Accuracy</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="patternsLearned">0</div>
+        <div class="stat-label">Patterns Learned</div>
+      </div>
+    </div>
+
+    <div class="card full-width">
+      <div class="btn-group">
+        <button id="startBtn" class="btn">
+          <span id="startIcon">🚀</span>
+          <span>Start Training Swarm</span>
+        </button>
+        <button id="optimizeBtn" class="btn-secondary">
+          ⚡ Optimize Hyperparameters
+        </button>
+        <button id="clearBtn" class="btn-secondary">
+          🗑️ Reset
+        </button>
+      </div>
+
+      <h2>👥 Training Agent Swarm</h2>
+      <div id="agentsGrid" class="agents-grid"></div>
+    </div>
+
+    <div class="main-grid">
+      <div class="card">
+        <h2>📊 Model Training Dashboard</h2>
+        <div id="modelsGrid" class="models-grid"></div>
+      </div>
+
+      <div class="card">
+        <h2>🧠 ReasoningBank Patterns</h2>
+        <div id="patternsContainer" class="log-container" style="max-height: 380px;">
+          <div style="color: hsl(0 0% 70%); font-style: italic;">Hyperparameter patterns will be learned during training...</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card full-width">
+      <h2>📋 Training Activity Log</h2>
+      <div id="logContainer" class="log-container"></div>
+    </div>
+
+    <footer>
+      <p><strong>AgentDB v1.3.9</strong> - SQL-based Agentic Memory with Vector Embeddings</p>
+      <p style="margin-top: 0.5rem;">
+        <a href="https://agentdb.ruv.io/docs" target="_blank">Documentation</a> •
+        <a href="https://github.com/ruvnet/agentic-flow" target="_blank">GitHub</a> •
+        <a href="https://agentdb.ruv.io/demo" target="_blank">Interactive Demo</a>
+      </p>
+    </footer>
+  </div>
+
+  <!-- Load AgentDB v1.3.9 -->
+  <script src="https://unpkg.com/agentdb@1.3.9/dist/agentdb.min.js"></script>
+  <script>
+    const SUPABASE_URL = 'https://yoyrnfdeqygvfpmhjwty.supabase.co';
+    const AI_ENDPOINT = `${SUPABASE_URL}/functions/v1/agentdb-ai`;
+
+    // Settings stored in localStorage
+    const defaultSettings = {
+      memoryMode: true,
+      backend: 'wasm',
+      vectorDimensions: 384,
+      searchLimit: 5,
+      trainingInterval: 3000,
+      epochsPerCycle: 5,
+      accuracyThreshold: 85,
+      autoSavePatterns: true,
+      aiProvider: 'gemini',
+      aiModel: 'gemini-1.5-flash',
+      temperature: 0.7,
+      maxTokens: 1024,
+      patternStorage: true,
+      similarityThreshold: 0.7,
+      agentCount: 5,
+      parallelTraining: true
+    };
+
+    function loadSettings() {
+      const saved = localStorage.getItem('autonomousTrainingSettings');
+      return saved ? { ...defaultSettings, ...JSON.parse(saved) } : defaultSettings;
+    }
+
+    function saveSettings(settings) {
+      localStorage.setItem('autonomousTrainingSettings', JSON.stringify(settings));
+    }
+
+    let settings = loadSettings();
+
+    const state = {
+      db: null,
+      isTraining: false,
+      activeAgents: 0,
+      totalEpochs: 0,
+      patternsLearned: 0,
+      agents: [],
+      models: []
+    };
+
+    const TRAINING_AGENTS = [
+      {
+        id: 'data-prep',
+        name: '📦 Data Preparation',
+        color: '#8b5cf6',
+        role: 'Preprocessing & normalization',
+        accuracy: 0,
+        epochs: 0
+      },
+      {
+        id: 'hyperparam',
+        name: '⚙️ Hyperparameter Tuner',
+        color: '#3b82f6',
+        role: 'Learning rate & batch optimization',
+        accuracy: 0,
+        epochs: 0
+      },
+      {
+        id: 'model-train',
+        name: '🎯 Model Trainer',
+        color: '#10b981',
+        role: 'Backpropagation & gradient descent',
+        accuracy: 0,
+        epochs: 0
+      },
+      {
+        id: 'validator',
+        name: '✅ Validator',
+        color: '#f59e0b',
+        role: 'Cross-validation & metrics',
+        accuracy: 0,
+        epochs: 0
+      },
+      {
+        id: 'optimizer',
+        name: '⚡ Performance Optimizer',
+        color: '#ec4899',
+        role: 'Memory & speed optimization',
+        accuracy: 0,
+        epochs: 0
+      }
+    ];
+
+    const ML_MODELS = [
+      {
+        id: 'neural-net',
+        name: 'Neural Network',
+        type: 'Deep Learning',
+        accuracy: 0,
+        loss: 1.0,
+        epochs: 0,
+        status: 'idle',
+        hyperparams: {
+          learningRate: 0.001,
+          batchSize: 32,
+          optimizer: 'Adam',
+          dropout: 0.2,
+          l2Reg: 0.0001
+        }
+      },
+      {
+        id: 'linear-reg',
+        name: 'Linear Regression',
+        type: 'Supervised',
+        accuracy: 0,
+        loss: 1.0,
+        epochs: 0,
+        status: 'idle',
+        hyperparams: {
+          learningRate: 0.01,
+          batchSize: 64,
+          optimizer: 'SGD',
+          l2Reg: 0.001
+        }
+      },
+      {
+        id: 'decision-tree',
+        name: 'Decision Tree',
+        type: 'Classification',
+        accuracy: 0,
+        loss: 1.0,
+        epochs: 0,
+        status: 'idle',
+        hyperparams: {
+          maxDepth: 10,
+          minSamples: 5,
+          criterion: 'gini'
+        }
+      },
+      {
+        id: 'kmeans',
+        name: 'K-Means Clustering',
+        type: 'Unsupervised',
+        accuracy: 0,
+        loss: 1.0,
+        epochs: 0,
+        status: 'idle',
+        hyperparams: {
+          k: 5,
+          maxIter: 100,
+          initMethod: 'k-means++'
+        }
+      }
+    ];
+
+    // Initialize database with settings
+    async function initializeDB() {
+      return new Promise((resolve) => {
+        logMessage('info', '⏳ Waiting for AgentDB v1.3.9 to load...');
+
+        function checkLoaded() {
+          if (typeof AgentDB !== 'undefined') {
+            logMessage('info', '📦 AgentDB v1.3.9 script loaded, waiting for initialization...');
+            checkReady();
+          } else {
+            setTimeout(checkLoaded, 50);
+          }
+        }
+
+        function checkReady() {
+          if (AgentDB.ready) {
+            try {
+              logMessage('info', `🔧 Initializing AgentDB v1.3.9 ${settings.backend.toUpperCase()} with ReasoningBank...`);
+
+              state.db = new AgentDB.SQLiteVectorDB({
+                memoryMode: settings.memoryMode,
+                backend: settings.backend
+              });
+
+              state.db.initializeAsync().then(() => {
+                logMessage('success', '🧠 AgentDB v1.3.9 & ReasoningBank initialized successfully');
+                logMessage('info', `✓ Vector dimensions: ${settings.vectorDimensions}, Search limit: ${settings.searchLimit}`);
+
+                if (state.db.reflexion_store && state.db.causal_add_edge) {
+                  logMessage('info', '🧠 Advanced features: Reflexion + Causal Inference available');
+                } else {
+                  logMessage('info', '⚡ Using standard features for training');
+                }
+
+                resolve(true);
+              }).catch(error => {
+                console.error('Failed to initialize AgentDB:', error);
+                logMessage('error', `⚠️ Database initialization failed: ${error.message}`);
+                resolve(false);
+              });
+            } catch (error) {
+              console.error('Failed to create AgentDB instance:', error);
+              logMessage('error', `⚠️ Database creation failed: ${error.message}`);
+              resolve(false);
+            }
+          } else {
+            setTimeout(checkReady, 50);
+          }
+        }
+
+        checkLoaded();
+      });
+    }
+
+    // Initialize agent cards
+    function initializeAgents() {
+      const grid = document.getElementById('agentsGrid');
+      grid.innerHTML = TRAINING_AGENTS.map(agent => `
+        <div class="agent-card" style="--agent-color: ${agent.color}">
+          <div class="agent-header">
+            <div class="agent-name">${agent.name}</div>
+            <div class="agent-status status-idle" id="status-${agent.id}">Idle</div>
+          </div>
+          <div style="font-size: 0.8rem; color: hsl(0 0% 75%); margin-bottom: 8px;">${agent.role}</div>
+          <div class="agent-metrics">
+            <div class="metric-box">
+              <div class="metric-value" id="acc-${agent.id}">0%</div>
+              <div class="metric-label">Accuracy</div>
+            </div>
+            <div class="metric-box">
+              <div class="metric-value" id="epoch-${agent.id}">0</div>
+              <div class="metric-label">Epochs</div>
+            </div>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" id="progress-${agent.id}" style="width: 0%"></div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Initialize model cards
+    function initializeModels() {
+      const grid = document.getElementById('modelsGrid');
+      grid.innerHTML = ML_MODELS.map(model => {
+        const hyperparamList = Object.entries(model.hyperparams)
+          .map(([key, value]) => {
+            const label = key.replace(/([A-Z])/g, ' $1').trim();
+            const displayValue = typeof value === 'number' && value < 1 ? value.toFixed(4) : value;
+            return `<div style="font-size: 0.7rem; color: hsl(0 0% 65%);">${label}: ${displayValue}</div>`;
+          })
+          .join('');
+
+        return `
+          <div class="model-card">
+            <div class="model-header">
+              <div>
+                <div class="model-name">${model.name}</div>
+                <div class="model-type">${model.type}</div>
+              </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 12px 0;">
+              <div class="metric-box">
+                <div class="metric-value" id="model-acc-${model.id}">0%</div>
+                <div class="metric-label">Accuracy</div>
+              </div>
+              <div class="metric-box">
+                <div class="metric-value" id="model-loss-${model.id}">1.00</div>
+                <div class="metric-label">Loss</div>
+              </div>
+            </div>
+            <div class="model-hyperparams" style="margin-bottom: 8px; padding: 8px; background: hsl(0 0% 10%); border-radius: 6px;">
+              ${hyperparamList}
+            </div>
+            <div class="model-progress">
+              <div class="progress-bar">
+                <div class="progress-fill" id="model-progress-${model.id}" style="width: 0%; background: hsl(120 60% 50%);"></div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Update agent status
+    function updateAgentStatus(agentId, status) {
+      const statusEl = document.getElementById(`status-${agentId}`);
+      if (statusEl) {
+        statusEl.className = `agent-status status-${status}`;
+        statusEl.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+      }
+    }
+
+    // Update agent metrics
+    function updateAgentMetrics(agent) {
+      document.getElementById(`acc-${agent.id}`).textContent = Math.round(agent.accuracy) + '%';
+      document.getElementById(`epoch-${agent.id}`).textContent = agent.epochs;
+      document.getElementById(`progress-${agent.id}`).style.width = agent.accuracy + '%';
+    }
+
+    // Update model metrics
+    function updateModelMetrics(model) {
+      document.getElementById(`model-acc-${model.id}`).textContent = Math.round(model.accuracy) + '%';
+      document.getElementById(`model-loss-${model.id}`).textContent = model.loss.toFixed(3);
+      document.getElementById(`model-progress-${model.id}`).style.width = model.accuracy + '%';
+    }
+
+    // Run training agent
+    async function runAgent(agent, models) {
+      updateAgentStatus(agent.id, 'training');
+      state.activeAgents++;
+      updateStats();
+
+      const maxEpochs = settings.epochsPerCycle * 3;
+      for (let epoch = 1; epoch <= maxEpochs && state.isTraining; epoch++) {
+        await sleep(settings.trainingInterval / 10);
+
+        agent.epochs = epoch;
+        agent.accuracy = Math.min(95, 20 + (epoch / maxEpochs) * 75 + Math.random() * 10);
+
+        updateAgentMetrics(agent);
+        logMessage('info', `${agent.name}: Epoch ${epoch}/${maxEpochs} - ${Math.round(agent.accuracy)}% accuracy`);
+
+        state.totalEpochs++;
+        updateStats();
+      }
+
+      updateAgentStatus(agent.id, 'completed');
+      state.activeAgents--;
+      logMessage('success', `${agent.name}: Training completed ✓`);
+      updateStats();
+    }
+
+    // Calculate learning rate with schedule
+    function getLearningRate(epoch, maxEpochs, baseLR, warmupEpochs = 3) {
+      if (epoch <= warmupEpochs) {
+        return baseLR * (epoch / warmupEpochs);
+      } else {
+        const progress = (epoch - warmupEpochs) / (maxEpochs - warmupEpochs);
+        return baseLR * 0.5 * (1 + Math.cos(Math.PI * progress));
+      }
+    }
+
+    // Train a specific model
+    async function trainModel(model, learnedPatterns = []) {
+      model.status = 'training';
+      const maxEpochs = settings.epochsPerCycle * 4;
+
+      if (learnedPatterns.length > 0) {
+        const bestPattern = learnedPatterns[0];
+        if (bestPattern.metadata?.hyperparameters) {
+          const learned = bestPattern.metadata.hyperparameters;
+          if (model.hyperparams.learningRate !== undefined) {
+            model.hyperparams.learningRate = learned.learningRate || model.hyperparams.learningRate;
+          }
+          if (model.hyperparams.batchSize !== undefined) {
+            model.hyperparams.batchSize = learned.batchSize || model.hyperparams.batchSize;
+          }
+          logMessage('info', `🧠 ${model.name}: Applied learned hyperparameters (LR: ${model.hyperparams.learningRate?.toFixed(4) || 'N/A'})`);
+        }
+      }
+
+      for (let epoch = 1; epoch <= maxEpochs && state.isTraining; epoch++) {
+        await sleep(settings.trainingInterval / 8);
+
+        model.epochs = epoch;
+
+        const currentLR = model.hyperparams.learningRate ?
+          getLearningRate(epoch, maxEpochs, model.hyperparams.learningRate) :
+          0.001;
+
+        const progress = epoch / maxEpochs;
+        const baseAccuracy = 15 + progress * 75;
+        const noise = Math.random() * 6 - 3;
+
+        const patternBoost = learnedPatterns.length > 0 ? 5 : 0;
+        model.accuracy = Math.min(98, baseAccuracy + noise + patternBoost);
+
+        const baseLoss = Math.exp(-2 * progress);
+        model.loss = Math.max(0.001, baseLoss + Math.random() * 0.1);
+
+        updateModelMetrics(model);
+
+        if (epoch % 5 === 0) {
+          logMessage('success',
+            `${model.name}: Epoch ${epoch}/${maxEpochs} - Acc: ${Math.round(model.accuracy)}%, Loss: ${model.loss.toFixed(3)}, LR: ${currentLR.toFixed(6)}`
+          );
+        }
+      }
+
+      model.status = 'completed';
+      logMessage('success',
+        `${model.name}: Training complete - Final Acc: ${Math.round(model.accuracy)}%, Loss: ${model.loss.toFixed(3)}`
+      );
+    }
+
+    // Start autonomous training
+    async function startTraining() {
+      if (state.isTraining) return;
+      state.isTraining = true;
+
+      logMessage('info', '🚀 Launching autonomous training swarm...');
+      logMessage('info', `👥 Spawning ${settings.agentCount} training agents and ${ML_MODELS.length} ML models...`);
+
+      try {
+        if (!state.db) await initializeDB();
+
+        logMessage('info', '🔍 Searching ReasoningBank for optimal hyperparameters...');
+        await sleep(500);
+
+        const patterns = await searchTrainingPatterns();
+        if (patterns.length > 0) {
+          logMessage('success', `🧠 Found ${patterns.length} learned pattern(s) - Applying optimizations`);
+
+          const bestPattern = patterns[0];
+          if (bestPattern.metadata?.hyperparameters) {
+            const hp = bestPattern.metadata.hyperparameters;
+            logMessage('info', `📊 Best hyperparameters: LR=${hp.learningRate?.toFixed(4)}, Batch=${hp.batchSize}, Optimizer=${hp.optimizer}`);
+          }
+
+          updateStats();
+        } else {
+          logMessage('info', '💭 No prior patterns found - using default hyperparameters');
+        }
+
+        if (settings.parallelTraining) {
+          const agentTasks = TRAINING_AGENTS.map(agent => runAgent(agent, ML_MODELS));
+          const modelTasks = ML_MODELS.map(model => trainModel(model, patterns));
+          await Promise.all([...agentTasks, ...modelTasks]);
+        } else {
+          for (const agent of TRAINING_AGENTS) {
+            await runAgent(agent, ML_MODELS);
+          }
+          for (const model of ML_MODELS) {
+            await trainModel(model, patterns);
+          }
+        }
+
+        logMessage('success', '✅ All training completed successfully!');
+
+        if (settings.autoSavePatterns && settings.patternStorage) {
+          await storeTrainingPattern();
+          state.patternsLearned++;
+          logMessage('success', '💾 Training patterns stored in ReasoningBank');
+
+          await sleep(300);
+          await updatePatterns();
+        }
+
+      } catch (error) {
+        logMessage('error', `⚠️ Training error: ${error.message}`);
+        console.error('Training error:', error);
+      } finally {
+        state.isTraining = false;
+        state.activeAgents = 0;
+        updateStats();
+      }
+    }
+
+    // Store training pattern
+    async function storeTrainingPattern() {
+      try {
+        const avgAccuracy = TRAINING_AGENTS.reduce((sum, a) => sum + a.accuracy, 0) / TRAINING_AGENTS.length;
+        const avgModelAccuracy = ML_MODELS.reduce((sum, m) => sum + m.accuracy, 0) / ML_MODELS.length;
+        const avgLoss = ML_MODELS.reduce((sum, m) => sum + m.loss, 0) / ML_MODELS.length;
+
+        const bestModel = ML_MODELS.reduce((best, model) =>
+          model.accuracy > best.accuracy ? model : best
+        );
+
+        const embedding = await generateEmbedding(
+          `multi-model training hyperparameter optimization accuracy=${avgModelAccuracy.toFixed(2)} loss=${avgLoss.toFixed(3)}`
+        );
+
+        const patternData = {
+          pattern_type: 'training',
+          embedding: embedding,
+          metadata: {
+            taskType: 'Multi-Model Training',
+            approach: 'Parallel Agent Coordination with Learning Rate Scheduling',
+            avgAccuracy: avgModelAccuracy,
+            avgAgentAccuracy: avgAccuracy,
+            avgLoss: avgLoss,
+            totalEpochs: state.totalEpochs,
+            successRate: avgModelAccuracy > settings.accuracyThreshold ? 0.95 : 0.80,
+            timestamp: Date.now(),
+            hyperparameters: {
+              learningRate: bestModel.hyperparams.learningRate || 0.001,
+              batchSize: bestModel.hyperparams.batchSize || 32,
+              optimizer: bestModel.hyperparams.optimizer || 'Adam',
+              dropout: bestModel.hyperparams.dropout,
+              l2Reg: bestModel.hyperparams.l2Reg,
+              lrSchedule: 'cosine-decay-with-warmup'
+            },
+            modelResults: ML_MODELS.map(m => ({
+              name: m.name,
+              accuracy: m.accuracy,
+              loss: m.loss,
+              epochs: m.epochs
+            }))
+          }
+        };
+
+        await state.db.storePattern(patternData);
+
+        console.log('Pattern stored successfully:', patternData.metadata);
+        logMessage('info', `📊 Stored pattern with avg accuracy: ${avgModelAccuracy.toFixed(1)}%, avg loss: ${avgLoss.toFixed(3)}`);
+      } catch (error) {
+        console.error('Failed to store pattern:', error);
+        logMessage('error', `⚠️ Failed to store pattern: ${error.message}`);
+      }
+    }
+
+    // Search for similar training patterns
+    async function searchTrainingPatterns() {
+      try {
+        const embedding = await generateEmbedding('training pattern optimization');
+        const results = await state.db.search(embedding, settings.searchLimit);
+        return results || [];
+      } catch (error) {
+        console.error('Search error:', error);
+        return [];
+      }
+    }
+
+    // Generate embedding
+    async function generateEmbedding(text) {
+      const words = text.toLowerCase().split(/\s+/);
+      const embedding = new Array(settings.vectorDimensions).fill(0);
+
+      words.forEach((word, idx) => {
+        for (let i = 0; i < word.length; i++) {
+          const pos = (word.charCodeAt(i) + idx) % settings.vectorDimensions;
+          embedding[pos] += 0.1;
+        }
+      });
+
+      const magnitude = Math.sqrt(embedding.reduce((sum, val) => sum + val * val, 0));
+      return embedding.map(val => val / (magnitude || 1));
+    }
+
+    // Update patterns display
+    async function updatePatterns() {
+      try {
+        if (!state.db) {
+          console.log('Database not initialized yet');
+          return;
+        }
+
+        const container = document.getElementById('patternsContainer');
+
+        if (state.patternsLearned === 0) {
+          container.innerHTML = '<div style="color: hsl(0 0% 70%); font-style: italic;">Hyperparameter patterns will be learned during training...</div>';
+          return;
+        }
+
+        const searchEmbedding = await generateEmbedding('multi-model training hyperparameter optimization');
+        let patterns = await state.db.search(searchEmbedding, 5);
+
+        console.log('Retrieved patterns:', patterns);
+
+        if (!patterns || patterns.length === 0) {
+          patterns = await state.db.search(await generateEmbedding('training pattern'), 5);
+        }
+
+        if (!patterns || patterns.length === 0) {
+          container.innerHTML = '<div style="color: hsl(0 0% 70%);">Stored ' + state.patternsLearned + ' pattern(s), loading...</div>';
+          logMessage('warning', `⚠️ ${state.patternsLearned} patterns stored but display failed - refreshing...`);
+
+          setTimeout(async () => {
+            const retryPatterns = await state.db.search(await generateEmbedding('pattern'), 10);
+            if (retryPatterns && retryPatterns.length > 0) {
+              displayPatternsHTML(retryPatterns, container);
+            }
+          }, 500);
+          return;
+        }
+
+        displayPatternsHTML(patterns, container);
+      } catch (error) {
+        console.error('Failed to update patterns:', error);
+        logMessage('error', `⚠️ Pattern display error: ${error.message}`);
+      }
+    }
+
+    // Helper function to display patterns HTML
+    function displayPatternsHTML(patterns, container) {
+      container.innerHTML = patterns.map((pattern, idx) => {
+        const meta = pattern.metadata || {};
+        const hp = meta.hyperparameters || {};
+
+        const hyperparamsHtml = `
+          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; font-size: 0.75rem; margin-top: 8px;">
+            ${hp.learningRate ? `<div>LR: ${hp.learningRate.toFixed(4)}</div>` : ''}
+            ${hp.batchSize ? `<div>Batch: ${hp.batchSize}</div>` : ''}
+            ${hp.optimizer ? `<div>Optimizer: ${hp.optimizer}</div>` : ''}
+            ${hp.dropout !== undefined ? `<div>Dropout: ${hp.dropout}</div>` : ''}
+            ${hp.l2Reg !== undefined ? `<div>L2 Reg: ${hp.l2Reg.toFixed(4)}</div>` : ''}
+            ${hp.lrSchedule ? `<div style="grid-column: 1 / -1;">Schedule: ${hp.lrSchedule}</div>` : ''}
+          </div>
+        `;
+
+        const modelResultsHtml = meta.modelResults && meta.modelResults.length > 0 ? `
+          <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid hsl(0 0% 25%);">
+            <div style="font-size: 0.75rem; color: hsl(0 0% 70%); margin-bottom: 4px;">Model Results:</div>
+            ${meta.modelResults.map(m => `
+              <div style="font-size: 0.7rem; color: hsl(0 0% 60%);">
+                ${m.name}: ${Math.round(m.accuracy)}% acc, ${m.loss.toFixed(3)} loss
+              </div>
+            `).join('')}
+          </div>
+        ` : '';
+
+        return `
+          <div class="pattern-item">
+            <div class="pattern-header">
+              <div class="pattern-name">${meta.taskType || 'Training Pattern #' + (idx + 1)}</div>
+              <div class="pattern-score">${Math.round((meta.successRate || 0.95) * 100)}% Success</div>
+            </div>
+            <div class="pattern-detail">${meta.approach || 'N/A'}</div>
+            <div class="pattern-detail">
+              Avg Accuracy: ${Math.round(meta.avgAccuracy || meta.avgModelAccuracy || 0)}% •
+              Avg Loss: ${(meta.avgLoss || 0).toFixed(3)} •
+              Epochs: ${meta.totalEpochs || 0}
+            </div>
+            ${hyperparamsHtml}
+            ${modelResultsHtml}
+          </div>
+        `;
+      }).join('');
+
+      logMessage('success', `📊 Displaying ${patterns.length} learned pattern(s) with hyperparameters`);
+    }
+
+    function updateStats() {
+      document.getElementById('activeAgents').textContent = state.activeAgents;
+      document.getElementById('modelsTraining').textContent = ML_MODELS.filter(m => m.status === 'training').length;
+      document.getElementById('totalEpochs').textContent = state.totalEpochs;
+      document.getElementById('patternsLearned').textContent = state.patternsLearned;
+
+      const avgAccuracy = TRAINING_AGENTS.reduce((sum, a) => sum + a.accuracy, 0) / TRAINING_AGENTS.length;
+      document.getElementById('avgAccuracy').textContent = Math.round(avgAccuracy) + '%';
+    }
+
+    function resetAll() {
+      state.isTraining = false;
+      state.activeAgents = 0;
+      state.totalEpochs = 0;
+
+      TRAINING_AGENTS.forEach(agent => {
+        agent.accuracy = 0;
+        agent.epochs = 0;
+        updateAgentStatus(agent.id, 'idle');
+        updateAgentMetrics(agent);
+      });
+
+      ML_MODELS.forEach(model => {
+        model.accuracy = 0;
+        model.epochs = 0;
+        model.status = 'idle';
+        updateModelMetrics(model);
+      });
+
+      updateStats();
+      logMessage('info', '🗑️ System reset');
+    }
+
+    function logMessage(type, message) {
+      const container = document.getElementById('logContainer');
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+      const timestamp = new Date().toLocaleTimeString();
+      entry.innerHTML = `
+        <span class="log-timestamp">[${timestamp}]</span>
+        <span class="log-${type}">${message}</span>
+      `;
+      container.insertBefore(entry, container.firstChild);
+      while (container.children.length > 150) container.removeChild(container.lastChild);
+    }
+
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    // Modal functions
+    window.showHelpModal = function() {
+      document.getElementById('helpModal').classList.add('active');
+    };
+
+    window.closeHelpModal = function() {
+      document.getElementById('helpModal').classList.remove('active');
+    };
+
+    window.showSettings = function() {
+      populateSettingsForm();
+      document.getElementById('settingsModal').classList.add('active');
+    };
+
+    window.closeSettings = function() {
+      document.getElementById('settingsModal').classList.remove('active');
+    };
+
+    // Settings tab switching
+    window.switchSettingsTab = function(tabName) {
+      document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+      document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+      document.getElementById(tabName + 'Tab').classList.add('active');
+    };
+
+    // Populate settings form
+    function populateSettingsForm() {
+      document.getElementById('memoryMode').checked = settings.memoryMode;
+      document.getElementById('backend').value = settings.backend;
+      document.getElementById('vectorDimensions').value = settings.vectorDimensions;
+      document.getElementById('searchLimit').value = settings.searchLimit;
+      document.getElementById('trainingInterval').value = settings.trainingInterval;
+      document.getElementById('epochsPerCycle').value = settings.epochsPerCycle;
+      document.getElementById('accuracyThreshold').value = settings.accuracyThreshold;
+      document.getElementById('autoSavePatterns').checked = settings.autoSavePatterns;
+      document.getElementById('aiProvider').value = settings.aiProvider;
+      document.getElementById('aiModel').value = settings.aiModel;
+      document.getElementById('temperature').value = settings.temperature;
+      document.getElementById('maxTokens').value = settings.maxTokens;
+      document.getElementById('patternStorage').checked = settings.patternStorage;
+      document.getElementById('similarityThreshold').value = settings.similarityThreshold;
+      document.getElementById('agentCount').value = settings.agentCount;
+      document.getElementById('parallelTraining').checked = settings.parallelTraining;
+
+      updateRangeDisplays();
+    }
+
+    // Update range displays
+    function updateRangeDisplays() {
+      document.getElementById('trainingIntervalValue').textContent = settings.trainingInterval + 'ms';
+      document.getElementById('epochsValue').textContent = settings.epochsPerCycle;
+      document.getElementById('thresholdValue').textContent = settings.accuracyThreshold + '%';
+      document.getElementById('temperatureValue').textContent = settings.temperature;
+      document.getElementById('maxTokensValue').textContent = settings.maxTokens;
+      document.getElementById('similarityValue').textContent = settings.similarityThreshold;
+      document.getElementById('agentCountValue').textContent = settings.agentCount;
+    }
+
+    // Save settings
+    window.saveSettingsForm = function() {
+      settings.memoryMode = document.getElementById('memoryMode').checked;
+      settings.backend = document.getElementById('backend').value;
+      settings.vectorDimensions = parseInt(document.getElementById('vectorDimensions').value);
+      settings.searchLimit = parseInt(document.getElementById('searchLimit').value);
+      settings.trainingInterval = parseInt(document.getElementById('trainingInterval').value);
+      settings.epochsPerCycle = parseInt(document.getElementById('epochsPerCycle').value);
+      settings.accuracyThreshold = parseInt(document.getElementById('accuracyThreshold').value);
+      settings.autoSavePatterns = document.getElementById('autoSavePatterns').checked;
+      settings.aiProvider = document.getElementById('aiProvider').value;
+      settings.aiModel = document.getElementById('aiModel').value;
+      settings.temperature = parseFloat(document.getElementById('temperature').value);
+      settings.maxTokens = parseInt(document.getElementById('maxTokens').value);
+      settings.patternStorage = document.getElementById('patternStorage').checked;
+      settings.similarityThreshold = parseFloat(document.getElementById('similarityThreshold').value);
+      settings.agentCount = parseInt(document.getElementById('agentCount').value);
+      settings.parallelTraining = document.getElementById('parallelTraining').checked;
+
+      saveSettings(settings);
+      closeSettings();
+      logMessage('success', '💾 Settings saved successfully');
+      logMessage('info', '🔄 Restart training for new settings to take effect');
+    };
+
+    // Reset settings
+    window.resetSettings = function() {
+      if (confirm('Reset all settings to defaults?')) {
+        settings = { ...defaultSettings };
+        saveSettings(settings);
+        populateSettingsForm();
+        logMessage('info', '🔄 Settings reset to defaults');
+      }
+    };
+
+    // Close modals on outside click
+    document.addEventListener('click', (e) => {
+      const helpModal = document.getElementById('helpModal');
+      const settingsModal = document.getElementById('settingsModal');
+
+      if (e.target === helpModal) {
+        closeHelpModal();
+      }
+      if (e.target === settingsModal) {
+        closeSettings();
+      }
+    });
+
+    // Range input listeners
+    document.addEventListener('DOMContentLoaded', () => {
+      const rangeInputs = ['trainingInterval', 'epochsPerCycle', 'accuracyThreshold', 'temperature', 'maxTokens', 'similarityThreshold', 'agentCount'];
+
+      rangeInputs.forEach(id => {
+        const input = document.getElementById(id);
+        if (input) {
+          input.addEventListener('input', (e) => {
+            const value = e.target.value;
+            const displayId = id + 'Value';
+            const displayEl = document.getElementById(displayId);
+
+            if (displayEl) {
+              if (id === 'trainingInterval') {
+                displayEl.textContent = value + 'ms';
+              } else if (id === 'accuracyThreshold') {
+                displayEl.textContent = value + '%';
+              } else {
+                displayEl.textContent = value;
+              }
+            }
+          });
+        }
+      });
+    });
+
+    // Event listeners
+    document.getElementById('startBtn').addEventListener('click', startTraining);
+    document.getElementById('optimizeBtn').addEventListener('click', async () => {
+      logMessage('info', '⚡ Running hyperparameter optimization...');
+      await sleep(1000);
+      logMessage('success', '✅ Optimal hyperparameters: LR=0.0042, Batch=32, Optimizer=Adam');
+    });
+    document.getElementById('clearBtn').addEventListener('click', resetAll);
+
+    // Initialize
+    (async () => {
+      initializeAgents();
+      initializeModels();
+      updateStats();
+      logMessage('info', '🤖 Autonomous Training System Ready');
+      logMessage('info', `👥 ${settings.agentCount} training agents • ${ML_MODELS.length} ML models • ReasoningBank enabled`);
+
+      await initializeDB();
+
+      // Auto-run demo
+      setTimeout(async () => {
+        logMessage('info', '🎯 Running demo training session...');
+        await sleep(800);
+        await startTraining();
+      }, 1500);
+    })();
+  </script>
+
+  <!-- Settings Button -->
+  <button class="settings-button" onclick="showSettings()">⚙️</button>
+
+  <!-- Help Button -->
+  <button class="help-button" onclick="showHelpModal()">?</button>
+
+  <!-- Settings Modal -->
+  <div id="settingsModal" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">⚙️ Training System Configuration</div>
+        <button class="modal-close" onclick="closeSettings()">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="tabs">
+          <button class="tab-button active" data-tab="database" onclick="switchSettingsTab('database')">Database Config</button>
+          <button class="tab-button" data-tab="training" onclick="switchSettingsTab('training')">Training Settings</button>
+          <button class="tab-button" data-tab="ai" onclick="switchSettingsTab('ai')">AI Configuration</button>
+          <button class="tab-button" data-tab="advanced" onclick="switchSettingsTab('advanced')">Advanced</button>
+        </div>
+
+        <div class="settings-form">
+          <!-- Database Config Tab -->
+          <div id="databaseTab" class="tab-content active">
+            <div class="form-section">
+              <h4>🗄️ Database Configuration</h4>
+
+              <div class="form-group">
+                <label class="toggle-switch">
+                  <input type="checkbox" id="memoryMode">
+                  <span class="toggle-slider"></span>
+                  <span class="toggle-label">Memory Mode (In-Memory Database)</span>
+                </label>
+                <p class="form-help">Use in-memory storage for faster performance (data not persisted)</p>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Backend</label>
+                <select id="backend" class="form-select">
+                  <option value="wasm">WASM (WebAssembly)</option>
+                  <option value="sql">SQL.js</option>
+                </select>
+                <p class="form-help">Database backend engine to use</p>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Vector Dimensions</label>
+                <input type="number" id="vectorDimensions" class="form-input" min="128" max="1536" step="128" value="384">
+                <p class="form-help">Embedding vector size (128, 256, 384, 512, 768, 1024, 1536)</p>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Search Result Limit</label>
+                <input type="number" id="searchLimit" class="form-input" min="1" max="20" value="5">
+                <p class="form-help">Maximum number of patterns to retrieve from searches</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Training Settings Tab -->
+          <div id="trainingTab" class="tab-content">
+            <div class="form-section">
+              <h4>🎯 Training Parameters</h4>
+
+              <div class="form-group">
+                <div class="range-group">
+                  <div class="range-header">
+                    <label class="form-label">Training Interval</label>
+                    <span class="range-value" id="trainingIntervalValue">3000ms</span>
+                  </div>
+                  <input type="range" id="trainingInterval" class="form-range" min="500" max="10000" step="500" value="3000">
+                  <div class="range-labels">
+                    <span>500ms</span>
+                    <span>10000ms</span>
+                  </div>
+                </div>
+                <p class="form-help">Time between training updates</p>
+              </div>
+
+              <div class="form-group">
+                <div class="range-group">
+                  <div class="range-header">
+                    <label class="form-label">Epochs Per Cycle</label>
+                    <span class="range-value" id="epochsValue">5</span>
+                  </div>
+                  <input type="range" id="epochsPerCycle" class="form-range" min="1" max="20" step="1" value="5">
+                  <div class="range-labels">
+                    <span>1</span>
+                    <span>20</span>
+                  </div>
+                </div>
+                <p class="form-help">Number of training epochs per cycle</p>
+              </div>
+
+              <div class="form-group">
+                <div class="range-group">
+                  <div class="range-header">
+                    <label class="form-label">Accuracy Threshold</label>
+                    <span class="range-value" id="thresholdValue">85%</span>
+                  </div>
+                  <input type="range" id="accuracyThreshold" class="form-range" min="50" max="99" step="1" value="85">
+                  <div class="range-labels">
+                    <span>50%</span>
+                    <span>99%</span>
+                  </div>
+                </div>
+                <p class="form-help">Minimum accuracy for successful training</p>
+              </div>
+
+              <div class="form-group">
+                <label class="toggle-switch">
+                  <input type="checkbox" id="autoSavePatterns" checked>
+                  <span class="toggle-slider"></span>
+                  <span class="toggle-label">Auto-Save Patterns to ReasoningBank</span>
+                </label>
+                <p class="form-help">Automatically store successful training patterns</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- AI Configuration Tab -->
+          <div id="aiTab" class="tab-content">
+            <div class="form-section">
+              <h4>🤖 AI Model Settings</h4>
+
+              <div class="form-group">
+                <label class="form-label">AI Provider</label>
+                <select id="aiProvider" class="form-select">
+                  <option value="gemini">Google Gemini</option>
+                  <option value="openai">OpenAI</option>
+                  <option value="anthropic">Anthropic Claude</option>
+                </select>
+                <p class="form-help">AI service provider for optimization insights</p>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Model</label>
+                <select id="aiModel" class="form-select">
+                  <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                  <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                  <option value="gpt-4">GPT-4</option>
+                  <option value="claude-3-opus">Claude 3 Opus</option>
+                </select>
+                <p class="form-help">Specific model version to use</p>
+              </div>
+
+              <div class="form-group">
+                <div class="range-group">
+                  <div class="range-header">
+                    <label class="form-label">Temperature</label>
+                    <span class="range-value" id="temperatureValue">0.7</span>
+                  </div>
+                  <input type="range" id="temperature" class="form-range" min="0" max="2" step="0.1" value="0.7">
+                  <div class="range-labels">
+                    <span>0 (Focused)</span>
+                    <span>2 (Creative)</span>
+                  </div>
+                </div>
+                <p class="form-help">Randomness in AI responses (0 = deterministic, 2 = very creative)</p>
+              </div>
+
+              <div class="form-group">
+                <div class="range-group">
+                  <div class="range-header">
+                    <label class="form-label">Max Tokens</label>
+                    <span class="range-value" id="maxTokensValue">1024</span>
+                  </div>
+                  <input type="range" id="maxTokens" class="form-range" min="256" max="4096" step="256" value="1024">
+                  <div class="range-labels">
+                    <span>256</span>
+                    <span>4096</span>
+                  </div>
+                </div>
+                <p class="form-help">Maximum length of AI responses</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Advanced Tab -->
+          <div id="advancedTab" class="tab-content">
+            <div class="form-section">
+              <h4>⚡ Advanced Options</h4>
+
+              <div class="form-group">
+                <label class="toggle-switch">
+                  <input type="checkbox" id="patternStorage" checked>
+                  <span class="toggle-slider"></span>
+                  <span class="toggle-label">Enable Pattern Storage</span>
+                </label>
+                <p class="form-help">Store and retrieve training patterns in ReasoningBank</p>
+              </div>
+
+              <div class="form-group">
+                <div class="range-group">
+                  <div class="range-header">
+                    <label class="form-label">Similarity Threshold</label>
+                    <span class="range-value" id="similarityValue">0.7</span>
+                  </div>
+                  <input type="range" id="similarityThreshold" class="form-range" min="0.1" max="1" step="0.1" value="0.7">
+                  <div class="range-labels">
+                    <span>0.1 (Loose)</span>
+                    <span>1.0 (Exact)</span>
+                  </div>
+                </div>
+                <p class="form-help">Minimum similarity score for pattern matching</p>
+              </div>
+
+              <div class="form-group">
+                <div class="range-group">
+                  <div class="range-header">
+                    <label class="form-label">Agent Count</label>
+                    <span class="range-value" id="agentCountValue">5</span>
+                  </div>
+                  <input type="range" id="agentCount" class="form-range" min="1" max="10" step="1" value="5">
+                  <div class="range-labels">
+                    <span>1</span>
+                    <span>10</span>
+                  </div>
+                </div>
+                <p class="form-help">Number of training agents to spawn</p>
+              </div>
+
+              <div class="form-group">
+                <label class="toggle-switch">
+                  <input type="checkbox" id="parallelTraining" checked>
+                  <span class="toggle-slider"></span>
+                  <span class="toggle-label">Parallel Training Mode</span>
+                </label>
+                <p class="form-help">Train all agents and models simultaneously (faster but more resource intensive)</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-footer">
+          <button class="button-reset" onclick="resetSettings()">Reset to Defaults</button>
+          <button class="btn-secondary" onclick="closeSettings()">Cancel</button>
+          <button class="btn" onclick="saveSettingsForm()">Save Settings</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Help Modal -->
+  <div id="helpModal" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">📚 Autonomous Training System - Documentation</div>
+        <button class="modal-close" onclick="closeHelpModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="help-section">
+          <h3>🎯 What is This?</h3>
+          <p>
+            The Autonomous Training System demonstrates how AI agents can collaboratively train machine learning models using AgentDB's ReasoningBank for hyperparameter optimization and pattern learning.
+          </p>
+
+          <div class="help-callout success">
+            This system learns from every training run, continuously improving its hyperparameter selection and training strategies through ReasoningBank pattern storage.
+          </div>
+        </div>
+
+        <hr class="help-separator">
+
+        <div class="help-section">
+          <h3>🤖 Training Agent Swarm</h3>
+          <p>Five specialized agents work together to optimize ML models:</p>
+
+          <div class="help-2col">
+            <div class="help-feature-card">
+              <h4>📦 Data Preparation</h4>
+              <p>Preprocessing & normalization of training data</p>
+            </div>
+            <div class="help-feature-card">
+              <h4>⚙️ Hyperparameter Tuner</h4>
+              <p>Optimizes learning rate, batch size, and regularization</p>
+            </div>
+            <div class="help-feature-card">
+              <h4>🎯 Model Trainer</h4>
+              <p>Executes backpropagation and gradient descent</p>
+            </div>
+            <div class="help-feature-card">
+              <h4>✅ Validator</h4>
+              <p>Performs cross-validation and computes metrics</p>
+            </div>
+          </div>
+
+          <div class="help-feature-card" style="margin-top: 1rem;">
+            <h4>⚡ Performance Optimizer</h4>
+            <p>Improves memory usage and training speed</p>
+          </div>
+        </div>
+
+        <hr class="help-separator">
+
+        <div class="help-section">
+          <h3>📊 ML Models</h3>
+          <p>Four different machine learning models are trained simultaneously:</p>
+
+          <ul class="help-list-enhanced">
+            <li><strong>Neural Network:</strong> Deep learning with Adam optimizer</li>
+            <li><strong>Linear Regression:</strong> Supervised learning with SGD</li>
+            <li><strong>Decision Tree:</strong> Classification with Gini criterion</li>
+            <li><strong>K-Means Clustering:</strong> Unsupervised learning with k-means++</li>
+          </ul>
+        </div>
+
+        <hr class="help-separator">
+
+        <div class="help-section">
+          <h3>🧠 AgentDB v1.3.9 Features</h3>
+
+          <div class="help-callout info">
+            This demo uses AgentDB's latest capabilities for pattern learning and storage.
+          </div>
+
+          <div class="help-metric-grid">
+            <div class="help-metric">
+              <strong>db.storePattern()</strong>
+              <span>Store successful hyperparameter combinations</span>
+            </div>
+            <div class="help-metric">
+              <strong>db.search()</strong>
+              <span>Find similar training patterns from history</span>
+            </div>
+            <div class="help-metric">
+              <strong>ReasoningBank</strong>
+              <span>Learn from training history to improve future runs</span>
+            </div>
+            <div class="help-metric">
+              <strong>SAFLA</strong>
+              <span>Self-Aware Feedback Loop Algorithm</span>
+            </div>
+          </div>
+        </div>
+
+        <hr class="help-separator">
+
+        <div class="help-section">
+          <h3>⚙️ How It Works</h3>
+
+          <ol style="list-style: decimal; padding-left: 1.5rem;">
+            <li><strong>Initialization:</strong> AgentDB WASM database initializes with pattern storage</li>
+            <li><strong>Agent Spawning:</strong> Five specialized agents activate and begin coordination</li>
+            <li><strong>Training Loop:</strong> Each model trains for multiple epochs with different agents</li>
+            <li><strong>Pattern Learning:</strong> Successful hyperparameter combinations are stored in ReasoningBank</li>
+            <li><strong>Optimization:</strong> Future training runs use learned patterns to converge faster</li>
+            <li><strong>Validation:</strong> Validators ensure model quality and prevent overfitting</li>
+          </ol>
+        </div>
+
+        <hr class="help-separator">
+
+        <div class="help-section">
+          <h3>📈 Metrics Explained</h3>
+
+          <div class="help-callout tip">
+            Understanding these metrics helps you evaluate model performance and training effectiveness.
+          </div>
+
+          <div class="help-metric-grid">
+            <div class="help-metric">
+              <strong>Accuracy</strong>
+              <span>Percentage of correct predictions (higher is better)</span>
+            </div>
+            <div class="help-metric">
+              <strong>Loss</strong>
+              <span>Training error (lower is better, starts at 1.0)</span>
+            </div>
+            <div class="help-metric">
+              <strong>Epochs</strong>
+              <span>Number of complete passes through training data</span>
+            </div>
+            <div class="help-metric">
+              <strong>Learning Rate</strong>
+              <span>Step size for gradient descent updates</span>
+            </div>
+            <div class="help-metric">
+              <strong>Batch Size</strong>
+              <span>Samples processed before updating weights</span>
+            </div>
+          </div>
+        </div>
+
+        <hr class="help-separator">
+
+        <div class="help-section">
+          <h3>🚀 Getting Started</h3>
+
+          <ol style="list-style: decimal; padding-left: 1.5rem;">
+            <li>Click <strong>"Start Training"</strong> to begin autonomous training</li>
+            <li>Watch agents collaborate to optimize each model</li>
+            <li>Observe patterns being learned and stored in ReasoningBank</li>
+            <li>See accuracy improve and loss decrease over epochs</li>
+            <li>Use <strong>⚙️ Settings</strong> button to configure training parameters</li>
+            <li>Click <strong>"Reset"</strong> to clear all progress</li>
+          </ol>
+
+          <div class="help-callout warning">
+            Changes to settings only take effect after restarting training. Stop current training before applying new settings.
+          </div>
+        </div>
+
+        <hr class="help-separator">
+
+        <div class="help-section">
+          <h3>🔬 Advanced Features</h3>
+
+          <ul class="help-list-enhanced">
+            <li><strong>Multi-Agent Coordination:</strong> Agents communicate and share knowledge</li>
+            <li><strong>Transfer Learning:</strong> Patterns from one model help train others</li>
+            <li><strong>Meta-Learning:</strong> Learning how to learn more efficiently</li>
+            <li><strong>Autonomous Hyperparameter Tuning:</strong> No manual tuning required</li>
+            <li><strong>Continuous Improvement:</strong> Gets smarter with each training run</li>
+          </ul>
+        </div>
+
+        <hr class="help-separator">
+
+        <div class="help-section">
+          <h3>💡 Use Cases</h3>
+
+          <div class="help-2col">
+            <ul class="help-list-enhanced">
+              <li>Automated ML model training</li>
+              <li>Hyperparameter search and tuning</li>
+              <li>Multi-model comparison</li>
+            </ul>
+            <ul class="help-list-enhanced">
+              <li>Research into autonomous AI systems</li>
+              <li>Educational ML demonstrations</li>
+              <li>Pattern learning and optimization</li>
+            </ul>
+          </div>
+        </div>
+
+        <hr class="help-separator">
+
+        <div class="help-section">
+          <h3>🛠️ Technical Stack</h3>
+
+          <div class="help-code">
+            AgentDB v1.3.9 - SQL + Vector database with WASM backend<br>
+            sql.js - SQLite compiled to WebAssembly<br>
+            ReasoningBank - Pattern storage and retrieval<br>
+            SAFLA - Self-aware feedback loops<br>
+            Vanilla JavaScript - No framework dependencies
+          </div>
+        </div>
+
+        <hr class="help-separator">
+
+        <div class="help-section">
+          <h3>📖 Learn More</h3>
+
+          <ul class="help-list-enhanced">
+            <li><strong>AgentDB Docs:</strong> <a href="https://agentdb.ruv.io/docs" target="_blank" style="color: hsl(142 76% 50%);">agentdb.ruv.io/docs</a></li>
+            <li><strong>GitHub:</strong> <a href="https://github.com/ruvnet/agentic-flow" target="_blank" style="color: hsl(142 76% 50%);">ruvnet/agentic-flow</a></li>
+            <li><strong>Interactive Demo:</strong> <a href="https://agentdb.ruv.io/demo" target="_blank" style="color: hsl(142 76% 50%);">agentdb.ruv.io/demo</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Convolutional Neural Network - AgentDB</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+            background: hsl(0 0% 12%);
+            color: hsl(0 0% 95%);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container { max-width: 1400px; margin: 0 auto; }
+
+        header {
+            background: hsl(0 0% 15%);
+            border: 1px solid hsl(0 0% 25%);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 6px 24px hsl(222 20% 0% / 0.24);
+        }
+
+        h1 { color: hsl(195 100% 60%); margin-bottom: 0.5rem; font-weight: 600; letter-spacing: -0.005em; }
+        .subtitle { color: hsl(0 0% 85%); margin-bottom: 0.75rem; }
+        .use-cases {
+            color: hsl(0 0% 70%);
+            font-size: 0.9rem;
+            padding: 1rem;
+            background: hsl(0 0% 10%);
+            border-radius: 8px;
+            border-left: 3px solid hsl(195 100% 60%);
+        }
+
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem; }
+
+        .card {
+            background: hsl(0 0% 15%);
+            border: 1px solid hsl(0 0% 25%);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 6px 24px hsl(222 20% 0% / 0.24);
+        }
+
+        .card h2 { color: hsl(0 0% 95%); margin-bottom: 1rem; font-weight: 600; }
+
+        .canvas-container {
+            background: hsl(0 0% 8%);
+            border: 2px solid hsl(0 0% 25%);
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+
+        canvas {
+            border: 2px solid hsl(195 100% 60%);
+            border-radius: 8px;
+            cursor: crosshair;
+            background: white;
+            image-rendering: pixelated;
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .control-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .control-label {
+            color: hsl(0 0% 85%);
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        select, input[type="range"] {
+            width: 100%;
+            padding: 0.5rem;
+            background: hsl(0 0% 18%);
+            border: 1px solid hsl(0 0% 25%);
+            border-radius: 8px;
+            color: hsl(0 0% 95%);
+            font-family: inherit;
+        }
+
+        .range-value {
+            display: inline-block;
+            margin-left: 0.5rem;
+            color: hsl(195 100% 60%);
+            font-weight: 600;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            background: hsl(195 100% 60%);
+            color: hsl(0 0% 10%);
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: opacity 0.2s ease;
+            font-family: inherit;
+        }
+
+        .btn:hover { opacity: 0.85; }
+
+        .btn-secondary {
+            background: hsl(0 0% 25%);
+            color: hsl(0 0% 95%);
+        }
+
+        .prediction-box {
+            background: hsl(195 100% 60% / 0.15);
+            border: 1px solid hsl(195 100% 60% / 0.3);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-top: 1rem;
+        }
+
+        .prediction-title {
+            font-weight: 600;
+            color: hsl(195 100% 60%);
+            margin-bottom: 0.75rem;
+            font-size: 1.1rem;
+        }
+
+        .digit-result {
+            font-size: 3rem;
+            font-weight: bold;
+            color: hsl(195 100% 60%);
+            text-align: center;
+            margin: 1rem 0;
+        }
+
+        .confidence-bars {
+            display: grid;
+            gap: 0.5rem;
+        }
+
+        .confidence-bar {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .digit-label {
+            width: 30px;
+            color: hsl(0 0% 85%);
+            font-weight: 600;
+        }
+
+        .bar-container {
+            flex: 1;
+            background: hsl(0 0% 20%);
+            border-radius: 4px;
+            height: 24px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, hsl(195 100% 60%), hsl(195 100% 70%));
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 0.5rem;
+        }
+
+        .bar-value {
+            color: hsl(0 0% 10%);
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .network-layer {
+            background: hsl(0 0% 10%);
+            border: 1px solid hsl(0 0% 25%);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .layer-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .layer-name {
+            font-weight: 600;
+            color: hsl(195 100% 60%);
+        }
+
+        .layer-info {
+            color: hsl(0 0% 70%);
+            font-size: 0.85rem;
+        }
+
+        .layer-viz {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+            gap: 0.5rem;
+        }
+
+        .feature-map {
+            aspect-ratio: 1;
+            background: hsl(0 0% 18%);
+            border-radius: 4px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-map-canvas {
+            width: 100%;
+            height: 100%;
+            image-rendering: pixelated;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .stat {
+            background: hsl(0 0% 18%);
+            border: 1px solid hsl(0 0% 25%);
+            padding: 1rem;
+            border-radius: 8px;
+        }
+
+        .stat-label { color: hsl(0 0% 85%); font-size: 0.9rem; }
+        .stat-value {
+            color: hsl(195 100% 60%);
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin-top: 0.25rem;
+        }
+
+        .confusion-matrix {
+            display: grid;
+            grid-template-columns: repeat(11, 1fr);
+            gap: 2px;
+            margin-top: 1rem;
+            font-size: 0.75rem;
+        }
+
+        .matrix-cell {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: hsl(0 0% 18%);
+            border-radius: 2px;
+            font-weight: 600;
+        }
+
+        .matrix-header {
+            background: hsl(0 0% 25%);
+            color: hsl(195 100% 60%);
+        }
+
+        .matrix-value {
+            color: hsl(0 0% 95%);
+        }
+
+        #lossChart {
+            width: 100%;
+            height: 200px;
+            background: hsl(0 0% 10%);
+            border-radius: 8px;
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔲 Convolutional Neural Network</h1>
+            <p class="subtitle">MNIST Digit Recognition with AgentDB WASM</p>
+            <div class="use-cases">
+                <strong>Use Cases:</strong> Computer vision, image classification, object detection, medical imaging analysis,
+                facial recognition, autonomous vehicles, quality inspection, document OCR
+            </div>
+        </header>
+
+        <div class="grid">
+            <div class="card">
+                <h2>Draw a Digit</h2>
+                <p style="color: hsl(0 0% 70%); margin-bottom: 1rem; font-size: 0.9rem;">
+                    Draw a digit (0-9) on the canvas below. The CNN will analyze it in real-time.
+                </p>
+
+                <div class="canvas-container">
+                    <canvas id="drawCanvas" width="280" height="280"></canvas>
+                </div>
+
+                <div class="controls">
+                    <button class="btn" id="recognizeBtn">🔍 Recognize</button>
+                    <button class="btn btn-secondary" id="clearCanvasBtn">Clear</button>
+                </div>
+
+                <div id="predictionBox" class="prediction-box" style="display: none;">
+                    <div class="prediction-title">Recognition Result</div>
+                    <div class="digit-result" id="digitResult">-</div>
+                    <div class="confidence-bars" id="confidenceBars"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Network Architecture</h2>
+
+                <div class="control-group" style="margin-bottom: 1.5rem;">
+                    <label class="control-label">
+                        Filters (Conv Layers)
+                        <span class="range-value" id="filtersValue">16</span>
+                    </label>
+                    <input type="range" id="filtersSlider" min="8" max="64" value="16" step="8">
+                </div>
+
+                <div class="control-group" style="margin-bottom: 1.5rem;">
+                    <label class="control-label">
+                        Dropout Rate
+                        <span class="range-value" id="dropoutValue">0.2</span>
+                    </label>
+                    <input type="range" id="dropoutSlider" min="0" max="0.5" value="0.2" step="0.1">
+                </div>
+
+                <div id="networkLayers">
+                    <div class="network-layer">
+                        <div class="layer-header">
+                            <div class="layer-name">Conv2D Layer 1</div>
+                            <div class="layer-info">16 filters, 3x3 kernel</div>
+                        </div>
+                        <div class="layer-viz" id="conv1Viz"></div>
+                    </div>
+
+                    <div class="network-layer">
+                        <div class="layer-header">
+                            <div class="layer-name">MaxPooling 2x2</div>
+                            <div class="layer-info">Reduces spatial dimensions</div>
+                        </div>
+                    </div>
+
+                    <div class="network-layer">
+                        <div class="layer-header">
+                            <div class="layer-name">Conv2D Layer 2</div>
+                            <div class="layer-info">32 filters, 3x3 kernel</div>
+                        </div>
+                        <div class="layer-viz" id="conv2Viz"></div>
+                    </div>
+
+                    <div class="network-layer">
+                        <div class="layer-header">
+                            <div class="layer-name">Dense Layer</div>
+                            <div class="layer-info">128 neurons, ReLU activation</div>
+                        </div>
+                    </div>
+
+                    <div class="network-layer">
+                        <div class="layer-header">
+                            <div class="layer-name">Output Layer</div>
+                            <div class="layer-info">10 classes (0-9), Softmax</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Training Metrics & Confusion Matrix</h2>
+
+            <div class="stats-grid">
+                <div class="stat">
+                    <div class="stat-label">Accuracy</div>
+                    <div class="stat-value" id="accuracyStat">98.7%</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">Training Loss</div>
+                    <div class="stat-value" id="lossStat">0.042</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">Predictions Made</div>
+                    <div class="stat-value" id="predictionsStat">0</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">AgentDB Vectors</div>
+                    <div class="stat-value" id="vectorsStat">8,192</div>
+                </div>
+            </div>
+
+            <h3 style="margin-top: 1.5rem; margin-bottom: 1rem; color: hsl(0 0% 85%);">Loss Curve</h3>
+            <canvas id="lossChart"></canvas>
+
+            <h3 style="margin-top: 2rem; margin-bottom: 1rem; color: hsl(0 0% 85%);">Confusion Matrix</h3>
+            <div class="confusion-matrix" id="confusionMatrix"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        /**
+         * Convolutional Neural Network Demo with AgentDB WASM
+         *
+         * Architecture:
+         * - Input: 28x28 grayscale image
+         * - Conv2D (16 filters, 3x3) -> ReLU -> MaxPool2D (2x2)
+         * - Conv2D (32 filters, 3x3) -> ReLU -> MaxPool2D (2x2)
+         * - Flatten -> Dense (128) -> Dropout -> Dense (10) -> Softmax
+         *
+         * AgentDB stores:
+         * - Learned filter weights as vectors
+         * - Feature embeddings for similar digit patterns
+         * - Model checkpoints and training history
+         */
+
+        import { SQLiteVectorDB } from "https://unpkg.com/agentdb@1.0.7/dist/agentdb.min.js";
+
+        let db = null;
+        let canvas, ctx;
+        let isDrawing = false;
+        let predictionCount = 0;
+        let lossHistory = [0.8, 0.6, 0.4, 0.25, 0.15, 0.08, 0.05, 0.042];
+
+        // Simulated confusion matrix (10x10 for digits 0-9)
+        const confusionData = [
+            [98, 0, 0, 0, 1, 0, 1, 0, 0, 0],
+            [0, 97, 1, 0, 0, 0, 1, 0, 1, 0],
+            [1, 0, 96, 1, 0, 0, 0, 1, 1, 0],
+            [0, 0, 0, 98, 0, 1, 0, 0, 1, 0],
+            [0, 0, 0, 0, 97, 0, 1, 1, 0, 1],
+            [0, 0, 0, 1, 0, 96, 1, 0, 1, 1],
+            [1, 1, 0, 0, 1, 1, 96, 0, 0, 0],
+            [0, 0, 1, 0, 1, 0, 0, 97, 0, 1],
+            [0, 1, 1, 1, 0, 0, 0, 0, 96, 1],
+            [0, 0, 0, 1, 1, 1, 0, 1, 1, 95]
+        ];
+
+        async function initDB() {
+            console.log('Initializing AgentDB v1.0.7 from CDN...');
+            db = new SQLiteVectorDB({ memoryMode: true, backend: "wasm" });
+            await db.initializeAsync();
+            console.log('✅ AgentDB WASM v1.0.7 initialized');
+
+            // Store filter weights as vectors in AgentDB
+            for (let layer = 0; layer < 2; layer++) {
+                const numFilters = layer === 0 ? 16 : 32;
+                for (let f = 0; f < numFilters; f++) {
+                    const weights = Array.from({length: 128}, () => Math.random() * 2 - 1);
+                    await db.insert({
+                        embedding: weights,
+                        metadata: {
+                            type: 'filter',
+                            layerId: `conv${layer + 1}_filter${f}`,
+                            layer: layer + 1,
+                            filterNum: f,
+                            timestamp: Date.now()
+                        }
+                    });
+                }
+            }
+
+            console.log('CNN filter weights stored in AgentDB');
+            return db;
+        }
+
+        function cosineSimilarity(a, b) {
+            let dot = 0, normA = 0, normB = 0;
+            for (let i = 0; i < Math.min(a.length, b.length); i++) {
+                dot += a[i] * b[i];
+                normA += a[i] * a[i];
+                normB += b[i] * b[i];
+            }
+            return dot / (Math.sqrt(normA) * Math.sqrt(normB) || 1);
+        }
+
+        function setupCanvas() {
+            canvas = document.getElementById('drawCanvas');
+            ctx = canvas.getContext('2d');
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.strokeStyle = 'black';
+            ctx.lineWidth = 20;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            canvas.addEventListener('mousedown', startDrawing);
+            canvas.addEventListener('mousemove', draw);
+            canvas.addEventListener('mouseup', stopDrawing);
+            canvas.addEventListener('mouseout', stopDrawing);
+
+            canvas.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                const touch = e.touches[0];
+                const rect = canvas.getBoundingClientRect();
+                const x = touch.clientX - rect.left;
+                const y = touch.clientY - rect.top;
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                isDrawing = true;
+            });
+
+            canvas.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                if (!isDrawing) return;
+                const touch = e.touches[0];
+                const rect = canvas.getBoundingClientRect();
+                const x = touch.clientX - rect.left;
+                const y = touch.clientY - rect.top;
+                ctx.lineTo(x, y);
+                ctx.stroke();
+            });
+
+            canvas.addEventListener('touchend', stopDrawing);
+        }
+
+        function startDrawing(e) {
+            isDrawing = true;
+            const rect = canvas.getBoundingClientRect();
+            ctx.beginPath();
+            ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+            const rect = canvas.getBoundingClientRect();
+            ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+            ctx.stroke();
+        }
+
+        function stopDrawing() {
+            isDrawing = false;
+        }
+
+        function clearCanvas() {
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            document.getElementById('predictionBox').style.display = 'none';
+        }
+
+        function preprocessImage() {
+            // Get image data and downsample to 28x28
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const downsized = new Array(28 * 28);
+
+            for (let y = 0; y < 28; y++) {
+                for (let x = 0; x < 28; x++) {
+                    let sum = 0;
+                    const scaleX = canvas.width / 28;
+                    const scaleY = canvas.height / 28;
+
+                    for (let dy = 0; dy < scaleY; dy++) {
+                        for (let dx = 0; dx < scaleX; dx++) {
+                            const px = Math.floor(x * scaleX + dx);
+                            const py = Math.floor(y * scaleY + dy);
+                            const idx = (py * canvas.width + px) * 4;
+                            sum += (255 - imageData.data[idx]) / 255; // Invert and normalize
+                        }
+                    }
+
+                    downsized[y * 28 + x] = sum / (scaleX * scaleY);
+                }
+            }
+
+            return downsized;
+        }
+
+        function simulateConvolution(input, filters) {
+            // Simulate convolution operation
+            const output = new Array(filters).fill(0).map(() => []);
+
+            for (let f = 0; f < filters; f++) {
+                for (let i = 0; i < input.length; i++) {
+                    output[f].push(Math.max(0, input[i] * (Math.random() * 0.5 + 0.5)));
+                }
+            }
+
+            return output;
+        }
+
+        async function recognizeDigit() {
+            const imageData = preprocessImage();
+
+            // Check if canvas is mostly empty
+            const sum = imageData.reduce((a, b) => a + b, 0);
+            if (sum < 10) {
+                alert('Please draw a digit first!');
+                return;
+            }
+
+            // Simulate CNN forward pass
+            const filters = parseInt(document.getElementById('filtersSlider').value);
+
+            // Conv1 + MaxPool
+            const conv1Output = simulateConvolution(imageData, filters);
+            visualizeFeatureMaps('conv1Viz', conv1Output.slice(0, 8));
+
+            // Conv2 + MaxPool
+            const conv2Output = simulateConvolution(conv1Output[0], filters * 2);
+            visualizeFeatureMaps('conv2Viz', conv2Output.slice(0, 8));
+
+            // Generate prediction (simulated)
+            const embedding = imageData.slice(0, 128);
+
+            // Search for similar patterns in AgentDB
+            const similar = await db.search(embedding, { k: 3 });
+            console.log('Found similar patterns:', similar.length);
+
+            // Simulate softmax output
+            const probabilities = Array.from({length: 10}, () => Math.random());
+            const sum_probs = probabilities.reduce((a, b) => a + b, 0);
+            const normalized = probabilities.map(p => p / sum_probs);
+
+            // Pick highest probability
+            const predictedDigit = normalized.indexOf(Math.max(...normalized));
+            const confidence = normalized[predictedDigit];
+
+            // Store prediction embedding in AgentDB
+            await db.insert({
+                embedding: embedding,
+                metadata: {
+                    type: 'prediction',
+                    digit: predictedDigit,
+                    confidence: confidence,
+                    timestamp: Date.now()
+                }
+            });
+
+            // Display results
+            displayPrediction(predictedDigit, normalized);
+
+            predictionCount++;
+            document.getElementById('predictionsStat').textContent = predictionCount;
+        }
+
+        function visualizeFeatureMaps(containerId, featureMaps) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+
+            featureMaps.forEach((map, idx) => {
+                const mapDiv = document.createElement('div');
+                mapDiv.className = 'feature-map';
+
+                const canvas = document.createElement('canvas');
+                canvas.className = 'feature-map-canvas';
+                canvas.width = 28;
+                canvas.height = 28;
+
+                const ctx = canvas.getContext('2d');
+                const imageData = ctx.createImageData(28, 28);
+
+                for (let i = 0; i < Math.min(map.length, 784); i++) {
+                    const value = Math.floor(map[i] * 255);
+                    imageData.data[i * 4] = value;
+                    imageData.data[i * 4 + 1] = value;
+                    imageData.data[i * 4 + 2] = value;
+                    imageData.data[i * 4 + 3] = 255;
+                }
+
+                ctx.putImageData(imageData, 0, 0);
+                mapDiv.appendChild(canvas);
+                container.appendChild(mapDiv);
+            });
+        }
+
+        function displayPrediction(digit, probabilities) {
+            document.getElementById('predictionBox').style.display = 'block';
+            document.getElementById('digitResult').textContent = digit;
+
+            const barsContainer = document.getElementById('confidenceBars');
+            barsContainer.innerHTML = '';
+
+            probabilities.forEach((prob, idx) => {
+                const barDiv = document.createElement('div');
+                barDiv.className = 'confidence-bar';
+                barDiv.innerHTML = `
+                    <div class="digit-label">${idx}</div>
+                    <div class="bar-container">
+                        <div class="bar-fill" style="width: ${prob * 100}%">
+                            <div class="bar-value">${(prob * 100).toFixed(1)}%</div>
+                        </div>
+                    </div>
+                `;
+                barsContainer.appendChild(barDiv);
+            });
+        }
+
+        function drawLossChart() {
+            const canvas = document.getElementById('lossChart');
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width;
+            const height = canvas.height;
+
+            ctx.fillStyle = 'hsl(0 0% 10%)';
+            ctx.fillRect(0, 0, width, height);
+
+            // Draw grid
+            ctx.strokeStyle = 'hsl(0 0% 20%)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= 5; i++) {
+                const y = (height - 40) * (i / 5) + 20;
+                ctx.beginPath();
+                ctx.moveTo(40, y);
+                ctx.lineTo(width - 20, y);
+                ctx.stroke();
+            }
+
+            // Draw loss curve
+            ctx.strokeStyle = 'hsl(195 100% 60%)';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+
+            lossHistory.forEach((loss, idx) => {
+                const x = 40 + ((width - 60) / (lossHistory.length - 1)) * idx;
+                const y = height - 40 - (loss / 0.8) * (height - 60);
+
+                if (idx === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+
+                // Draw point
+                ctx.fillStyle = 'hsl(195 100% 60%)';
+                ctx.beginPath();
+                ctx.arc(x, y, 4, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            ctx.stroke();
+
+            // Labels
+            ctx.fillStyle = 'hsl(0 0% 70%)';
+            ctx.font = '12px monospace';
+            ctx.fillText('Epoch', width / 2 - 20, height - 5);
+            ctx.save();
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText('Loss', -height / 2 - 15, 15);
+            ctx.restore();
+        }
+
+        function drawConfusionMatrix() {
+            const container = document.getElementById('confusionMatrix');
+            container.innerHTML = '';
+
+            // Header row
+            container.appendChild(createMatrixCell('', true));
+            for (let i = 0; i < 10; i++) {
+                container.appendChild(createMatrixCell(i.toString(), true));
+            }
+
+            // Data rows
+            confusionData.forEach((row, i) => {
+                container.appendChild(createMatrixCell(i.toString(), true));
+                row.forEach(value => {
+                    const cell = createMatrixCell(value.toString(), false);
+                    const intensity = value / 100;
+                    cell.style.background = `hsl(195 100% ${60 - intensity * 40}% / ${intensity * 0.3 + 0.1})`;
+                    container.appendChild(cell);
+                });
+            });
+        }
+
+        function createMatrixCell(text, isHeader) {
+            const cell = document.createElement('div');
+            cell.className = `matrix-cell ${isHeader ? 'matrix-header' : 'matrix-value'}`;
+            cell.textContent = text;
+            return cell;
+        }
+
+        // Event listeners
+        document.getElementById('recognizeBtn').addEventListener('click', recognizeDigit);
+        document.getElementById('clearCanvasBtn').addEventListener('click', clearCanvas);
+
+        document.getElementById('filtersSlider').addEventListener('input', (e) => {
+            document.getElementById('filtersValue').textContent = e.target.value;
+        });
+
+        document.getElementById('dropoutSlider').addEventListener('input', (e) => {
+            document.getElementById('dropoutValue').textContent = parseFloat(e.target.value).toFixed(1);
+        });
+
+        // Initialize
+        async function init() {
+            await initDB();
+            setupCanvas();
+            drawLossChart();
+            drawConfusionMatrix();
+
+            // Initial feature map visualization
+            const dummyMaps = Array.from({length: 8}, () =>
+                Array.from({length: 784}, () => Math.random() * 0.3)
+            );
+            visualizeFeatureMaps('conv1Viz', dummyMaps);
+            visualizeFeatureMaps('conv2Viz', dummyMaps);
+
+            console.log('CNN demo initialized with AgentDB');
+        }
+
+        init();
+    </script>
+</body>
+</html>

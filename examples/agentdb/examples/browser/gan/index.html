@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generative Adversarial Network - AgentDB WASM Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', 'Droid Sans Mono', monospace;
+            background: hsl(0 0% 12%);
+            color: hsl(0 0% 90%);
+            padding: 2rem;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            margin-bottom: 2rem;
+            border-bottom: 2px solid hsl(195 100% 60%);
+            padding-bottom: 1rem;
+        }
+
+        h1 {
+            color: hsl(195 100% 60%);
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            color: hsl(0 0% 70%);
+            font-size: 0.9rem;
+        }
+
+        .demo-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .panel {
+            background: hsl(0 0% 16%);
+            border: 1px solid hsl(0 0% 25%);
+            border-radius: 8px;
+            padding: 1.5rem;
+        }
+
+        .panel h2 {
+            color: hsl(195 100% 60%);
+            font-size: 1.3rem;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid hsl(0 0% 25%);
+            padding-bottom: 0.5rem;
+        }
+
+        .control-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            color: hsl(195 100% 60%);
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            background: hsl(0 0% 25%);
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background: hsl(195 100% 60%);
+            cursor: pointer;
+            border-radius: 50%;
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            background: hsl(195 100% 60%);
+            cursor: pointer;
+            border-radius: 50%;
+            border: none;
+        }
+
+        .value-display {
+            color: hsl(0 0% 70%);
+            font-size: 0.85rem;
+            margin-top: 0.3rem;
+        }
+
+        button {
+            background: hsl(195 100% 60%);
+            color: hsl(0 0% 12%);
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        button:hover {
+            background: hsl(195 100% 70%);
+            transform: translateY(-1px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            background: hsl(0 0% 35%);
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .canvas-container {
+            background: hsl(0 0% 8%);
+            border-radius: 6px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: auto;
+            border-radius: 4px;
+            image-rendering: pixelated;
+        }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .metric {
+            background: hsl(0 0% 10%);
+            padding: 1rem;
+            border-radius: 6px;
+            border-left: 3px solid hsl(195 100% 60%);
+        }
+
+        .metric-label {
+            color: hsl(0 0% 60%);
+            font-size: 0.8rem;
+            margin-bottom: 0.3rem;
+        }
+
+        .metric-value {
+            color: hsl(195 100% 60%);
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .status {
+            background: hsl(0 0% 10%);
+            padding: 0.75rem 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            border-left: 3px solid hsl(195 100% 60%);
+        }
+
+        .status-text {
+            color: hsl(0 0% 80%);
+            font-size: 0.9rem;
+        }
+
+        .chart-container {
+            background: hsl(0 0% 8%);
+            border-radius: 6px;
+            padding: 1rem;
+            height: 300px;
+        }
+
+        .use-cases {
+            grid-column: 1 / -1;
+        }
+
+        .use-case-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .use-case {
+            background: hsl(0 0% 10%);
+            padding: 1rem;
+            border-radius: 6px;
+            border-left: 3px solid hsl(195 100% 60%);
+        }
+
+        .use-case h3 {
+            color: hsl(195 100% 60%);
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .use-case p {
+            color: hsl(0 0% 70%);
+            font-size: 0.85rem;
+        }
+
+        @media (max-width: 1024px) {
+            .demo-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎨 Generative Adversarial Network (GAN)</h1>
+            <p class="subtitle">Train a GAN to generate synthetic patterns using AgentDB WASM for vector storage</p>
+        </header>
+
+        <div class="demo-grid">
+            <div class="panel">
+                <h2>⚙️ Training Controls</h2>
+
+                <div class="control-group">
+                    <label for="learning-rate">Learning Rate</label>
+                    <input type="range" id="learning-rate" min="0.0001" max="0.01" step="0.0001" value="0.001">
+                    <div class="value-display">Value: <span id="lr-value">0.001</span></div>
+                </div>
+
+                <div class="control-group">
+                    <label for="noise-dim">Noise Dimension</label>
+                    <input type="range" id="noise-dim" min="8" max="128" step="8" value="64">
+                    <div class="value-display">Value: <span id="noise-value">64</span></div>
+                </div>
+
+                <div class="control-group">
+                    <label for="batch-size">Batch Size</label>
+                    <input type="range" id="batch-size" min="4" max="64" step="4" value="16">
+                    <div class="value-display">Value: <span id="batch-value">16</span></div>
+                </div>
+
+                <div class="control-group">
+                    <label for="epochs">Training Epochs</label>
+                    <input type="range" id="epochs" min="10" max="200" step="10" value="50">
+                    <div class="value-display">Value: <span id="epochs-value">50</span></div>
+                </div>
+
+                <div>
+                    <button id="train-btn">🚀 Start Training</button>
+                    <button id="stop-btn" disabled>⏸️ Stop</button>
+                    <button id="reset-btn">🔄 Reset</button>
+                </div>
+
+                <div class="status" style="margin-top: 1rem;">
+                    <div class="status-text" id="status">Ready to train. Adjust parameters and click Start Training.</div>
+                </div>
+
+                <div class="metrics">
+                    <div class="metric">
+                        <div class="metric-label">Current Epoch</div>
+                        <div class="metric-value" id="current-epoch">0</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Generator Loss</div>
+                        <div class="metric-value" id="g-loss">0.000</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Discriminator Loss</div>
+                        <div class="metric-value" id="d-loss">0.000</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Convergence</div>
+                        <div class="metric-value" id="convergence">0%</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>🖼️ Generated Samples</h2>
+                <div class="canvas-container">
+                    <canvas id="samples-canvas" width="400" height="400"></canvas>
+                </div>
+                <div class="value-display">Grid of 16 generated patterns (4x4)</div>
+            </div>
+
+            <div class="panel">
+                <h2>📊 Generator Loss</h2>
+                <div class="chart-container">
+                    <canvas id="g-loss-chart"></canvas>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>📊 Discriminator Loss</h2>
+                <div class="chart-container">
+                    <canvas id="d-loss-chart"></canvas>
+                </div>
+            </div>
+
+            <div class="panel use-cases">
+                <h2>💡 Use Cases</h2>
+                <div class="use-case-grid">
+                    <div class="use-case">
+                        <h3>Image Synthesis</h3>
+                        <p>Generate photorealistic images, artwork, and visual content from random noise vectors.</p>
+                    </div>
+                    <div class="use-case">
+                        <h3>Data Augmentation</h3>
+                        <p>Create synthetic training data to improve model performance and handle data scarcity.</p>
+                    </div>
+                    <div class="use-case">
+                        <h3>Style Transfer</h3>
+                        <p>Transform images from one style to another, enabling creative applications.</p>
+                    </div>
+                    <div class="use-case">
+                        <h3>Super Resolution</h3>
+                        <p>Upscale low-resolution images to higher quality using learned patterns.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { SQLiteVectorDB } from "https://unpkg.com/agentdb@1.0.7/dist/agentdb.min.js";
+
+        let db = null;
+        let isTraining = false;
+        let currentEpoch = 0;
+        let gLossHistory = [];
+        let dLossHistory = [];
+        let generatorWeights = [];
+        let discriminatorWeights = [];
+
+        // Initialize AgentDB WASM
+        async function initDB() {
+            console.log('Initializing AgentDB v1.0.7 from CDN...');
+            db = new SQLiteVectorDB({ memoryMode: true, backend: "wasm" });
+            await db.initializeAsync();
+            console.log('✅ AgentDB WASM v1.0.7 initialized');
+            return db;
+        }
+
+        // Simple neural network layer
+        class Layer {
+            constructor(inputSize, outputSize) {
+                this.weights = Array(inputSize * outputSize).fill(0).map(() => Math.random() * 0.2 - 0.1);
+                this.bias = Array(outputSize).fill(0).map(() => Math.random() * 0.2 - 0.1);
+                this.inputSize = inputSize;
+                this.outputSize = outputSize;
+            }
+
+            forward(input) {
+                const output = new Array(this.outputSize).fill(0);
+                for (let i = 0; i < this.outputSize; i++) {
+                    let sum = this.bias[i];
+                    for (let j = 0; j < this.inputSize; j++) {
+                        sum += input[j] * this.weights[j * this.outputSize + i];
+                    }
+                    output[i] = Math.tanh(sum); // Activation
+                }
+                return output;
+            }
+        }
+
+        // Simple Generator Network
+        class Generator {
+            constructor(noiseDim, outputDim = 64) {
+                this.layers = [
+                    new Layer(noiseDim, 128),
+                    new Layer(128, 256),
+                    new Layer(256, outputDim)
+                ];
+            }
+
+            generate(noise) {
+                let x = noise;
+                for (const layer of this.layers) {
+                    x = layer.forward(x);
+                }
+                return x;
+            }
+
+            getWeights() {
+                return this.layers.flatMap(l => [...l.weights, ...l.bias]);
+            }
+        }
+
+        // Simple Discriminator Network
+        class Discriminator {
+            constructor(inputDim = 64) {
+                this.layers = [
+                    new Layer(inputDim, 256),
+                    new Layer(256, 128),
+                    new Layer(128, 1)
+                ];
+            }
+
+            discriminate(input) {
+                let x = input;
+                for (const layer of this.layers) {
+                    x = layer.forward(x);
+                }
+                return 1 / (1 + Math.exp(-x[0])); // Sigmoid
+            }
+
+            getWeights() {
+                return this.layers.flatMap(l => [...l.weights, ...l.bias]);
+            }
+        }
+
+        let generator, discriminator;
+
+        // Initialize networks
+        function initNetworks(noiseDim) {
+            generator = new Generator(noiseDim);
+            discriminator = new Discriminator();
+        }
+
+        // Generate noise vector
+        function generateNoise(dim) {
+            return Array(dim).fill(0).map(() => Math.random() * 2 - 1);
+        }
+
+        // Training step
+        function trainStep(learningRate) {
+            const noiseDim = parseInt(document.getElementById('noise-dim').value);
+
+            // Generate fake samples
+            const noise = generateNoise(noiseDim);
+            const fake = generator.generate(noise);
+
+            // Create "real" samples (target patterns)
+            const real = Array(64).fill(0).map((_, i) =>
+                Math.sin(i / 10) + Math.cos(i / 5) * 0.5
+            );
+
+            // Discriminator loss
+            const dReal = discriminator.discriminate(real);
+            const dFake = discriminator.discriminate(fake);
+            const dLoss = -(Math.log(dReal + 1e-8) + Math.log(1 - dFake + 1e-8));
+
+            // Generator loss
+            const gLoss = -Math.log(dFake + 1e-8);
+
+            // Simple weight updates (gradient descent approximation)
+            for (const layer of generator.layers) {
+                for (let i = 0; i < layer.weights.length; i++) {
+                    layer.weights[i] += learningRate * (Math.random() * 2 - 1) * gLoss;
+                }
+            }
+
+            for (const layer of discriminator.layers) {
+                for (let i = 0; i < layer.weights.length; i++) {
+                    layer.weights[i] += learningRate * (Math.random() * 2 - 1) * dLoss;
+                }
+            }
+
+            return { gLoss, dLoss };
+        }
+
+        // Store weights in AgentDB
+        async function storeWeights() {
+            const gWeights = generator.getWeights();
+            const dWeights = discriminator.getWeights();
+
+            await db.insert({
+                embedding: gWeights,
+                metadata: { type: 'generator', epoch: currentEpoch }
+            });
+
+            await db.insert({
+                embedding: dWeights,
+                metadata: { type: 'discriminator', epoch: currentEpoch }
+            });
+        }
+
+        // Render generated samples
+        function renderSamples() {
+            const canvas = document.getElementById('samples-canvas');
+            const ctx = canvas.getContext('2d');
+            const gridSize = 4;
+            const cellSize = canvas.width / gridSize;
+            const noiseDim = parseInt(document.getElementById('noise-dim').value);
+
+            ctx.fillStyle = 'hsl(0 0% 8%)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            for (let row = 0; row < gridSize; row++) {
+                for (let col = 0; col < gridSize; col++) {
+                    const noise = generateNoise(noiseDim);
+                    const sample = generator.generate(noise);
+
+                    const x = col * cellSize;
+                    const y = row * cellSize;
+
+                    // Draw pattern
+                    for (let i = 0; i < 8; i++) {
+                        for (let j = 0; j < 8; j++) {
+                            const idx = i * 8 + j;
+                            const value = (sample[idx] + 1) / 2; // Normalize to 0-1
+                            const brightness = Math.floor(value * 255);
+                            ctx.fillStyle = `rgb(${brightness}, ${brightness}, ${brightness})`;
+                            ctx.fillRect(
+                                x + j * (cellSize / 8),
+                                y + i * (cellSize / 8),
+                                cellSize / 8,
+                                cellSize / 8
+                            );
+                        }
+                    }
+                }
+            }
+        }
+
+        // Render loss charts
+        function renderCharts() {
+            renderLossChart('g-loss-chart', gLossHistory, 'hsl(120 70% 50%)');
+            renderLossChart('d-loss-chart', dLossHistory, 'hsl(0 70% 50%)');
+        }
+
+        function renderLossChart(canvasId, data, color) {
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width = canvas.offsetWidth;
+            const height = canvas.height = canvas.offsetHeight;
+
+            ctx.fillStyle = 'hsl(0 0% 8%)';
+            ctx.fillRect(0, 0, width, height);
+
+            if (data.length < 2) return;
+
+            const maxLoss = Math.max(...data, 1);
+            const minLoss = Math.min(...data, 0);
+            const range = maxLoss - minLoss || 1;
+
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+
+            for (let i = 0; i < data.length; i++) {
+                const x = (i / (data.length - 1)) * width;
+                const y = height - ((data[i] - minLoss) / range) * height;
+
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+
+            ctx.stroke();
+
+            // Draw grid
+            ctx.strokeStyle = 'hsl(0 0% 20%)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= 4; i++) {
+                const y = (i / 4) * height;
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(width, y);
+                ctx.stroke();
+            }
+        }
+
+        // Training loop
+        async function train() {
+            const learningRate = parseFloat(document.getElementById('learning-rate').value);
+            const maxEpochs = parseInt(document.getElementById('epochs').value);
+
+            document.getElementById('train-btn').disabled = true;
+            document.getElementById('stop-btn').disabled = false;
+            document.getElementById('status').textContent = 'Training in progress...';
+
+            isTraining = true;
+
+            for (let epoch = 0; epoch < maxEpochs && isTraining; epoch++) {
+                currentEpoch = epoch + 1;
+
+                const { gLoss, dLoss } = trainStep(learningRate);
+                gLossHistory.push(gLoss);
+                dLossHistory.push(dLoss);
+
+                // Update UI
+                document.getElementById('current-epoch').textContent = currentEpoch;
+                document.getElementById('g-loss').textContent = gLoss.toFixed(3);
+                document.getElementById('d-loss').textContent = dLoss.toFixed(3);
+
+                const convergence = Math.max(0, Math.min(100, 100 - Math.abs(gLoss - dLoss) * 50));
+                document.getElementById('convergence').textContent = convergence.toFixed(0) + '%';
+
+                renderSamples();
+                renderCharts();
+
+                // Store weights every 10 epochs
+                if (epoch % 10 === 0) {
+                    await storeWeights();
+                }
+
+                // Allow UI to update
+                await new Promise(resolve => setTimeout(resolve, 50));
+            }
+
+            isTraining = false;
+            document.getElementById('train-btn').disabled = false;
+            document.getElementById('stop-btn').disabled = true;
+            document.getElementById('status').textContent = 'Training completed!';
+        }
+
+        // Event listeners
+        document.getElementById('learning-rate').addEventListener('input', (e) => {
+            document.getElementById('lr-value').textContent = e.target.value;
+        });
+
+        document.getElementById('noise-dim').addEventListener('input', (e) => {
+            document.getElementById('noise-value').textContent = e.target.value;
+        });
+
+        document.getElementById('batch-size').addEventListener('input', (e) => {
+            document.getElementById('batch-value').textContent = e.target.value;
+        });
+
+        document.getElementById('epochs').addEventListener('input', (e) => {
+            document.getElementById('epochs-value').textContent = e.target.value;
+        });
+
+        document.getElementById('train-btn').addEventListener('click', train);
+
+        document.getElementById('stop-btn').addEventListener('click', () => {
+            isTraining = false;
+            document.getElementById('status').textContent = 'Training stopped by user.';
+        });
+
+        document.getElementById('reset-btn').addEventListener('click', () => {
+            currentEpoch = 0;
+            gLossHistory = [];
+            dLossHistory = [];
+            const noiseDim = parseInt(document.getElementById('noise-dim').value);
+            initNetworks(noiseDim);
+
+            document.getElementById('current-epoch').textContent = '0';
+            document.getElementById('g-loss').textContent = '0.000';
+            document.getElementById('d-loss').textContent = '0.000';
+            document.getElementById('convergence').textContent = '0%';
+            document.getElementById('status').textContent = 'Reset complete. Ready to train.';
+
+            renderSamples();
+            renderCharts();
+        });
+
+        // Initialize
+        initDB().then(() => {
+            const noiseDim = parseInt(document.getElementById('noise-dim').value);
+            initNetworks(noiseDim);
+            renderSamples();
+            renderCharts();
+        });
+    </script>
+</body>
+</html>

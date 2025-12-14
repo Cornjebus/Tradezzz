@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Linear Regression - AgentDB WASM Demo</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+      background: hsl(0 0% 12%);
+      color: hsl(0 0% 90%);
+      padding: 2rem;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      color: hsl(195 100% 60%);
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+    }
+
+    .subtitle {
+      color: hsl(0 0% 60%);
+      margin-bottom: 2rem;
+      font-size: 0.95rem;
+    }
+
+    .demo-grid {
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .card {
+      background: hsl(0 0% 15%);
+      border: 1px solid hsl(0 0% 25%);
+      border-radius: 16px;
+      padding: 1.5rem;
+      box-shadow: 0 6px 24px hsl(222 20% 0% / 0.24);
+    }
+
+    .card h2 {
+      color: hsl(195 100% 60%);
+      font-size: 1.2rem;
+      margin-bottom: 1rem;
+      font-weight: 600;
+    }
+
+    #canvas-container {
+      position: relative;
+      background: hsl(0 0% 10%);
+      border-radius: 8px;
+      overflow: hidden;
+      height: 500px;
+      cursor: crosshair;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    label {
+      color: hsl(0 0% 70%);
+      font-size: 0.9rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .value-display {
+      color: hsl(195 100% 60%);
+      font-weight: 600;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      height: 6px;
+      background: hsl(0 0% 25%);
+      border-radius: 8px;
+      outline: none;
+      -webkit-appearance: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      background: hsl(195 100% 60%);
+      border-radius: 50%;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      background: hsl(195 100% 70%);
+      transform: scale(1.1);
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      background: hsl(195 100% 60%);
+      border-radius: 50%;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+    }
+
+    button {
+      background: hsl(195 100% 60%);
+      color: hsl(0 0% 10%);
+      border: none;
+      border-radius: 8px;
+      padding: 0.75rem 1.5rem;
+      font-family: inherit;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    button:hover {
+      background: hsl(195 100% 70%);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px hsl(195 100% 60% / 0.3);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    button.secondary {
+      background: hsl(0 0% 25%);
+      color: hsl(0 0% 90%);
+    }
+
+    button.secondary:hover {
+      background: hsl(0 0% 30%);
+      box-shadow: 0 4px 12px hsl(0 0% 0% / 0.3);
+    }
+
+    button.danger {
+      background: hsl(0 70% 50%);
+      color: white;
+    }
+
+    button.danger:hover {
+      background: hsl(0 70% 60%);
+      box-shadow: 0 4px 12px hsl(0 70% 50% / 0.3);
+    }
+
+    .button-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    .metric-card {
+      background: hsl(0 0% 10%);
+      border-radius: 8px;
+      padding: 1rem;
+      border: 1px solid hsl(0 0% 20%);
+    }
+
+    .metric-label {
+      color: hsl(0 0% 60%);
+      font-size: 0.85rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .metric-value {
+      color: hsl(195 100% 60%);
+      font-size: 1.5rem;
+      font-weight: 600;
+    }
+
+    .info-section {
+      background: hsl(0 0% 18%);
+      border-radius: 8px;
+      padding: 1rem;
+      margin-top: 1rem;
+    }
+
+    .info-section h3 {
+      color: hsl(195 100% 60%);
+      font-size: 0.95rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .info-section ul {
+      list-style: none;
+      color: hsl(0 0% 70%);
+      font-size: 0.85rem;
+    }
+
+    .info-section li {
+      padding: 0.25rem 0;
+      padding-left: 1rem;
+      position: relative;
+    }
+
+    .info-section li:before {
+      content: "→";
+      position: absolute;
+      left: 0;
+      color: hsl(195 100% 60%);
+    }
+
+    .status {
+      color: hsl(0 0% 60%);
+      font-size: 0.85rem;
+      padding: 0.5rem;
+      background: hsl(0 0% 10%);
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .status.ready {
+      color: hsl(120 60% 60%);
+      background: hsl(120 60% 10%);
+    }
+
+    .equation {
+      background: hsl(0 0% 10%);
+      border-radius: 8px;
+      padding: 1rem;
+      text-align: center;
+      font-size: 1.1rem;
+      color: hsl(195 100% 60%);
+      font-weight: 600;
+      margin-top: 1rem;
+    }
+
+    @media (max-width: 968px) {
+      .demo-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Linear Regression with AgentDB WASM</h1>
+    <p class="subtitle">Interactive machine learning demo with vector storage</p>
+
+    <div class="demo-grid">
+      <div class="card">
+        <h2>Visualization</h2>
+        <div id="canvas-container">
+          <canvas id="canvas"></canvas>
+        </div>
+        <div class="status" id="status">Click canvas to add data points</div>
+      </div>
+
+      <div class="card">
+        <h2>Controls</h2>
+        <div class="controls">
+          <div class="control-group">
+            <label>
+              Learning Rate
+              <span class="value-display" id="lr-value">0.01</span>
+            </label>
+            <input type="range" id="learning-rate" min="0.001" max="0.1" step="0.001" value="0.01">
+          </div>
+
+          <div class="control-group">
+            <label>
+              Epochs
+              <span class="value-display" id="epochs-value">100</span>
+            </label>
+            <input type="range" id="epochs" min="10" max="500" step="10" value="100">
+          </div>
+
+          <div class="button-group">
+            <button id="train-btn">Train Model</button>
+            <button id="reset-btn" class="secondary">Reset</button>
+          </div>
+
+          <button id="clear-btn" class="danger">Clear All</button>
+
+          <div class="metrics">
+            <div class="metric-card">
+              <div class="metric-label">Points</div>
+              <div class="metric-value" id="points-count">0</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">MSE</div>
+              <div class="metric-value" id="mse-value">-</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">R² Score</div>
+              <div class="metric-value" id="r2-value">-</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">AgentDB</div>
+              <div class="metric-value" id="db-status">Init...</div>
+            </div>
+          </div>
+
+          <div class="equation" id="equation">y = mx + b</div>
+
+          <div class="info-section">
+            <h3>Use Cases</h3>
+            <ul>
+              <li>Price prediction</li>
+              <li>Trend analysis</li>
+              <li>Sales forecasting</li>
+              <li>Resource planning</li>
+            </ul>
+          </div>
+
+          <div class="info-section">
+            <h3>How to Use</h3>
+            <ul>
+              <li>Click to add points</li>
+              <li>Adjust learning rate</li>
+              <li>Train to fit line</li>
+              <li>View metrics</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { SQLiteVectorDB } from "https://unpkg.com/agentdb@1.0.7/dist/agentdb.min.js";
+
+    let db = null;
+
+    async function initDB() {
+      try {
+        console.log('Initializing AgentDB v1.0.7 from CDN...');
+        db = new SQLiteVectorDB({ memoryMode: true, backend: "wasm" });
+        await db.initializeAsync();
+        document.getElementById('db-status').textContent = '✓';
+        document.getElementById('db-status').style.color = 'hsl(120 60% 60%)';
+        console.log('✅ AgentDB WASM v1.0.7 initialized');
+      } catch (error) {
+        console.error('AgentDB init error:', error);
+        document.getElementById('db-status').textContent = '✗';
+        document.getElementById('db-status').style.color = 'hsl(0 70% 60%)';
+      }
+    }
+
+    // Canvas setup
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const container = document.getElementById('canvas-container');
+
+    const resizeCanvas = () => {
+      const rect = container.getBoundingClientRect();
+      canvas.width = rect.width;
+      canvas.height = rect.height;
+      draw();
+    };
+
+    // Data points
+    let points = [];
+    let slope = 0;
+    let intercept = 0;
+    let trained = false;
+
+    // UI elements
+    const lrInput = document.getElementById('learning-rate');
+    const epochsInput = document.getElementById('epochs');
+    const lrValue = document.getElementById('lr-value');
+    const epochsValue = document.getElementById('epochs-value');
+    const trainBtn = document.getElementById('train-btn');
+    const resetBtn = document.getElementById('reset-btn');
+    const clearBtn = document.getElementById('clear-btn');
+    const status = document.getElementById('status');
+
+    // Event listeners
+    lrInput.addEventListener('input', (e) => {
+      lrValue.textContent = parseFloat(e.target.value).toFixed(3);
+    });
+
+    epochsInput.addEventListener('input', (e) => {
+      epochsValue.textContent = e.target.value;
+    });
+
+    canvas.addEventListener('click', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / canvas.width;
+      const y = 1 - (e.clientY - rect.top) / canvas.height;
+
+      points.push({ x, y });
+      trained = false;
+      updateMetrics();
+      draw();
+
+      // Store in AgentDB
+      if (db) {
+        const vector = [x, y, slope, intercept];
+        db.insert({
+          embedding: vector,
+          metadata: { type: 'point', timestamp: Date.now() }
+        }).catch(console.error);
+      }
+
+      status.textContent = `${points.length} point${points.length !== 1 ? 's' : ''} added`;
+    });
+
+    trainBtn.addEventListener('click', trainModel);
+    resetBtn.addEventListener('click', resetModel);
+    clearBtn.addEventListener('click', clearAll);
+
+    // Linear regression training
+    function trainModel() {
+      if (points.length < 2) {
+        status.textContent = 'Need at least 2 points to train';
+        return;
+      }
+
+      const lr = parseFloat(lrInput.value);
+      const epochs = parseInt(epochsInput.value);
+
+      // Initialize
+      slope = 0;
+      intercept = 0;
+
+      // Gradient descent
+      for (let epoch = 0; epoch < epochs; epoch++) {
+        let slopeGrad = 0;
+        let interceptGrad = 0;
+
+        for (const point of points) {
+          const prediction = slope * point.x + intercept;
+          const error = prediction - point.y;
+
+          slopeGrad += error * point.x;
+          interceptGrad += error;
+        }
+
+        slopeGrad /= points.length;
+        interceptGrad /= points.length;
+
+        slope -= lr * slopeGrad;
+        intercept -= lr * interceptGrad;
+      }
+
+      trained = true;
+      updateMetrics();
+      draw();
+
+      // Store model in AgentDB
+      if (db) {
+        const modelVector = [slope, intercept, ...points.flat().slice(0, 6)];
+        db.insert({
+          embedding: modelVector,
+          metadata: { type: 'model', slope, intercept, timestamp: Date.now() }
+        }).catch(console.error);
+      }
+
+      status.textContent = 'Model trained successfully';
+      status.classList.add('ready');
+    }
+
+    function resetModel() {
+      slope = 0;
+      intercept = 0;
+      trained = false;
+      updateMetrics();
+      draw();
+      status.textContent = 'Model reset';
+      status.classList.remove('ready');
+    }
+
+    function clearAll() {
+      points = [];
+      slope = 0;
+      intercept = 0;
+      trained = false;
+      updateMetrics();
+      draw();
+      status.textContent = 'All data cleared';
+      status.classList.remove('ready');
+    }
+
+    // Calculate metrics
+    function calculateMSE() {
+      if (points.length === 0) return 0;
+
+      let sumSquaredError = 0;
+      for (const point of points) {
+        const prediction = slope * point.x + intercept;
+        sumSquaredError += Math.pow(prediction - point.y, 2);
+      }
+      return sumSquaredError / points.length;
+    }
+
+    function calculateR2() {
+      if (points.length === 0) return 0;
+
+      const meanY = points.reduce((sum, p) => sum + p.y, 0) / points.length;
+
+      let ssRes = 0;
+      let ssTot = 0;
+
+      for (const point of points) {
+        const prediction = slope * point.x + intercept;
+        ssRes += Math.pow(point.y - prediction, 2);
+        ssTot += Math.pow(point.y - meanY, 2);
+      }
+
+      return ssTot === 0 ? 0 : 1 - (ssRes / ssTot);
+    }
+
+    function updateMetrics() {
+      document.getElementById('points-count').textContent = points.length;
+
+      if (trained && points.length > 0) {
+        const mse = calculateMSE();
+        const r2 = calculateR2();
+
+        document.getElementById('mse-value').textContent = mse.toFixed(4);
+        document.getElementById('r2-value').textContent = r2.toFixed(4);
+        document.getElementById('equation').textContent =
+          `y = ${slope.toFixed(3)}x + ${intercept.toFixed(3)}`;
+      } else {
+        document.getElementById('mse-value').textContent = '-';
+        document.getElementById('r2-value').textContent = '-';
+        document.getElementById('equation').textContent = 'y = mx + b';
+      }
+    }
+
+    // Draw function
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Draw grid
+      ctx.strokeStyle = 'hsl(0 0% 20%)';
+      ctx.lineWidth = 1;
+
+      for (let i = 0; i <= 10; i++) {
+        const x = (i / 10) * canvas.width;
+        const y = (i / 10) * canvas.height;
+
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+      }
+
+      // Draw regression line
+      if (trained) {
+        ctx.strokeStyle = 'hsl(195 100% 60%)';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+
+        const y1 = intercept;
+        const y2 = slope + intercept;
+
+        ctx.moveTo(0, canvas.height * (1 - y1));
+        ctx.lineTo(canvas.width, canvas.height * (1 - y2));
+        ctx.stroke();
+      }
+
+      // Draw points
+      points.forEach(point => {
+        const px = point.x * canvas.width;
+        const py = (1 - point.y) * canvas.height;
+
+        ctx.fillStyle = 'hsl(195 100% 60%)';
+        ctx.beginPath();
+        ctx.arc(px, py, 6, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = 'hsl(0 0% 10%)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      });
+    }
+
+    // Initialize
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+    initDB();
+  </script>
+</body>
+</html>

@@ -1,0 +1,85 @@
+<!-- Sample Data Generation Overview Modal -->
+<div id="sampleDataOverviewModal" class="modal-overlay">
+  <div class="modal modal-large">
+    <div class="modal-header">
+      <div class="modal-title">✅ Sample Data Generation Complete</div>
+      <button class="modal-close" onclick="closeSampleDataOverview()">&times;</button>
+    </div>
+    <div class="modal-body" style="padding: 2rem;">
+
+      <!-- Summary Stats -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+        <div class="help-card" style="text-align: center;">
+          <div style="font-size: 3rem; margin-bottom: 0.5rem;" id="overview-total-icon">📊</div>
+          <div style="font-size: 2.5rem; font-weight: 700; color: var(--accent); margin-bottom: 0.25rem;" id="overview-total-count">0</div>
+          <div style="font-size: 0.875rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">Total Records</div>
+        </div>
+
+        <div class="help-card" style="text-align: center;">
+          <div style="font-size: 3rem; margin-bottom: 0.5rem;">🧩</div>
+          <div style="font-size: 2.5rem; font-weight: 700; color: var(--info); margin-bottom: 0.25rem;" id="overview-patterns-count">0</div>
+          <div style="font-size: 0.875rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">Patterns</div>
+        </div>
+
+        <div class="help-card" style="text-align: center;">
+          <div style="font-size: 3rem; margin-bottom: 0.5rem;">📝</div>
+          <div style="font-size: 2.5rem; font-weight: 700; color: var(--success); margin-bottom: 0.25rem;" id="overview-episodes-count">0</div>
+          <div style="font-size: 0.875rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">Episodes</div>
+        </div>
+
+        <div class="help-card" style="text-align: center;">
+          <div style="font-size: 3rem; margin-bottom: 0.5rem;">🔗</div>
+          <div style="font-size: 2.5rem; font-weight: 700; color: var(--warning); margin-bottom: 0.25rem;" id="overview-causal-count">0</div>
+          <div style="font-size: 0.875rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em;">Causal Edges</div>
+        </div>
+      </div>
+
+      <!-- Generation Details -->
+      <div class="help-card">
+        <h4>📋 Generation Details</h4>
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr style="border-bottom: 1px solid var(--border-color);">
+            <td style="padding: 0.75rem 0; font-weight: 600;">Method:</td>
+            <td style="padding: 0.75rem 0;" id="overview-method">Local Templates</td>
+          </tr>
+          <tr style="border-bottom: 1px solid var(--border-color);">
+            <td style="padding: 0.75rem 0; font-weight: 600;">Data Type:</td>
+            <td style="padding: 0.75rem 0;" id="overview-data-type">All</td>
+          </tr>
+          <tr style="border-bottom: 1px solid var(--border-color);">
+            <td style="padding: 0.75rem 0; font-weight: 600;">Requested Count:</td>
+            <td style="padding: 0.75rem 0;" id="overview-requested-count">10</td>
+          </tr>
+          <tr style="border-bottom: 1px solid var(--border-color);">
+            <td style="padding: 0.75rem 0; font-weight: 600;">Generation Time:</td>
+            <td style="padding: 0.75rem 0;" id="overview-duration">0ms</td>
+          </tr>
+          <tr>
+            <td style="padding: 0.75rem 0; font-weight: 600;">Theme:</td>
+            <td style="padding: 0.75rem 0;" id="overview-theme">None</td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- Sample Preview -->
+      <div class="help-card">
+        <h4>🔍 Sample Preview</h4>
+        <div id="overview-sample-preview" style="max-height: 300px; overflow-y: auto; font-size: 0.875rem; line-height: 1.7;">
+          <p style="color: var(--text-secondary);">Loading preview...</p>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="help-tip">
+        <strong>💡 Quick Actions:</strong> Your data is ready! Use the buttons below to explore it.
+      </div>
+
+    </div>
+    <div class="modal-footer" style="display: flex; gap: 0.75rem; justify-content: flex-end;">
+      <button class="btn btn-secondary" onclick="closeSampleDataOverview()">Close</button>
+      <button class="btn btn-primary" onclick="closeSampleDataOverview(); switchView('data-browser'); refreshTableList();">📊 Browse Data</button>
+      <button class="btn btn-primary" onclick="closeSampleDataOverview(); switchView('patterns'); refreshPatterns();">🧩 View Patterns</button>
+      <button class="btn btn-primary" onclick="closeSampleDataOverview(); switchView('episodes'); refreshEpisodes();">📝 View Episodes</button>
+    </div>
+  </div>
+</div>

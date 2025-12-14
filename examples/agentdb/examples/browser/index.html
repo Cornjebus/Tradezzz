@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgentDB Browser Examples - Self-Learning Architectures</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 3rem;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .examples-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .example-card {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .example-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+        }
+
+        .example-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .example-title {
+            font-size: 1.5rem;
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+
+        .example-description {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 1rem;
+        }
+
+        .example-features {
+            list-style: none;
+            margin-bottom: 1.5rem;
+        }
+
+        .example-features li {
+            padding: 0.3rem 0;
+            color: #555;
+            font-size: 0.9rem;
+        }
+
+        .example-features li:before {
+            content: "✓ ";
+            color: #667eea;
+            font-weight: bold;
+            margin-right: 0.5rem;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            transition: opacity 0.3s ease;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+        }
+
+        .info-section {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .info-section h2 {
+            color: #333;
+            margin-bottom: 1rem;
+        }
+
+        .info-section p {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 1rem;
+        }
+
+        .tech-stack {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .tech-badge {
+            padding: 0.5rem 1rem;
+            background: #f0f0f0;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            color: #555;
+        }
+
+        footer {
+            text-align: center;
+            color: white;
+            margin-top: 3rem;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🧠 AgentDB Browser Examples</h1>
+            <p class="subtitle">Self-Learning Client-Side Architectures with WASM</p>
+        </header>
+
+        <div class="info-section">
+            <h2>About These Examples</h2>
+            <p>
+                These examples demonstrate how to build self-learning AI systems entirely in the browser using AgentDB's
+                WASM backend. Each architecture showcases different approaches to client-side machine learning, persistent
+                memory, and adaptive behavior without requiring a server.
+            </p>
+            <div class="tech-stack">
+                <span class="tech-badge">🚀 AgentDB WASM</span>
+                <span class="tech-badge">💾 LocalStorage Persistence</span>
+                <span class="tech-badge">🧠 ReasoningBank</span>
+                <span class="tech-badge">⚡ Vector Search</span>
+                <span class="tech-badge">🎯 Self-Learning</span>
+                <span class="tech-badge">📱 100% Client-Side</span>
+            </div>
+        </div>
+
+        <div class="examples-grid">
+            <!-- RAG Example -->
+            <div class="example-card">
+                <div class="example-icon">📚</div>
+                <h3 class="example-title">RAG Self-Learning</h3>
+                <p class="example-description">
+                    Retrieval-Augmented Generation that learns from user queries and feedback to improve responses over time.
+                </p>
+                <ul class="example-features">
+                    <li>Dynamic knowledge base growth</li>
+                    <li>Query pattern learning</li>
+                    <li>Feedback-based optimization</li>
+                    <li>Semantic document retrieval</li>
+                </ul>
+                <a href="rag/index.html" class="btn">Launch Demo</a>
+            </div>
+
+            <!-- Pattern Learning Example -->
+            <div class="example-card">
+                <div class="example-icon">🎯</div>
+                <h3 class="example-title">Pattern-Based Learning</h3>
+                <p class="example-description">
+                    Learn user interaction patterns and adapt behavior based on successful task completions.
+                </p>
+                <ul class="example-features">
+                    <li>User behavior tracking</li>
+                    <li>Success pattern recognition</li>
+                    <li>Adaptive UI/UX optimization</li>
+                    <li>Predictive task assistance</li>
+                </ul>
+                <a href="pattern-learning/index.html" class="btn">Launch Demo</a>
+            </div>
+
+            <!-- Experience Replay Example -->
+            <div class="example-card">
+                <div class="example-icon">🎮</div>
+                <h3 class="example-title">Experience Replay</h3>
+                <p class="example-description">
+                    Reinforcement learning-style architecture that stores experiences and learns optimal strategies.
+                </p>
+                <ul class="example-features">
+                    <li>Experience buffer management</li>
+                    <li>Q-Learning implementation</li>
+                    <li>Policy improvement over time</li>
+                    <li>Reward-based optimization</li>
+                </ul>
+                <a href="experience-replay/index.html" class="btn">Launch Demo</a>
+            </div>
+
+            <!-- Collaborative Filtering Example -->
+            <div class="example-card">
+                <div class="example-icon">🤝</div>
+                <h3 class="example-title">Collaborative Filtering</h3>
+                <p class="example-description">
+                    Build recommendation systems that learn from user preferences and similar user patterns.
+                </p>
+                <ul class="example-features">
+                    <li>User similarity matching</li>
+                    <li>Preference vector learning</li>
+                    <li>Cross-user pattern transfer</li>
+                    <li>Cold-start handling</li>
+                </ul>
+                <a href="collaborative-filtering/index.html" class="btn">Launch Demo</a>
+            </div>
+
+            <!-- Adaptive Recommendations Example -->
+            <div class="example-card">
+                <div class="example-icon">🎨</div>
+                <h3 class="example-title">Adaptive Recommendations</h3>
+                <p class="example-description">
+                    Dynamic content recommendation system that adapts to user behavior and context in real-time.
+                </p>
+                <ul class="example-features">
+                    <li>Context-aware suggestions</li>
+                    <li>Multi-armed bandit optimization</li>
+                    <li>Real-time adaptation</li>
+                    <li>Exploration vs exploitation</li>
+                </ul>
+                <a href="adaptive-recommendations/index.html" class="btn">Launch Demo</a>
+            </div>
+        </div>
+
+        <div class="info-section">
+            <h2>⚡ Advanced & Exotic Examples</h2>
+            <p>
+                Explore cutting-edge AI concepts implemented entirely in the browser. These examples demonstrate futuristic architectures inspired by quantum computing, neuroscience, and advanced machine learning research.
+            </p>
+        </div>
+
+        <div class="examples-grid">
+            <!-- Swarm Intelligence Example -->
+            <div class="example-card">
+                <div class="example-icon">🐝</div>
+                <h3 class="example-title">Swarm Intelligence</h3>
+                <p class="example-description">
+                    Emergent collective behavior through particle swarm optimization, stigmergy, and pheromone trails.
+                </p>
+                <ul class="example-features">
+                    <li>Multi-agent coordination</li>
+                    <li>Pheromone-based pathfinding</li>
+                    <li>Emergent intelligence</li>
+                    <li>Foraging & flocking behaviors</li>
+                </ul>
+                <a href="swarm-intelligence/index.html" class="btn">Launch Demo</a>
+            </div>
+
+            <!-- Meta-Learning Example -->
+            <div class="example-card">
+                <div class="example-icon">🧠</div>
+                <h3 class="example-title">Meta-Learning (MAML)</h3>
+                <p class="example-description">
+                    Learning to learn - rapidly adapt to new tasks with just a few examples using Model-Agnostic Meta-Learning.
+                </p>
+                <ul class="example-features">
+                    <li>Few-shot learning</li>
+                    <li>Meta-parameter optimization</li>
+                    <li>Rapid task adaptation</li>
+                    <li>Inner/outer loop training</li>
+                </ul>
+                <a href="meta-learning/index.html" class="btn">Launch Demo</a>
+            </div>
+
+            <!-- Neuro-Symbolic Example -->
+            <div class="example-card">
+                <div class="example-icon">🧬</div>
+                <h3 class="example-title">Neuro-Symbolic Reasoning</h3>
+                <p class="example-description">
+                    Hybrid AI combining neural pattern recognition with symbolic logic for interpretable reasoning.
+                </p>
+                <ul class="example-features">
+                    <li>Neural + symbolic fusion</li>
+                    <li>Logical rule inference</li>
+                    <li>Explainable AI decisions</li>
+                    <li>Forward chaining reasoning</li>
+                </ul>
+                <a href="neuro-symbolic/index.html" class="btn">Launch Demo</a>
+            </div>
+
+            <!-- Quantum-Inspired Example -->
+            <div class="example-card">
+                <div class="example-icon">⚛️</div>
+                <h3 class="example-title">Quantum-Inspired Optimization</h3>
+                <p class="example-description">
+                    Global optimization using quantum computing principles: superposition, entanglement, and tunneling.
+                </p>
+                <ul class="example-features">
+                    <li>Quantum particle swarm</li>
+                    <li>Superposition states</li>
+                    <li>Tunneling through barriers</li>
+                    <li>Entangled particles</li>
+                </ul>
+                <a href="quantum-inspired/index.html" class="btn">Launch Demo</a>
+            </div>
+
+            <!-- Continual Learning Example -->
+            <div class="example-card">
+                <div class="example-icon">🧬</div>
+                <h3 class="example-title">Continual Learning</h3>
+                <p class="example-description">
+                    Lifelong learning without catastrophic forgetting using Elastic Weight Consolidation and experience replay.
+                </p>
+                <ul class="example-features">
+                    <li>Sequential task learning</li>
+                    <li>EWC regularization</li>
+                    <li>Memory consolidation</li>
+                    <li>Anti-forgetting mechanisms</li>
+                </ul>
+                <a href="continual-learning/index.html" class="btn">Launch Demo</a>
+            </div>
+        </div>
+
+        <div class="info-section">
+            <h2>🔧 Technical Features</h2>
+            <p><strong>All examples include:</strong></p>
+            <ul style="list-style: none; padding-left: 1rem;">
+                <li>✓ WASM-powered vector database running entirely in browser</li>
+                <li>✓ LocalStorage/IndexedDB persistence for offline capabilities</li>
+                <li>✓ ReasoningBank integration for pattern and experience management</li>
+                <li>✓ Real-time learning from user interactions</li>
+                <li>✓ Visual feedback showing learning progress</li>
+                <li>✓ Export/import functionality for data portability</li>
+                <li>✓ Zero backend requirements - fully client-side</li>
+            </ul>
+        </div>
+
+        <footer>
+            <p>Built with AgentDB v1.0.0 | <a href="https://github.com/ruvnet/agentic-flow" style="color: white;">GitHub</a></p>
+        </footer>
+    </div>
+</body>
+</html>

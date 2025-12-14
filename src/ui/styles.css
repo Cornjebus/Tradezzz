@@ -1,0 +1,106 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Dark grey backgrounds */
+    --bg: 0 0% 12%;
+    --bg-elev1: 0 0% 15%;
+    --bg-elev2: 0 0% 18%;
+    --line: 0 0% 25%;
+    --muted: 0 0% 85%;
+    --text: 0 0% 95%;
+
+    /* Single accent color - cyan */
+    --acc-cyan: 195 100% 60%;
+
+    /* Panel surfaces */
+    --panel: 0 0% 14%;
+    --panel-strong: 0 0% 10%;
+    --glass: 0 0% 100% / 0.03;
+
+    /* Semantic mappings for shadcn */
+    --background: var(--bg);
+    --foreground: var(--text);
+
+    --card: var(--bg-elev1);
+    --card-foreground: var(--text);
+
+    --popover: var(--bg-elev2);
+    --popover-foreground: var(--text);
+
+    --primary: var(--acc-cyan);
+    --primary-foreground: 0 0% 10%;
+
+    --secondary: var(--bg-elev2);
+    --secondary-foreground: var(--text);
+
+    --muted: var(--bg-elev2);
+    --muted-foreground: 0 0% 92%;
+
+    --accent: var(--acc-cyan);
+    --accent-foreground: 0 0% 10%;
+
+    --destructive: 0 70% 60%;
+    --destructive-foreground: var(--text);
+
+    --border: var(--line);
+    --input: var(--line);
+    --ring: var(--acc-cyan);
+
+    --radius: 1rem;
+
+    /* Animation variables */
+    --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+    --dur-fast: 120ms;
+    --dur-med: 220ms;
+    --dur-slow: 420ms;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+    letter-spacing: -0.005em;
+  }
+}
+
+@layer utilities {
+  /* Console animations */
+  @keyframes caretBlink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.1; }
+  }
+
+  @keyframes scanline {
+    0% { transform: translateY(-100%); }
+    100% { transform: translateY(100%); }
+  }
+
+  @keyframes glow {
+    0%, 100% { box-shadow: 0 0 10px hsl(var(--acc-cyan) / 0.3); }
+    50% { box-shadow: 0 0 20px hsl(var(--acc-cyan) / 0.6); }
+  }
+
+  .caret-blink {
+    animation: caretBlink var(--dur-slow) step-end infinite;
+  }
+
+  .scanline {
+    animation: scanline 8s linear infinite;
+  }
+
+  .glow {
+    animation: glow 2s ease-in-out infinite;
+  }
+}

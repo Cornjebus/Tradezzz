@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Principal Component Analysis - AgentDB WASM Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+            background: hsl(0 0% 12%);
+            color: hsl(0 0% 90%);
+            padding: 2rem;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        h1 {
+            color: hsl(195 100% 60%);
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .subtitle {
+            color: hsl(0 0% 70%);
+            font-size: 1rem;
+        }
+
+        .demo-grid {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .controls-panel {
+            background: hsl(0 0% 16%);
+            border: 1px solid hsl(0 0% 25%);
+            border-radius: 8px;
+            padding: 1.5rem;
+        }
+
+        .control-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .control-group:last-child {
+            margin-bottom: 0;
+        }
+
+        label {
+            display: block;
+            color: hsl(195 100% 60%);
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            background: hsl(0 0% 25%);
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background: hsl(195 100% 60%);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            background: hsl(195 100% 60%);
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+        }
+
+        .value-display {
+            text-align: right;
+            color: hsl(0 0% 70%);
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+        }
+
+        select {
+            width: 100%;
+            padding: 0.75rem;
+            background: hsl(0 0% 20%);
+            color: hsl(0 0% 90%);
+            border: 1px solid hsl(0 0% 25%);
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 0.875rem;
+            cursor: pointer;
+        }
+
+        button {
+            width: 100%;
+            padding: 0.75rem;
+            background: hsl(195 100% 60%);
+            color: hsl(0 0% 12%);
+            border: none;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 0.5rem;
+        }
+
+        button:hover {
+            background: hsl(195 100% 70%);
+            transform: translateY(-1px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button.secondary {
+            background: hsl(0 0% 25%);
+            color: hsl(0 0% 90%);
+        }
+
+        button.secondary:hover {
+            background: hsl(0 0% 30%);
+        }
+
+        .visualization-panel {
+            background: hsl(0 0% 16%);
+            border: 1px solid hsl(0 0% 25%);
+            border-radius: 8px;
+            padding: 1.5rem;
+            min-height: 600px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        canvas {
+            width: 100%;
+            height: 500px;
+            background: hsl(0 0% 10%);
+            border-radius: 4px;
+        }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .metric-card {
+            background: hsl(0 0% 20%);
+            padding: 1rem;
+            border-radius: 6px;
+            border-left: 3px solid hsl(195 100% 60%);
+        }
+
+        .metric-label {
+            color: hsl(0 0% 60%);
+            font-size: 0.75rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .metric-value {
+            color: hsl(195 100% 60%);
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .variance-chart {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: hsl(0 0% 20%);
+            border-radius: 6px;
+        }
+
+        .variance-bar {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .variance-label {
+            width: 60px;
+            color: hsl(0 0% 70%);
+            font-size: 0.75rem;
+        }
+
+        .variance-track {
+            flex: 1;
+            height: 20px;
+            background: hsl(0 0% 15%);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 0 0.5rem;
+        }
+
+        .variance-fill {
+            height: 100%;
+            background: linear-gradient(to right, hsl(195 100% 60%), hsl(195 100% 40%));
+            transition: width 0.3s;
+        }
+
+        .variance-value {
+            width: 60px;
+            text-align: right;
+            color: hsl(195 100% 60%);
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .info-section {
+            background: hsl(0 0% 16%);
+            border: 1px solid hsl(0 0% 25%);
+            border-radius: 8px;
+            padding: 1.5rem;
+        }
+
+        .info-section h2 {
+            color: hsl(195 100% 60%);
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+        }
+
+        .info-section p {
+            color: hsl(0 0% 70%);
+            margin-bottom: 0.75rem;
+        }
+
+        .use-cases {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .use-case {
+            background: hsl(0 0% 20%);
+            padding: 1rem;
+            border-radius: 6px;
+        }
+
+        .use-case h3 {
+            color: hsl(195 100% 60%);
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .use-case p {
+            color: hsl(0 0% 70%);
+            font-size: 0.8rem;
+            margin: 0;
+        }
+
+        .status {
+            padding: 0.75rem;
+            background: hsl(0 0% 20%);
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+            color: hsl(0 0% 70%);
+        }
+
+        .status.success {
+            background: hsl(142 76% 36% / 0.2);
+            color: hsl(142 76% 60%);
+            border-left: 3px solid hsl(142 76% 60%);
+        }
+
+        .status.error {
+            background: hsl(0 84% 60% / 0.2);
+            color: hsl(0 84% 70%);
+            border-left: 3px solid hsl(0 84% 60%);
+        }
+
+        .dataset-info {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: hsl(0 0% 20%);
+            border-radius: 6px;
+        }
+
+        .dataset-info h3 {
+            color: hsl(195 100% 60%);
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .dataset-info p {
+            color: hsl(0 0% 70%);
+            font-size: 0.8rem;
+            margin: 0.25rem 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Principal Component Analysis</h1>
+            <p class="subtitle">Dimensionality reduction with AgentDB WASM</p>
+        </header>
+
+        <div class="demo-grid">
+            <div class="controls-panel">
+                <div class="status" id="status">Ready to analyze data</div>
+
+                <div class="control-group">
+                    <label for="dataset">Dataset</label>
+                    <select id="dataset">
+                        <option value="iris">Iris Flowers (4D → 2D)</option>
+                        <option value="gaussian">Gaussian Clusters (5D → 2D)</option>
+                        <option value="spiral">3D Spiral (3D → 2D)</option>
+                        <option value="random">Random High-Dim (10D → 2D)</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label for="components">Number of Components</label>
+                    <input type="range" id="components" min="2" max="3" value="2" step="1">
+                    <div class="value-display" id="componentsDisplay">2</div>
+                </div>
+
+                <button id="runPCA">Run PCA</button>
+                <button id="generateData" class="secondary">Generate New Data</button>
+                <button id="toggleProjection" class="secondary">Toggle 3D View</button>
+
+                <div class="dataset-info" id="datasetInfo"></div>
+            </div>
+
+            <div class="visualization-panel">
+                <canvas id="canvas"></canvas>
+                <div class="metrics">
+                    <div class="metric-card">
+                        <div class="metric-label">Data Points</div>
+                        <div class="metric-value" id="pointCount">0</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Dimensions</div>
+                        <div class="metric-value" id="dimensions">0</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Components</div>
+                        <div class="metric-value" id="componentCount">0</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Total Variance</div>
+                        <div class="metric-value" id="totalVariance">0%</div>
+                    </div>
+                </div>
+
+                <div class="variance-chart" id="varianceChart"></div>
+            </div>
+        </div>
+
+        <div class="info-section">
+            <h2>About Principal Component Analysis</h2>
+            <p>PCA is a dimensionality reduction technique that transforms high-dimensional data into a lower-dimensional space while preserving as much variance as possible. It identifies principal components—orthogonal directions of maximum variance in the data.</p>
+
+            <h2 style="margin-top: 1.5rem;">Use Cases</h2>
+            <div class="use-cases">
+                <div class="use-case">
+                    <h3>Data Visualization</h3>
+                    <p>Reduce high-dimensional data to 2D or 3D for intuitive visualization and pattern discovery.</p>
+                </div>
+                <div class="use-case">
+                    <h3>Feature Extraction</h3>
+                    <p>Extract meaningful features from complex datasets, improving machine learning model performance.</p>
+                </div>
+                <div class="use-case">
+                    <h3>Data Compression</h3>
+                    <p>Reduce storage requirements by eliminating redundant dimensions while retaining information.</p>
+                </div>
+                <div class="use-case">
+                    <h3>Noise Reduction</h3>
+                    <p>Remove noise by projecting data onto principal components, filtering out less important variations.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { SQLiteVectorDB } from "https://unpkg.com/agentdb@1.0.7/dist/agentdb.min.js";
+
+        // State
+        let db = null;
+        let rawData = [];
+        let transformedData = [];
+        let principalComponents = [];
+        let explainedVariance = [];
+        let is3DView = false;
+        let rotation = 0;
+
+        // Canvas setup
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = canvas.offsetWidth;
+        canvas.height = 500;
+
+        // Color schemes
+        const colorSchemes = {
+            iris: ['hsl(271 91% 65%)', 'hsl(195 100% 60%)', 'hsl(142 76% 60%)'],
+            gaussian: ['hsl(195 100% 60%)', 'hsl(47 96% 53%)', 'hsl(0 84% 60%)'],
+            spiral: ['hsl(195 100% 60%)'],
+            random: ['hsl(271 91% 65%)', 'hsl(195 100% 60%)']
+        };
+
+        // Initialize AgentDB WASM
+        async function initDB() {
+            try {
+                console.log('Initializing AgentDB v1.0.7 from CDN...');
+                db = new SQLiteVectorDB({ memoryMode: true, backend: "wasm" });
+                await db.initializeAsync();
+                console.log('✅ AgentDB WASM v1.0.7 initialized');
+                updateStatus('AgentDB WASM v1.0.7 initialized successfully', 'success');
+            } catch (error) {
+                console.error('Failed to initialize AgentDB:', error);
+                updateStatus('Failed to initialize AgentDB: ' + error.message, 'error');
+            }
+        }
+
+        // Update status message
+        function updateStatus(message, type = '') {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = 'status' + (type ? ' ' + type : '');
+        }
+
+        // Generate datasets
+        function generateDataset(type) {
+            rawData = [];
+            const labels = [];
+
+            switch(type) {
+                case 'iris':
+                    // Simplified Iris dataset (4 dimensions)
+                    const irisData = [
+                        { mean: [5.0, 3.5, 1.4, 0.2], std: 0.3, label: 0, count: 30 },
+                        { mean: [6.0, 2.8, 4.5, 1.3], std: 0.4, label: 1, count: 30 },
+                        { mean: [6.5, 3.0, 5.5, 2.0], std: 0.5, label: 2, count: 30 }
+                    ];
+                    irisData.forEach(cluster => {
+                        for (let i = 0; i < cluster.count; i++) {
+                            const point = cluster.mean.map(m =>
+                                m + (Math.random() - 0.5) * cluster.std
+                            );
+                            rawData.push({ data: point, label: cluster.label });
+                        }
+                    });
+                    break;
+
+                case 'gaussian':
+                    // 5D Gaussian clusters
+                    const gaussianClusters = [
+                        { mean: [2, 2, 2, 2, 2], label: 0, count: 30 },
+                        { mean: [-2, -2, -2, -2, -2], label: 1, count: 30 },
+                        { mean: [2, -2, 2, -2, 2], label: 2, count: 30 }
+                    ];
+                    gaussianClusters.forEach(cluster => {
+                        for (let i = 0; i < cluster.count; i++) {
+                            const point = cluster.mean.map(m =>
+                                m + (Math.random() - 0.5) * 2
+                            );
+                            rawData.push({ data: point, label: cluster.label });
+                        }
+                    });
+                    break;
+
+                case 'spiral':
+                    // 3D spiral
+                    for (let i = 0; i < 100; i++) {
+                        const t = i / 100 * 4 * Math.PI;
+                        const point = [
+                            Math.cos(t) * (1 + t / 4),
+                            Math.sin(t) * (1 + t / 4),
+                            t / 2
+                        ];
+                        rawData.push({ data: point, label: 0 });
+                    }
+                    break;
+
+                case 'random':
+                    // 10D random data with structure
+                    for (let i = 0; i < 100; i++) {
+                        const label = i < 50 ? 0 : 1;
+                        const offset = label * 3;
+                        const point = Array(10).fill(0).map((_, dim) =>
+                            offset + (Math.random() - 0.5) * 2 +
+                            (dim < 3 ? Math.random() * 2 : 0)
+                        );
+                        rawData.push({ data: point, label });
+                    }
+                    break;
+            }
+
+            updateDatasetInfo(type);
+        }
+
+        // Update dataset info
+        function updateDatasetInfo(type) {
+            const info = document.getElementById('datasetInfo');
+            const dim = rawData[0].data.length;
+            const count = rawData.length;
+            const labels = [...new Set(rawData.map(d => d.label))].length;
+
+            info.innerHTML = `
+                <h3>Dataset Info</h3>
+                <p><strong>Points:</strong> ${count}</p>
+                <p><strong>Dimensions:</strong> ${dim}</p>
+                <p><strong>Classes:</strong> ${labels}</p>
+            `;
+        }
+
+        // Perform PCA
+        function performPCA(nComponents) {
+            if (rawData.length === 0) return;
+
+            const data = rawData.map(d => d.data);
+            const n = data.length;
+            const d = data[0].length;
+
+            // Center the data
+            const mean = Array(d).fill(0);
+            data.forEach(point => {
+                point.forEach((val, idx) => mean[idx] += val);
+            });
+            mean.forEach((val, idx) => mean[idx] /= n);
+
+            const centered = data.map(point =>
+                point.map((val, idx) => val - mean[idx])
+            );
+
+            // Compute covariance matrix
+            const cov = Array(d).fill(0).map(() => Array(d).fill(0));
+            for (let i = 0; i < d; i++) {
+                for (let j = 0; j < d; j++) {
+                    let sum = 0;
+                    for (let k = 0; k < n; k++) {
+                        sum += centered[k][i] * centered[k][j];
+                    }
+                    cov[i][j] = sum / (n - 1);
+                }
+            }
+
+            // Power iteration to find principal components
+            principalComponents = [];
+            explainedVariance = [];
+            const maxIterations = 100;
+
+            for (let comp = 0; comp < Math.min(nComponents, d); comp++) {
+                let pc = Array(d).fill(0).map(() => Math.random() - 0.5);
+
+                // Orthogonalize against previous components
+                for (let prev = 0; prev < comp; prev++) {
+                    const dot = dotProduct(pc, principalComponents[prev]);
+                    pc = pc.map((val, idx) => val - dot * principalComponents[prev][idx]);
+                }
+
+                // Power iteration
+                for (let iter = 0; iter < maxIterations; iter++) {
+                    const newPc = matrixVectorProduct(cov, pc);
+                    const norm = Math.sqrt(dotProduct(newPc, newPc));
+                    pc = newPc.map(val => val / norm);
+                }
+
+                // Calculate variance explained
+                const variance = dotProduct(
+                    matrixVectorProduct(cov, pc),
+                    pc
+                );
+
+                principalComponents.push(pc);
+                explainedVariance.push(variance);
+            }
+
+            // Normalize variance to percentages
+            const totalVariance = explainedVariance.reduce((a, b) => a + b, 0);
+            explainedVariance = explainedVariance.map(v => v / totalVariance * 100);
+
+            // Project data
+            transformedData = centered.map((point, idx) => ({
+                coords: principalComponents.map(pc => dotProduct(point, pc)),
+                label: rawData[idx].label
+            }));
+        }
+
+        // Matrix operations
+        function dotProduct(a, b) {
+            return a.reduce((sum, val, idx) => sum + val * b[idx], 0);
+        }
+
+        function matrixVectorProduct(matrix, vector) {
+            return matrix.map(row => dotProduct(row, vector));
+        }
+
+        // Store in AgentDB
+        async function storeInAgentDB() {
+            if (!db || transformedData.length === 0) return;
+
+            try {
+                for (let i = 0; i < transformedData.length; i++) {
+                    const embedding = transformedData[i].coords;
+                    await db.insert({
+                        embedding,
+                        metadata: {
+                            label: transformedData[i].label,
+                            originalDim: rawData[i].data.length,
+                            reducedDim: embedding.length
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to store in AgentDB:', error);
+            }
+        }
+
+        // Draw visualization
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (transformedData.length === 0) return;
+
+            const dataset = document.getElementById('dataset').value;
+            const colors = colorSchemes[dataset];
+
+            if (is3DView && transformedData[0].coords.length >= 3) {
+                draw3D(colors);
+            } else {
+                draw2D(colors);
+            }
+
+            // Draw axes
+            drawAxes();
+        }
+
+        // Draw 2D projection
+        function draw2D(colors) {
+            const padding = 50;
+            const width = canvas.width - 2 * padding;
+            const height = canvas.height - 2 * padding;
+
+            // Find bounds
+            const xValues = transformedData.map(d => d.coords[0]);
+            const yValues = transformedData.map(d => d.coords[1]);
+            const xMin = Math.min(...xValues);
+            const xMax = Math.max(...xValues);
+            const yMin = Math.min(...yValues);
+            const yMax = Math.max(...yValues);
+
+            const xRange = xMax - xMin || 1;
+            const yRange = yMax - yMin || 1;
+
+            // Draw points
+            transformedData.forEach(point => {
+                const x = padding + ((point.coords[0] - xMin) / xRange) * width;
+                const y = padding + ((yMax - point.coords[1]) / yRange) * height;
+
+                ctx.beginPath();
+                ctx.arc(x, y, 5, 0, Math.PI * 2);
+                ctx.fillStyle = colors[point.label % colors.length];
+                ctx.fill();
+                ctx.strokeStyle = 'hsl(0 0% 90%)';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            });
+        }
+
+        // Draw 3D projection
+        function draw3D(colors) {
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const scale = 80;
+
+            rotation += 0.01;
+
+            // Sort by depth for proper rendering
+            const points3D = transformedData.map(point => {
+                const x = point.coords[0];
+                const y = point.coords[1];
+                const z = point.coords[2] || 0;
+
+                // Rotate around Y axis
+                const rotX = x * Math.cos(rotation) + z * Math.sin(rotation);
+                const rotZ = -x * Math.sin(rotation) + z * Math.cos(rotation);
+
+                // Project to 2D
+                const screenX = centerX + rotX * scale;
+                const screenY = centerY - y * scale;
+                const depth = rotZ;
+
+                return { x: screenX, y: screenY, depth, label: point.label };
+            });
+
+            points3D.sort((a, b) => a.depth - b.depth);
+
+            // Draw points
+            points3D.forEach(point => {
+                const size = 3 + (point.depth + 5) / 2;
+                const alpha = 0.5 + (point.depth + 5) / 20;
+
+                ctx.beginPath();
+                ctx.arc(point.x, point.y, size, 0, Math.PI * 2);
+                ctx.fillStyle = colors[point.label % colors.length];
+                ctx.globalAlpha = Math.max(0.3, Math.min(1, alpha));
+                ctx.fill();
+                ctx.globalAlpha = 1;
+                ctx.strokeStyle = 'hsl(0 0% 90%)';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            });
+        }
+
+        // Draw axes
+        function drawAxes() {
+            const padding = 50;
+
+            // X axis
+            ctx.beginPath();
+            ctx.moveTo(padding, canvas.height - padding);
+            ctx.lineTo(canvas.width - padding, canvas.height - padding);
+            ctx.strokeStyle = 'hsl(0 0% 40%)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Y axis
+            ctx.beginPath();
+            ctx.moveTo(padding, padding);
+            ctx.lineTo(padding, canvas.height - padding);
+            ctx.strokeStyle = 'hsl(0 0% 40%)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Labels
+            ctx.fillStyle = 'hsl(195 100% 60%)';
+            ctx.font = '12px monospace';
+            ctx.fillText('PC1', canvas.width - padding + 10, canvas.height - padding + 5);
+            ctx.fillText('PC2', padding - 10, padding - 10);
+        }
+
+        // Update variance chart
+        function updateVarianceChart() {
+            const chart = document.getElementById('varianceChart');
+            chart.innerHTML = '<h3 style="color: hsl(195 100% 60%); margin-bottom: 0.75rem; font-size: 0.875rem;">Explained Variance</h3>';
+
+            let cumulative = 0;
+            explainedVariance.forEach((variance, idx) => {
+                cumulative += variance;
+                const bar = document.createElement('div');
+                bar.className = 'variance-bar';
+                bar.innerHTML = `
+                    <div class="variance-label">PC${idx + 1}</div>
+                    <div class="variance-track">
+                        <div class="variance-fill" style="width: ${variance}%"></div>
+                    </div>
+                    <div class="variance-value">${variance.toFixed(1)}%</div>
+                `;
+                chart.appendChild(bar);
+            });
+
+            // Add cumulative
+            const cumBar = document.createElement('div');
+            cumBar.className = 'variance-bar';
+            cumBar.innerHTML = `
+                <div class="variance-label">Total</div>
+                <div class="variance-track">
+                    <div class="variance-fill" style="width: ${cumulative}%; background: linear-gradient(to right, hsl(142 76% 60%), hsl(142 76% 40%));"></div>
+                </div>
+                <div class="variance-value">${cumulative.toFixed(1)}%</div>
+            `;
+            chart.appendChild(cumBar);
+        }
+
+        // Update metrics
+        function updateMetrics() {
+            document.getElementById('pointCount').textContent = rawData.length;
+            document.getElementById('dimensions').textContent = rawData.length > 0 ? rawData[0].data.length : 0;
+            document.getElementById('componentCount').textContent = principalComponents.length;
+
+            const totalVar = explainedVariance.reduce((a, b) => a + b, 0);
+            document.getElementById('totalVariance').textContent = totalVar.toFixed(1) + '%';
+        }
+
+        // Run PCA
+        async function runPCA() {
+            const dataset = document.getElementById('dataset').value;
+            const nComponents = parseInt(document.getElementById('components').value);
+
+            if (rawData.length === 0) {
+                generateDataset(dataset);
+            }
+
+            updateStatus('Running PCA analysis...', '');
+
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            performPCA(nComponents);
+            await storeInAgentDB();
+
+            updateMetrics();
+            updateVarianceChart();
+            draw();
+
+            updateStatus('PCA analysis complete', 'success');
+        }
+
+        // Animation loop for 3D
+        function animate() {
+            if (is3DView && transformedData.length > 0) {
+                draw();
+            }
+            requestAnimationFrame(animate);
+        }
+
+        // Event listeners
+        document.getElementById('components').addEventListener('input', (e) => {
+            document.getElementById('componentsDisplay').textContent = e.target.value;
+        });
+
+        document.getElementById('dataset').addEventListener('change', () => {
+            const dataset = document.getElementById('dataset').value;
+            generateDataset(dataset);
+            transformedData = [];
+            principalComponents = [];
+            explainedVariance = [];
+            updateMetrics();
+            draw();
+        });
+
+        document.getElementById('runPCA').addEventListener('click', runPCA);
+
+        document.getElementById('generateData').addEventListener('click', () => {
+            const dataset = document.getElementById('dataset').value;
+            generateDataset(dataset);
+            transformedData = [];
+            principalComponents = [];
+            explainedVariance = [];
+            updateMetrics();
+            draw();
+            updateStatus('New data generated', 'success');
+        });
+
+        document.getElementById('toggleProjection').addEventListener('click', () => {
+            is3DView = !is3DView;
+            const btn = document.getElementById('toggleProjection');
+            btn.textContent = is3DView ? 'Toggle 2D View' : 'Toggle 3D View';
+            draw();
+        });
+
+        // Initialize
+        initDB();
+        generateDataset('iris');
+        runPCA();
+        animate();
+    </script>
+</body>
+</html>

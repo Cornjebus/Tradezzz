@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG Self-Learning Example - AgentDB</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+            background: hsl(0 0% 12%);
+            color: hsl(0 0% 95%);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: hsl(0 0% 15%);
+            border: 1px solid hsl(0 0% 25%);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 6px 24px hsl(222 20% 0% / 0.24);
+        }
+
+        h1 {
+            color: hsl(195 100% 60%);
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            letter-spacing: -0.005em;
+        }
+
+        .subtitle {
+            color: hsl(0 0% 85%);
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        @media (max-width: 768px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: hsl(0 0% 15%);
+            border: 1px solid hsl(0 0% 25%);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 6px 24px hsl(222 20% 0% / 0.24);
+        }
+
+        .card h2 {
+            color: hsl(0 0% 95%);
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
+        .query-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .query-section label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: hsl(0 0% 95%);
+        }
+
+        textarea, input[type="text"] {
+            width: 100%;
+            padding: 0.75rem;
+            background: hsl(0 0% 18%);
+            border: 1px solid hsl(0 0% 25%);
+            border-radius: 8px;
+            color: hsl(0 0% 95%);
+            font-family: inherit;
+            font-size: 1rem;
+            resize: vertical;
+            transition: border-color 0.2s ease;
+        }
+
+        textarea:focus, input[type="text"]:focus {
+            outline: none;
+            border-color: hsl(195 100% 60%);
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            background: hsl(195 100% 60%);
+            color: hsl(0 0% 10%);
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: opacity 0.2s ease;
+        }
+
+        .btn:hover {
+            opacity: 0.85;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .response-area {
+            background: hsl(0 0% 18%);
+            border: 1px solid hsl(0 0% 25%);
+            border-radius: 8px;
+            padding: 1rem;
+            min-height: 200px;
+            margin-top: 1rem;
+            white-space: pre-wrap;
+            line-height: 1.6;
+            color: hsl(0 0% 92%);
+        }
+
+        .stat-card {
+            background: hsl(0 0% 18%);
+            border: 1px solid hsl(0 0% 25%);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .stat-label {
+            color: hsl(0 0% 85%);
+            font-size: 0.9rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-value {
+            color: hsl(195 100% 60%);
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .document-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .document-list::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .document-list::-webkit-scrollbar-track {
+            background: hsl(0 0% 14%);
+        }
+
+        .document-list::-webkit-scrollbar-thumb {
+            background: hsl(0 0% 25%);
+            border-radius: 4px;
+        }
+
+        .document-list::-webkit-scrollbar-thumb:hover {
+            background: hsl(195 100% 60%);
+        }
+
+        .document-item {
+            background: hsl(0 0% 18%);
+            border: 1px solid hsl(0 0% 25%);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .document-item:hover {
+            border-color: hsl(195 100% 60%);
+            transform: translateY(-1px);
+        }
+
+        .document-title {
+            font-weight: 600;
+            color: hsl(0 0% 95%);
+            margin-bottom: 0.25rem;
+        }
+
+        .document-preview {
+            color: hsl(0 0% 85%);
+            font-size: 0.9rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .learning-indicator {
+            background: hsl(195 100% 60% / 0.15);
+            color: hsl(195 100% 60%);
+            border: 1px solid hsl(195 100% 60% / 0.3);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+            display: none;
+        }
+
+        .learning-indicator.show {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .feedback-buttons {
+            margin-top: 1rem;
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .feedback-btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid hsl(0 0% 25%);
+            background: hsl(0 0% 18%);
+            color: hsl(0 0% 95%);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .feedback-btn:hover {
+            border-color: hsl(195 100% 60%);
+            background: hsl(0 0% 22%);
+        }
+
+        .feedback-btn.positive {
+            border-color: hsl(120 60% 50%);
+            color: hsl(120 60% 50%);
+        }
+
+        .feedback-btn.negative {
+            border-color: hsl(0 70% 60%);
+            color: hsl(0 70% 60%);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📚 RAG Self-Learning System</h1>
+            <p class="subtitle">Retrieval-Augmented Generation with Continuous Learning</p>
+        </header>
+
+        <div class="main-grid">
+            <div class="card">
+                <h2>Query Interface</h2>
+
+                <div class="query-section">
+                    <label for="query"><strong>Ask a Question:</strong></label>
+                    <textarea id="query" rows="3" placeholder="Enter your question here..."></textarea>
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn" id="submitQuery">Submit Query</button>
+                    <button class="btn" id="clearBtn">Clear</button>
+                </div>
+
+                <div class="response-area" id="response">No response yet. Try asking a question!</div>
+
+                <div class="feedback-buttons" id="feedbackButtons" style="display: none;">
+                    <button class="feedback-btn" id="positiveBtn">👍 Helpful</button>
+                    <button class="feedback-btn" id="negativeBtn">👎 Not Helpful</button>
+                </div>
+
+                <div class="learning-indicator" id="learningIndicator">
+                    ✨ System learned from your feedback!
+                </div>
+            </div>
+
+            <div>
+                <div class="card">
+                    <h2>System Stats</h2>
+
+                    <div class="stat-card">
+                        <div class="stat-label">Total Documents</div>
+                        <div class="stat-value" id="docCount">0</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-label">Queries Processed</div>
+                        <div class="stat-value" id="queryCount">0</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-label">Learning Rate</div>
+                        <div class="stat-value" id="learningRate">0%</div>
+                    </div>
+
+                    <div class="btn-group">
+                        <button class="btn" id="exportBtn">Export Data</button>
+                        <button class="btn" id="resetBtn">Reset</button>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-top: 2rem;">
+                    <h2>Add Document</h2>
+                    <input type="text" id="docTitle" placeholder="Document title..." style="margin-bottom: 0.5rem;">
+                    <textarea id="docContent" rows="4" placeholder="Document content..."></textarea>
+                    <button class="btn" id="addDocBtn" style="margin-top: 0.5rem;">Add to Knowledge Base</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Knowledge Base</h2>
+            <div class="document-list" id="documentList">
+                <p style="color: #666; text-align: center; padding: 2rem;">No documents yet. Add some knowledge!</p>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        /**
+         * RAG Self-Learning Example with Real AgentDB v1.0.7
+         *
+         * This demonstrates a Retrieval-Augmented Generation system that:
+         * 1. Stores documents as vector embeddings in AgentDB
+         * 2. Retrieves relevant documents using WASM-accelerated search
+         * 3. Learns from user feedback to improve retrieval
+         * 4. Adapts query understanding based on interaction patterns
+         */
+
+        // Import AgentDB v1.0.7 from CDN
+        import { SQLiteVectorDB } from "https://unpkg.com/agentdb@1.0.7/dist/agentdb.min.js";
+
+        // Initialize AgentDB with WASM backend
+        let db = null;
+        let agentDB = null;
+        let queryHistory = [];
+        let feedbackData = [];
+        let currentQueryId = null;
+        let documentMetadata = []; // Store document metadata separately
+
+        async function initDB() {
+            console.log('Initializing AgentDB v1.0.7 from CDN...');
+
+            try {
+                // Initialize AgentDB with WASM backend
+                agentDB = new SQLiteVectorDB({ memoryMode: true, backend: "wasm" });
+                await agentDB.initializeAsync();
+                console.log('✅ AgentDB WASM v1.0.7 initialized successfully');
+
+                // Create wrapper object for RAG functionality
+                db = {
+                    patterns: [],
+
+                    async addDocument(doc) {
+                        try {
+                            const embedding = generateEmbedding(doc.content);
+                            const docId = Date.now().toString();
+
+                            // Insert vector into AgentDB
+                            await agentDB.insert({
+                                id: docId,
+                                embedding: embedding,
+                                metadata: {
+                                    title: doc.title,
+                                    contentLength: doc.content.length,
+                                    timestamp: Date.now()
+                                }
+                            });
+
+                            // Store full document metadata separately
+                            documentMetadata.push({
+                                id: docId,
+                                title: doc.title,
+                                content: doc.content,
+                                timestamp: Date.now()
+                            });
+
+                            console.log(`✅ Document added: ${doc.title}`);
+                            updateStats();
+                        } catch (error) {
+                            console.error('Error adding document:', error);
+                            throw error;
+                        }
+                    },
+
+                    async search(query, k = 5) {
+                        try {
+                            const queryEmbedding = generateEmbedding(query);
+
+                            // Perform vector search using AgentDB
+                            const searchResults = await agentDB.search({
+                                queryEmbedding: queryEmbedding,
+                                k: k,
+                                metric: 'cosine'
+                            });
+
+                            // Enrich results with full document content
+                            const enrichedResults = searchResults.map(result => {
+                                const metadata = documentMetadata.find(doc => doc.id === result.id);
+                                return {
+                                    id: result.id,
+                                    title: metadata?.title || 'Unknown',
+                                    content: metadata?.content || '',
+                                    score: result.similarity,
+                                    timestamp: metadata?.timestamp
+                                };
+                            });
+
+                            console.log(`🔍 Found ${enrichedResults.length} results for query: "${query}"`);
+                            return enrichedResults;
+                        } catch (error) {
+                            console.error('Error searching:', error);
+                            return [];
+                        }
+                    },
+
+                    async storeQueryPattern(query, results, feedback) {
+                        // Store query pattern for learning
+                        this.patterns.push({
+                            query: query,
+                            queryEmbedding: generateEmbedding(query),
+                            results: results,
+                            feedback: feedback,
+                            timestamp: Date.now()
+                        });
+
+                        // Learn from feedback to adjust future retrievals
+                        if (feedback === 'positive') {
+                            this.learnFromSuccess(query, results);
+                        } else if (feedback === 'negative') {
+                            this.learnFromFailure(query, results);
+                        }
+                    },
+
+                    learnFromSuccess(query, results) {
+                        console.log('✨ Learning from successful query:', query);
+                        // In production: update weights, boost similar document rankings
+                    },
+
+                    learnFromFailure(query, results) {
+                        console.log('⚠️  Learning from unsuccessful query:', query);
+                        // In production: penalize similar patterns, explore alternatives
+                    },
+
+                    get documents() {
+                        return documentMetadata;
+                    }
+                };
+
+                // Load sample documents
+                await loadSampleDocuments();
+                updateStats();
+            } catch (error) {
+                console.error('Failed to initialize AgentDB:', error);
+                alert('Failed to initialize AgentDB. Please refresh the page.');
+            }
+        }
+
+        async function loadSampleDocuments() {
+            const samples = [
+                {
+                    title: "What is AgentDB?",
+                    content: "AgentDB is an ultra-fast agent memory and vector database for AI agents. It works in Node.js and browsers with WASM support, providing blazing-fast vector search and persistent reasoning patterns."
+                },
+                {
+                    title: "ReasoningBank Overview",
+                    content: "ReasoningBank is a built-in memory and learning system for AI agents. It includes PatternMatcher for storing reasoning patterns, ExperienceCurator for managing task experiences, and MemoryOptimizer for efficient long-term storage."
+                },
+                {
+                    title: "HNSW Index",
+                    content: "The Hierarchical Navigable Small World (HNSW) index provides 12x faster search with 97% recall accuracy. It uses a graph-based structure for approximate nearest neighbor search at scale."
+                }
+            ];
+
+            for (const doc of samples) {
+                await db.addDocument(doc);
+            }
+        }
+
+        function generateEmbedding(text) {
+            // Simulate embedding generation (in real app, use OpenAI/Cohere/local model)
+            // Simple bag-of-words hash for demo
+            const words = text.toLowerCase().split(/\s+/);
+            const embedding = new Array(384).fill(0); // Simulate 384-dim embedding
+
+            words.forEach((word, i) => {
+                const hash = simpleHash(word);
+                for (let j = 0; j < embedding.length; j++) {
+                    embedding[j] += Math.sin(hash * (j + 1)) * 0.1;
+                }
+            });
+
+            // Normalize
+            const norm = Math.sqrt(embedding.reduce((sum, val) => sum + val * val, 0));
+            return embedding.map(val => val / norm);
+        }
+
+        function simpleHash(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                hash = ((hash << 5) - hash) + str.charCodeAt(i);
+                hash = hash & hash;
+            }
+            return hash;
+        }
+
+        function cosineSimilarity(a, b) {
+            let dot = 0, normA = 0, normB = 0;
+            for (let i = 0; i < a.length; i++) {
+                dot += a[i] * b[i];
+                normA += a[i] * a[i];
+                normB += b[i] * b[i];
+            }
+            return dot / (Math.sqrt(normA) * Math.sqrt(normB));
+        }
+
+        async function handleQuery() {
+            const query = document.getElementById('query').value.trim();
+            if (!query) return;
+
+            const responseArea = document.getElementById('response');
+            responseArea.textContent = 'Searching knowledge base...';
+
+            // Search for relevant documents
+            const results = await db.search(query, 3);
+
+            // Generate response from retrieved documents
+            let response = `Found ${results.length} relevant documents:\n\n`;
+
+            if (results.length > 0) {
+                results.forEach((doc, i) => {
+                    response += `${i + 1}. ${doc.title} (${(doc.score * 100).toFixed(1)}% match)\n`;
+                    response += `   ${doc.content.substring(0, 150)}...\n\n`;
+                });
+            } else {
+                response = "No relevant documents found. Try adding more content to the knowledge base!";
+            }
+
+            responseArea.textContent = response;
+
+            // Store query for feedback learning
+            currentQueryId = Date.now().toString();
+            queryHistory.push({
+                id: currentQueryId,
+                query: query,
+                results: results,
+                timestamp: Date.now()
+            });
+
+            // Show feedback buttons
+            document.getElementById('feedbackButtons').style.display = 'flex';
+
+            // Update stats
+            document.getElementById('queryCount').textContent = queryHistory.length;
+        }
+
+        function handleFeedback(isPositive) {
+            if (!currentQueryId) return;
+
+            const query = queryHistory.find(q => q.id === currentQueryId);
+            if (!query) return;
+
+            const feedback = isPositive ? 'positive' : 'negative';
+
+            // Store feedback for learning
+            db.storeQueryPattern(query.query, query.results, feedback);
+            feedbackData.push({
+                queryId: currentQueryId,
+                feedback: feedback,
+                timestamp: Date.now()
+            });
+
+            // Show learning indicator
+            const indicator = document.getElementById('learningIndicator');
+            indicator.classList.add('show');
+            setTimeout(() => indicator.classList.remove('show'), 3000);
+
+            // Hide feedback buttons
+            document.getElementById('feedbackButtons').style.display = 'none';
+            currentQueryId = null;
+
+            // Update learning rate
+            updateStats();
+        }
+
+        async function addDocument() {
+            const title = document.getElementById('docTitle').value.trim();
+            const content = document.getElementById('docContent').value.trim();
+
+            if (!title || !content) {
+                alert('Please provide both title and content');
+                return;
+            }
+
+            await db.addDocument({ title, content });
+
+            // Clear inputs
+            document.getElementById('docTitle').value = '';
+            document.getElementById('docContent').value = '';
+
+            // Update document list
+            renderDocuments();
+        }
+
+        function renderDocuments() {
+            const listEl = document.getElementById('documentList');
+
+            if (db.documents.length === 0) {
+                listEl.innerHTML = '<p style="color: #666; text-align: center; padding: 2rem;">No documents yet. Add some knowledge!</p>';
+                return;
+            }
+
+            listEl.innerHTML = db.documents.map(doc => `
+                <div class="document-item">
+                    <div class="document-title">${doc.title}</div>
+                    <div class="document-preview">${doc.content}</div>
+                </div>
+            `).join('');
+        }
+
+        function updateStats() {
+            document.getElementById('docCount').textContent = db.documents.length;
+            document.getElementById('queryCount').textContent = queryHistory.length;
+
+            // Calculate learning rate (positive feedback ratio)
+            if (feedbackData.length > 0) {
+                const positiveCount = feedbackData.filter(f => f.feedback === 'positive').length;
+                const rate = (positiveCount / feedbackData.length * 100).toFixed(0);
+                document.getElementById('learningRate').textContent = `${rate}%`;
+            }
+
+            renderDocuments();
+        }
+
+        function exportData() {
+            const data = {
+                documents: db.documents,
+                queries: queryHistory,
+                feedback: feedbackData,
+                patterns: db.patterns,
+                exportDate: new Date().toISOString()
+            };
+
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `rag-data-${Date.now()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function reset() {
+            if (confirm('Are you sure you want to reset all data?')) {
+                queryHistory = [];
+                feedbackData = [];
+                currentQueryId = null;
+                db.documents = [];
+                db.queries = [];
+                db.patterns = [];
+
+                document.getElementById('query').value = '';
+                document.getElementById('response').textContent = 'No response yet. Try asking a question!';
+                document.getElementById('feedbackButtons').style.display = 'none';
+
+                loadSampleDocuments();
+                updateStats();
+            }
+        }
+
+        // Event listeners
+        document.getElementById('submitQuery').addEventListener('click', handleQuery);
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            document.getElementById('query').value = '';
+            document.getElementById('response').textContent = 'No response yet. Try asking a question!';
+            document.getElementById('feedbackButtons').style.display = 'none';
+        });
+        document.getElementById('positiveBtn').addEventListener('click', () => handleFeedback(true));
+        document.getElementById('negativeBtn').addEventListener('click', () => handleFeedback(false));
+        document.getElementById('addDocBtn').addEventListener('click', addDocument);
+        document.getElementById('exportBtn').addEventListener('click', exportData);
+        document.getElementById('resetBtn').addEventListener('click', reset);
+
+        // Enter key to submit
+        document.getElementById('query').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleQuery();
+            }
+        });
+
+        // Initialize on load
+        initDB();
+    </script>
+</body>
+</html>

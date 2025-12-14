@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Autonomous Coding Swarm - AgentDB</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+      background: hsl(0 0% 12%);
+      color: hsl(0 0% 95%);
+      min-height: 100vh;
+      padding: 2rem;
+    }
+
+    .container { max-width: 1800px; margin: 0 auto; }
+
+    header {
+      background: hsl(0 0% 15%);
+      border: 1px solid hsl(0 0% 25%);
+      border-radius: 16px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 6px 24px hsl(222 20% 0% / 0.24);
+    }
+
+    h1 {
+      color: hsl(195 100% 60%);
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .subtitle { color: hsl(0 0% 85%); font-size: 1.1rem; }
+
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .card {
+      background: hsl(0 0% 15%);
+      border: 1px solid hsl(0 0% 25%);
+      border-radius: 16px;
+      padding: 2rem;
+      box-shadow: 0 6px 24px hsl(222 20% 0% / 0.24);
+    }
+
+    .card.full-width { grid-column: 1 / -1; }
+    .card h2 {
+      color: hsl(0 0% 95%);
+      margin-bottom: 1rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .code-input {
+      width: 100%;
+      background: hsl(0 0% 10%);
+      border: 1px solid hsl(0 0% 25%);
+      border-radius: 12px;
+      padding: 1rem;
+      color: hsl(0 0% 95%);
+      font-size: 0.95rem;
+      resize: vertical;
+      min-height: 100px;
+    }
+
+    .code-editor {
+      width: 100%;
+      background: hsl(0 0% 10%);
+      border: 1px solid hsl(0 0% 25%);
+      border-radius: 12px;
+      padding: 1.5rem;
+      color: hsl(120 100% 80%);
+      font-size: 0.95rem;
+      font-family: 'JetBrains Mono', monospace;
+      resize: vertical;
+      min-height: 400px;
+      line-height: 1.6;
+    }
+
+    .code-editor:focus, .code-input:focus {
+      outline: none;
+      border-color: hsl(195 100% 60%);
+    }
+
+    .btn {
+      padding: 0.75rem 1.5rem;
+      background: hsl(195 100% 60%);
+      color: hsl(0 0% 10%);
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn:hover:not(:disabled) { opacity: 0.85; transform: translateY(-1px); }
+    .btn-secondary {
+      background: hsl(0 0% 18%);
+      color: hsl(195 100% 60%);
+      border: 1px solid hsl(0 0% 25%);
+    }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-group { display: flex; gap: 12px; margin-top: 1rem; flex-wrap: wrap; }
+
+    /* Swarm Dashboard */
+    .swarm-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+      margin-bottom: 1.5rem;
+    }
+
+    .agent-card {
+      background: hsl(0 0% 18%);
+      border: 1px solid hsl(0 0% 25%);
+      border-radius: 12px;
+      padding: 1.25rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .agent-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--agent-color);
+    }
+
+    .agent-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+    }
+
+    .agent-name {
+      font-weight: 600;
+      color: var(--agent-color);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .agent-status {
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .status-idle { background: hsl(0 0% 25%); color: hsl(0 0% 70%); }
+    .status-working { background: hsl(200 80% 50% / 0.2); color: hsl(200 80% 60%); }
+    .status-completed { background: hsl(120 60% 50% / 0.2); color: hsl(120 60% 50%); }
+    .status-reviewing { background: hsl(270 60% 50% / 0.2); color: hsl(270 60% 60%); }
+
+    .agent-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .step {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px;
+      background: hsl(0 0% 20%);
+      border-radius: 6px;
+      font-size: 0.85rem;
+    }
+
+    .step-icon {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      flex-shrink: 0;
+    }
+
+    .step-pending .step-icon { background: hsl(0 0% 30%); color: hsl(0 0% 60%); }
+    .step-active .step-icon { background: hsl(200 80% 50%); color: white; animation: pulse 1.5s infinite; }
+    .step-completed .step-icon { background: hsl(120 60% 50%); color: white; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.7; transform: scale(1.1); }
+    }
+
+    .step-text {
+      flex: 1;
+      color: hsl(0 0% 85%);
+    }
+
+    .step-pending .step-text { color: hsl(0 0% 60%); }
+    .step-completed .step-text { color: hsl(120 60% 70%); }
+
+    /* Stats */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+      margin-bottom: 1.5rem;
+    }
+
+    .stat-box {
+      background: hsl(0 0% 18%);
+      border: 1px solid hsl(0 0% 25%);
+      padding: 1rem;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 1.8rem;
+      font-weight: bold;
+      color: hsl(195 100% 60%);
+    }
+
+    .stat-label {
+      font-size: 0.85rem;
+      color: hsl(0 0% 75%);
+      margin-top: 0.25rem;
+    }
+
+    /* Pattern Bank */
+    .pattern-item {
+      background: hsl(0 0% 18%);
+      border: 1px solid hsl(0 0% 25%);
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .pattern-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+
+    .pattern-name {
+      color: hsl(195 100% 60%);
+      font-weight: 600;
+    }
+
+    .pattern-success {
+      background: hsl(120 60% 50% / 0.2);
+      color: hsl(120 60% 50%);
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+    }
+
+    .pattern-detail {
+      color: hsl(0 0% 85%);
+      font-size: 0.85rem;
+      margin-bottom: 4px;
+    }
+
+    /* Activity Log */
+    .log-container {
+      background: hsl(0 0% 18%);
+      border: 1px solid hsl(0 0% 25%);
+      border-radius: 8px;
+      padding: 1rem;
+      max-height: 300px;
+      overflow-y: auto;
+      font-size: 0.85rem;
+    }
+
+    .log-entry {
+      padding: 6px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .log-timestamp {
+      color: hsl(0 0% 60%);
+      margin-right: 8px;
+    }
+
+    .log-info { color: hsl(200 80% 70%); }
+    .log-success { color: hsl(120 60% 70%); }
+    .log-warning { color: hsl(40 90% 70%); }
+    .log-error { color: hsl(0 80% 70%); }
+
+    .spinner {
+      border: 3px solid hsl(0 0% 25%);
+      border-top: 3px solid hsl(195 100% 60%);
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 1200px) {
+      .main-grid { grid-template-columns: 1fr; }
+      .stats-grid { grid-template-columns: repeat(3, 1fr); }
+      .swarm-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1><span>🤖</span> Autonomous Coding Swarm</h1>
+      <p class="subtitle">Multi-Agent Code Generation with ReasoningBank Learning</p>
+    </header>
+
+    <div class="stats-grid">
+      <div class="stat-box">
+        <div class="stat-value" id="codesGenerated">0</div>
+        <div class="stat-label">Codes Generated</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-value" id="activeAgents">0</div>
+        <div class="stat-label">Active Agents</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-value" id="patternsLearned">0</div>
+        <div class="stat-label">Patterns Learned</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-value" id="optimizations">0</div>
+        <div class="stat-label">Optimizations</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-value" id="successRate">0%</div>
+        <div class="stat-label">Success Rate</div>
+      </div>
+    </div>
+
+    <div class="main-grid">
+      <div class="card">
+        <h2>📝 Code Request</h2>
+        <label class="input-label">Describe what you want to build:</label>
+        <textarea
+          id="codePrompt"
+          class="code-input"
+          placeholder="Example: Create a React component for a responsive navigation bar with dropdown menus and mobile hamburger menu..."
+        ></textarea>
+        <div class="btn-group">
+          <button id="swarmBtn" class="btn">
+            <span id="swarmIcon">🚀</span>
+            <span>Launch Swarm</span>
+          </button>
+          <button id="clearBtn" class="btn-secondary">
+            🗑️ Clear
+          </button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>🧠 ReasoningBank Patterns</h2>
+        <div id="patternsContainer" class="log-container" style="max-height: 220px;">
+          <div style="color: hsl(0 0% 70%); font-style: italic;">Patterns will be learned and stored as swarm works...</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card full-width">
+      <h2>👥 Swarm Coordination Dashboard</h2>
+      <div id="swarmDashboard" class="swarm-grid">
+        <!-- Agents will be dynamically added here -->
+      </div>
+    </div>
+
+    <div class="main-grid">
+      <div class="card">
+        <h2>💻 Generated Code</h2>
+        <textarea id="generatedCode" class="code-editor" readonly></textarea>
+        <div class="btn-group">
+          <button id="copyBtn" class="btn-secondary">📋 Copy</button>
+          <button id="downloadBtn" class="btn-secondary">💾 Download</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>📊 Swarm Activity Log</h2>
+        <div id="logContainer" class="log-container"></div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { SQLiteVectorDB } from 'https://unpkg.com/agentdb@1.0.7/dist/agentdb.min.js';
+
+    const SUPABASE_URL = 'https://yoyrnfdeqygvfpmhjwty.supabase.co';
+    const AI_ENDPOINT = `${SUPABASE_URL}/functions/v1/agentdb-ai`;
+
+    const state = {
+      db: null,
+      codesGenerated: 0,
+      activeAgents: 0,
+      patternsLearned: 0,
+      optimizations: 0,
+      totalTasks: 0,
+      successfulTasks: 0,
+      isProcessing: false,
+      agents: []
+    };
+
+    const AGENTS = [
+      {
+        id: 'architect',
+        name: '🏗️ Architect',
+        color: '#8b5cf6',
+        steps: ['Analyze requirements', 'Design architecture', 'Define components', 'Create structure']
+      },
+      {
+        id: 'coder',
+        name: '⚡ Coder',
+        color: '#3b82f6',
+        steps: ['Setup boilerplate', 'Implement logic', 'Add functionality', 'Code integration']
+      },
+      {
+        id: 'reviewer',
+        name: '🔍 Reviewer',
+        color: '#f59e0b',
+        steps: ['Code analysis', 'Best practices check', 'Security review', 'Quality validation']
+      },
+      {
+        id: 'optimizer',
+        name: '⚙️ Optimizer',
+        color: '#10b981',
+        steps: ['Performance analysis', 'Refactor code', 'Optimize algorithms', 'Reduce complexity']
+      },
+      {
+        id: 'tester',
+        name: '🧪 Tester',
+        color: '#ec4899',
+        steps: ['Write test cases', 'Edge case validation', 'Integration tests', 'Coverage check']
+      }
+    ];
+
+    // Initialize database with ReasoningBank support
+    async function initializeDB() {
+      try {
+        state.db = new SQLiteVectorDB({ memoryMode: true, backend: 'wasm' });
+        await state.db.initializeAsync();
+        logMessage('success', '🧠 ReasoningBank initialized - Ready for pattern learning');
+        return true;
+      } catch (error) {
+        logMessage('error', '⚠️ Failed to initialize ReasoningBank');
+        return false;
+      }
+    }
+
+    // Create swarm dashboard
+    function initializeSwarmDashboard() {
+      const dashboard = document.getElementById('swarmDashboard');
+      dashboard.innerHTML = AGENTS.map(agent => `
+        <div class="agent-card" id="agent-${agent.id}" style="--agent-color: ${agent.color}">
+          <div class="agent-header">
+            <div class="agent-name">${agent.name}</div>
+            <div class="agent-status status-idle" id="status-${agent.id}">Idle</div>
+          </div>
+          <div class="agent-steps" id="steps-${agent.id}">
+            ${agent.steps.map((step, idx) => `
+              <div class="step step-pending" id="step-${agent.id}-${idx}">
+                <div class="step-icon">○</div>
+                <div class="step-text">${step}</div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Update agent status
+    function updateAgentStatus(agentId, status) {
+      const statusEl = document.getElementById(`status-${agentId}`);
+      if (statusEl) {
+        statusEl.className = `agent-status status-${status}`;
+        statusEl.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+      }
+    }
+
+    // Update agent step
+    function updateAgentStep(agentId, stepIndex, status) {
+      const stepEl = document.getElementById(`step-${agentId}-${stepIndex}`);
+      if (stepEl) {
+        stepEl.className = `step step-${status}`;
+        const icon = stepEl.querySelector('.step-icon');
+        if (status === 'active') icon.textContent = '◐';
+        else if (status === 'completed') icon.textContent = '✓';
+        else icon.textContent = '○';
+      }
+    }
+
+    // Run agent workflow
+    async function runAgent(agent, taskDescription) {
+      updateAgentStatus(agent.id, 'working');
+      state.activeAgents++;
+      updateStats();
+
+      for (let i = 0; i < agent.steps.length; i++) {
+        updateAgentStep(agent.id, i, 'active');
+        logMessage('info', `${agent.name}: ${agent.steps[i]}...`);
+
+        // Simulate work with variable duration
+        await sleep(800 + Math.random() * 600);
+
+        updateAgentStep(agent.id, i, 'completed');
+        logMessage('success', `${agent.name}: ${agent.steps[i]} ✓`);
+      }
+
+      updateAgentStatus(agent.id, 'completed');
+      state.activeAgents--;
+      state.successfulTasks++;
+      updateStats();
+    }
+
+    // Launch autonomous swarm
+    async function launchSwarm() {
+      const prompt = document.getElementById('codePrompt').value.trim();
+      if (!prompt) {
+        logMessage('warning', '⚠️ Please describe what you want to build');
+        return;
+      }
+
+      if (state.isProcessing) return;
+      state.isProcessing = true;
+
+      logMessage('info', '🚀 Launching autonomous coding swarm...');
+      logMessage('info', `📋 Task: "${prompt.substring(0, 80)}..."`);
+
+      // Reset all agents
+      AGENTS.forEach(agent => {
+        updateAgentStatus(agent.id, 'idle');
+        agent.steps.forEach((_, idx) => updateAgentStep(agent.id, idx, 'pending'));
+      });
+
+      try {
+        if (!state.db) await initializeDB();
+
+        // Check for similar patterns in ReasoningBank
+        logMessage('info', '🔍 Searching ReasoningBank for similar patterns...');
+        await sleep(500);
+
+        const similarPatterns = await searchSimilarPatterns(prompt);
+        if (similarPatterns.length > 0) {
+          logMessage('success', `🧠 Found ${similarPatterns.length} similar pattern(s) - Using learned approaches`);
+          state.patternsLearned++;
+        }
+
+        // Run all agents concurrently
+        logMessage('info', '👥 Spawning 5 concurrent agents...');
+        await sleep(400);
+
+        const agentTasks = AGENTS.map(agent => runAgent(agent, prompt));
+
+        // Wait for all agents to complete
+        await Promise.all(agentTasks);
+
+        logMessage('success', '✅ All agents completed their tasks');
+        await sleep(300);
+
+        // Generate final code (use Gemini or fallback)
+        logMessage('info', '🤖 Synthesizing code from swarm coordination...');
+        const code = await generateCode(prompt);
+
+        document.getElementById('generatedCode').value = code;
+        state.codesGenerated++;
+        state.totalTasks++;
+
+        // Store pattern in ReasoningBank
+        await storePattern(prompt, code);
+        logMessage('success', '🧠 Pattern stored in ReasoningBank for future learning');
+
+        updateStats();
+        updatePatterns();
+
+        logMessage('success', '🎉 Swarm coordination complete!');
+
+      } catch (error) {
+        logMessage('error', `⚠️ Swarm error: ${error.message}`);
+      } finally {
+        state.isProcessing = false;
+      }
+    }
+
+    // Generate code using Gemini AI or fallback
+    async function generateCode(prompt) {
+      try {
+        const response = await fetch(AI_ENDPOINT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'generate',
+            code: 'You are an expert programmer. Generate clean, production-ready code based on the user request. Include comments and best practices.',
+            data: null,
+            context: prompt,
+            model: 'google/gemini-2.5-flash'
+          })
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          return result.response || generateFallbackCode(prompt);
+        }
+      } catch (error) {
+        console.error('AI generation failed:', error);
+      }
+
+      return generateFallbackCode(prompt);
+    }
+
+    // Fallback code generation
+    function generateFallbackCode(prompt) {
+      const isReact = /react|component/i.test(prompt);
+      const isNode = /node|server|api|express/i.test(prompt);
+      const isUI = /ui|interface|button|form/i.test(prompt);
+
+      if (isReact) {
+        return `import React, { useState } from 'react';
+
+function Component() {
+  const [state, setState] = useState(null);
+
+  // TODO: Implement ${prompt.substring(0, 50)}...
+
+  return (
+    <div className="container">
+      <h1>Component</h1>
+      {/* Your implementation here */}
+    </div>
+  );
+}
+
+export default Component;`;
+      } else if (isNode) {
+        return `const express = require('express');
+const app = express();
+
+app.use(express.json());
+
+// TODO: Implement ${prompt.substring(0, 50)}...
+
+app.get('/', (req, res) => {
+  res.json({ message: 'API endpoint' });
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(\`Server running on port \${PORT}\`);
+});`;
+      } else {
+        return `// ${prompt}
+
+function solution() {
+  // TODO: Implement the requested functionality
+  console.log('Implementation goes here');
+}
+
+solution();`;
+      }
+    }
+
+    // Store pattern in ReasoningBank
+    async function storePattern(taskDescription, code) {
+      try {
+        const embedding = await generateEmbedding(taskDescription + ' ' + code);
+
+        await state.db.insert({
+          embedding,
+          metadata: {
+            taskType: extractTaskType(taskDescription),
+            approach: extractApproach(code),
+            description: taskDescription.substring(0, 200),
+            codeSnippet: code.substring(0, 500),
+            successRate: 1.0,
+            avgDuration: 5000,
+            timestamp: Date.now(),
+            language: detectLanguage(code),
+            complexity: calculateComplexity(code)
+          }
+        });
+
+        state.patternsLearned++;
+        logMessage('success', '💾 Pattern stored in ReasoningBank');
+      } catch (error) {
+        console.error('Failed to store pattern:', error);
+      }
+    }
+
+    // Search for similar patterns
+    async function searchSimilarPatterns(taskDescription) {
+      try {
+        const embedding = await generateEmbedding(taskDescription);
+        const results = await state.db.search(embedding, 3, 0.7);
+        return results || [];
+      } catch (error) {
+        return [];
+      }
+    }
+
+    // Generate embedding (simple implementation)
+    async function generateEmbedding(text) {
+      const words = text.toLowerCase().split(/\s+/);
+      const embedding = new Array(384).fill(0);
+
+      words.forEach((word, idx) => {
+        for (let i = 0; i < word.length; i++) {
+          const pos = (word.charCodeAt(i) + idx) % 384;
+          embedding[pos] += 0.1;
+        }
+      });
+
+      const magnitude = Math.sqrt(embedding.reduce((sum, val) => sum + val * val, 0));
+      return embedding.map(val => val / (magnitude || 1));
+    }
+
+    // Helper functions
+    function extractTaskType(description) {
+      if (/component|ui|interface/i.test(description)) return 'UI Component';
+      if (/api|server|backend/i.test(description)) return 'Backend API';
+      if (/algorithm|sort|search/i.test(description)) return 'Algorithm';
+      return 'General';
+    }
+
+    function extractApproach(code) {
+      if (/class\s+\w+/i.test(code)) return 'Object-Oriented';
+      if (/function\s+\w+|const\s+\w+\s*=/i.test(code)) return 'Functional';
+      if (/async|await|Promise/i.test(code)) return 'Async/Promise-based';
+      return 'Procedural';
+    }
+
+    function detectLanguage(code) {
+      if (/import.*from|export default|jsx/i.test(code)) return 'React/JSX';
+      if (/const|let|function|=>/i.test(code)) return 'JavaScript';
+      if (/def |class |import /i.test(code)) return 'Python';
+      return 'Unknown';
+    }
+
+    function calculateComplexity(code) {
+      const lines = code.split('\n').length;
+      if (lines < 20) return 'Simple';
+      if (lines < 50) return 'Medium';
+      return 'Complex';
+    }
+
+    function updateStats() {
+      document.getElementById('codesGenerated').textContent = state.codesGenerated;
+      document.getElementById('activeAgents').textContent = state.activeAgents;
+      document.getElementById('patternsLearned').textContent = state.patternsLearned;
+      document.getElementById('optimizations').textContent = state.optimizations;
+
+      const successRate = state.totalTasks > 0
+        ? Math.round((state.successfulTasks / state.totalTasks) * 100)
+        : 0;
+      document.getElementById('successRate').textContent = successRate + '%';
+    }
+
+    async function updatePatterns() {
+      try {
+        const stats = await state.db.getStats();
+        const container = document.getElementById('patternsContainer');
+
+        if (stats.count === 0) {
+          container.innerHTML = '<div style="color: hsl(0 0% 70%); font-style: italic;">Patterns will be learned and stored as swarm works...</div>';
+          return;
+        }
+
+        // Get recent patterns
+        const recentPatterns = await state.db.search(await generateEmbedding('recent'), 5, 0);
+
+        container.innerHTML = recentPatterns.map((pattern, idx) => `
+          <div class="pattern-item">
+            <div class="pattern-header">
+              <div class="pattern-name">${pattern.metadata?.taskType || 'Code Pattern'}</div>
+              <div class="pattern-success">100% Success</div>
+            </div>
+            <div class="pattern-detail">Approach: ${pattern.metadata?.approach || 'N/A'}</div>
+            <div class="pattern-detail">Language: ${pattern.metadata?.language || 'N/A'} • Complexity: ${pattern.metadata?.complexity || 'N/A'}</div>
+          </div>
+        `).join('') || '<div style="color: hsl(0 0% 70%);">Building pattern library...</div>';
+      } catch (error) {
+        console.error('Failed to update patterns:', error);
+      }
+    }
+
+    function copyCode() {
+      const code = document.getElementById('generatedCode').value;
+      navigator.clipboard.writeText(code);
+      logMessage('success', '📋 Code copied to clipboard');
+    }
+
+    function downloadCode() {
+      const code = document.getElementById('generatedCode').value;
+      const blob = new Blob([code], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `swarm-generated-${Date.now()}.txt`;
+      a.click();
+      URL.revokeObjectURL(url);
+      logMessage('success', '💾 Code downloaded');
+    }
+
+    function clearAll() {
+      document.getElementById('codePrompt').value = '';
+      document.getElementById('generatedCode').value = '';
+      logMessage('info', '🗑️ Workspace cleared');
+    }
+
+    function logMessage(type, message) {
+      const container = document.getElementById('logContainer');
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+      const timestamp = new Date().toLocaleTimeString();
+      entry.innerHTML = `
+        <span class="log-timestamp">[${timestamp}]</span>
+        <span class="log-${type}">${message}</span>
+      `;
+      container.insertBefore(entry, container.firstChild);
+      while (container.children.length > 100) container.removeChild(container.lastChild);
+    }
+
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    // Event listeners
+    document.getElementById('swarmBtn').addEventListener('click', launchSwarm);
+    document.getElementById('copyBtn').addEventListener('click', copyCode);
+    document.getElementById('downloadBtn').addEventListener('click', downloadCode);
+    document.getElementById('clearBtn').addEventListener('click', clearAll);
+
+    // Initialize
+    (async () => {
+      initializeSwarmDashboard();
+      updateStats();
+      logMessage('info', '🤖 Autonomous Coding Swarm Ready');
+      logMessage('info', '👥 5 specialized agents standing by');
+
+      await initializeDB();
+
+      // Auto-run demo
+      setTimeout(async () => {
+        const demoPrompt = "Create a React dashboard component with real-time data visualization and responsive charts";
+        document.getElementById('codePrompt').value = demoPrompt;
+        logMessage('info', '🎯 Running demo swarm coordination...');
+        await sleep(800);
+        await launchSwarm();
+      }, 1500);
+    })();
+  </script>
+</body>
+</html>

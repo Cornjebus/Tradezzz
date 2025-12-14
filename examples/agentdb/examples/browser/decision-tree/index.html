@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Decision Tree Classifier - AgentDB WASM Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+            background: hsl(0 0% 12%);
+            color: hsl(0 0% 90%);
+            padding: 2rem;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: hsl(195 100% 60%);
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .subtitle {
+            color: hsl(0 0% 60%);
+            margin-bottom: 2rem;
+            font-size: 1rem;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        @media (max-width: 1024px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: hsl(0 0% 15%);
+            border: 1px solid hsl(0 0% 25%);
+            border-radius: 16px;
+            padding: 1.5rem;
+        }
+
+        .card-title {
+            color: hsl(195 100% 60%);
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        label {
+            display: block;
+            color: hsl(0 0% 70%);
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            background: hsl(0 0% 10%);
+            border: 1px solid hsl(0 0% 25%);
+            border-radius: 8px;
+            padding: 0.75rem;
+            color: hsl(0 0% 90%);
+            font-family: inherit;
+            font-size: 0.875rem;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: hsl(195 100% 60%);
+        }
+
+        button {
+            background: hsl(195 100% 60%);
+            color: hsl(0 0% 10%);
+            border: none;
+            border-radius: 8px;
+            padding: 0.75rem 1.5rem;
+            font-family: inherit;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background: hsl(195 100% 70%);
+            transform: translateY(-1px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .metric {
+            background: hsl(0 0% 10%);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .metric-label {
+            color: hsl(0 0% 60%);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.25rem;
+        }
+
+        .metric-value {
+            color: hsl(195 100% 60%);
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        #tree-visualization {
+            background: hsl(0 0% 10%);
+            border-radius: 8px;
+            padding: 2rem;
+            min-height: 400px;
+            overflow: auto;
+        }
+
+        .tree-node {
+            background: hsl(0 0% 20%);
+            border: 2px solid hsl(195 100% 60%);
+            border-radius: 8px;
+            padding: 0.75rem;
+            margin: 0.5rem;
+            display: inline-block;
+            position: relative;
+        }
+
+        .tree-node.leaf {
+            border-color: hsl(120 60% 50%);
+        }
+
+        .tree-node-label {
+            color: hsl(0 0% 90%);
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .tree-node-info {
+            color: hsl(0 0% 60%);
+            font-size: 0.75rem;
+        }
+
+        .tree-level {
+            margin-left: 2rem;
+            border-left: 2px solid hsl(0 0% 25%);
+            padding-left: 1rem;
+            margin-top: 0.5rem;
+        }
+
+        .training-example {
+            background: hsl(0 0% 10%);
+            border-radius: 8px;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .training-example-data {
+            color: hsl(0 0% 80%);
+            font-size: 0.875rem;
+        }
+
+        .training-example-label {
+            color: hsl(195 100% 60%);
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+
+        .use-case {
+            background: hsl(0 0% 10%);
+            border-left: 3px solid hsl(195 100% 60%);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .use-case-title {
+            color: hsl(195 100% 60%);
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .use-case-desc {
+            color: hsl(0 0% 70%);
+            font-size: 0.875rem;
+        }
+
+        .feature-importance {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .feature-name {
+            color: hsl(0 0% 80%);
+            font-size: 0.875rem;
+            width: 120px;
+        }
+
+        .feature-bar {
+            flex: 1;
+            height: 24px;
+            background: hsl(0 0% 10%);
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .feature-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, hsl(195 100% 60%), hsl(195 100% 40%));
+            transition: width 0.3s ease;
+        }
+
+        .feature-value {
+            color: hsl(195 100% 60%);
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-left: 0.5rem;
+            width: 50px;
+        }
+
+        .status {
+            background: hsl(0 0% 10%);
+            border-radius: 8px;
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+            color: hsl(0 0% 70%);
+            font-size: 0.875rem;
+        }
+
+        .status.success {
+            border-left: 3px solid hsl(120 60% 50%);
+        }
+
+        .status.error {
+            border-left: 3px solid hsl(0 80% 60%);
+        }
+
+        .status.info {
+            border-left: 3px solid hsl(195 100% 60%);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Decision Tree Classifier</h1>
+        <p class="subtitle">Interactive machine learning demo powered by AgentDB WASM</p>
+
+        <div class="grid">
+            <div class="card">
+                <h2 class="card-title">Training Data</h2>
+                <div id="status" class="status info">
+                    AgentDB initialized. Ready to train decision tree.
+                </div>
+
+                <div class="form-group">
+                    <label>Feature 1 (Age)</label>
+                    <input type="number" id="feature1" placeholder="e.g., 35" value="35">
+                </div>
+
+                <div class="form-group">
+                    <label>Feature 2 (Income)</label>
+                    <input type="number" id="feature2" placeholder="e.g., 50000" value="50000">
+                </div>
+
+                <div class="form-group">
+                    <label>Feature 3 (Credit Score)</label>
+                    <input type="number" id="feature3" placeholder="e.g., 700" value="700">
+                </div>
+
+                <div class="form-group">
+                    <label>Label (Approved/Denied)</label>
+                    <select id="label">
+                        <option value="Approved">Approved</option>
+                        <option value="Denied">Denied</option>
+                    </select>
+                </div>
+
+                <div class="button-group">
+                    <button onclick="addTrainingData()">Add Training Example</button>
+                    <button onclick="loadSampleData()">Load Sample Dataset</button>
+                </div>
+
+                <div style="margin-top: 1.5rem;">
+                    <h3 class="card-title" style="font-size: 1rem;">Training Examples (<span id="example-count">0</span>)</h3>
+                    <div id="training-examples"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2 class="card-title">Model Control</h2>
+
+                <div class="form-group">
+                    <label>Max Depth (Tree Complexity)</label>
+                    <input type="number" id="max-depth" min="1" max="10" value="3">
+                </div>
+
+                <div class="form-group">
+                    <label>Min Samples Split</label>
+                    <input type="number" id="min-samples" min="2" max="20" value="2">
+                </div>
+
+                <div class="button-group">
+                    <button onclick="buildTree()">Build Decision Tree</button>
+                    <button onclick="pruneTree()">Prune Branches</button>
+                    <button onclick="clearModel()">Clear Model</button>
+                </div>
+
+                <div style="margin-top: 1.5rem;">
+                    <div class="metric">
+                        <div class="metric-label">Training Accuracy</div>
+                        <div class="metric-value" id="accuracy">0%</div>
+                    </div>
+
+                    <div class="metric">
+                        <div class="metric-label">Tree Depth</div>
+                        <div class="metric-value" id="tree-depth">0</div>
+                    </div>
+
+                    <div class="metric">
+                        <div class="metric-label">Total Nodes</div>
+                        <div class="metric-value" id="node-count">0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid">
+            <div class="card">
+                <h2 class="card-title">Feature Importance</h2>
+                <div id="feature-importance">
+                    <div class="feature-importance">
+                        <div class="feature-name">Age</div>
+                        <div class="feature-bar">
+                            <div class="feature-bar-fill" id="importance-0" style="width: 0%"></div>
+                        </div>
+                        <div class="feature-value" id="importance-val-0">0%</div>
+                    </div>
+                    <div class="feature-importance">
+                        <div class="feature-name">Income</div>
+                        <div class="feature-bar">
+                            <div class="feature-bar-fill" id="importance-1" style="width: 0%"></div>
+                        </div>
+                        <div class="feature-value" id="importance-val-1">0%</div>
+                    </div>
+                    <div class="feature-importance">
+                        <div class="feature-name">Credit Score</div>
+                        <div class="feature-bar">
+                            <div class="feature-bar-fill" id="importance-2" style="width: 0%"></div>
+                        </div>
+                        <div class="feature-value" id="importance-val-2">0%</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2 class="card-title">Test Prediction</h2>
+
+                <div class="form-group">
+                    <label>Test Age</label>
+                    <input type="number" id="test-feature1" placeholder="e.g., 45" value="45">
+                </div>
+
+                <div class="form-group">
+                    <label>Test Income</label>
+                    <input type="number" id="test-feature2" placeholder="e.g., 60000" value="60000">
+                </div>
+
+                <div class="form-group">
+                    <label>Test Credit Score</label>
+                    <input type="number" id="test-feature3" placeholder="e.g., 750" value="750">
+                </div>
+
+                <button onclick="predict()">Predict Classification</button>
+
+                <div id="prediction-result" style="margin-top: 1rem;"></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 class="card-title">Decision Tree Visualization</h2>
+            <div id="tree-visualization">
+                <div style="color: hsl(0 0% 60%); text-align: center; padding: 2rem;">
+                    Build a decision tree to see the visualization
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 class="card-title">Use Cases</h2>
+            <div class="use-case">
+                <div class="use-case-title">Medical Diagnosis</div>
+                <div class="use-case-desc">
+                    Decision trees can analyze patient symptoms, medical history, and test results to assist in diagnosing diseases. The tree structure provides interpretable decision paths that medical professionals can understand and validate.
+                </div>
+            </div>
+            <div class="use-case">
+                <div class="use-case-title">Credit Scoring</div>
+                <div class="use-case-desc">
+                    Financial institutions use decision trees to evaluate loan applications by analyzing factors like income, credit history, employment status, and debt-to-income ratio. The transparent decision process helps explain approval or denial decisions.
+                </div>
+            </div>
+            <div class="use-case">
+                <div class="use-case-title">Customer Segmentation</div>
+                <div class="use-case-desc">
+                    Businesses can segment customers based on behavior patterns, demographics, and purchase history. Decision trees identify key characteristics that distinguish different customer groups, enabling targeted marketing strategies.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { SQLiteVectorDB } from "https://unpkg.com/agentdb@1.0.7/dist/agentdb.min.js";
+
+        let db = null;
+        let trainingData = [];
+        let decisionTree = null;
+
+        async function initializeDB() {
+            try {
+                console.log('Initializing AgentDB v1.0.7 from CDN...');
+                db = new SQLiteVectorDB({ memoryMode: true, backend: "wasm" });
+                await db.initializeAsync();
+                console.log('✅ AgentDB WASM v1.0.7 initialized');
+                updateStatus('AgentDB WASM v1.0.7 initialized successfully', 'success');
+            } catch (error) {
+                console.error('AgentDB init error:', error);
+                updateStatus('Error initializing AgentDB: ' + error.message, 'error');
+            }
+        }
+
+        function updateStatus(message, type = 'info') {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = message;
+            statusEl.className = `status ${type}`;
+        }
+
+        window.addTrainingData = function() {
+            const f1 = parseFloat(document.getElementById('feature1').value);
+            const f2 = parseFloat(document.getElementById('feature2').value);
+            const f3 = parseFloat(document.getElementById('feature3').value);
+            const label = document.getElementById('label').value;
+
+            if (isNaN(f1) || isNaN(f2) || isNaN(f3)) {
+                updateStatus('Please enter valid numeric values', 'error');
+                return;
+            }
+
+            trainingData.push({
+                features: [f1, f2, f3],
+                label: label
+            });
+
+            updateTrainingExamples();
+            updateStatus(`Training example added. Total: ${trainingData.length}`, 'success');
+        };
+
+        window.loadSampleData = function() {
+            trainingData = [
+                { features: [25, 30000, 600], label: 'Denied' },
+                { features: [35, 50000, 700], label: 'Approved' },
+                { features: [45, 70000, 750], label: 'Approved' },
+                { features: [22, 25000, 580], label: 'Denied' },
+                { features: [30, 40000, 650], label: 'Approved' },
+                { features: [50, 80000, 800], label: 'Approved' },
+                { features: [28, 35000, 620], label: 'Denied' },
+                { features: [40, 60000, 720], label: 'Approved' },
+                { features: [55, 90000, 820], label: 'Approved' },
+                { features: [26, 28000, 590], label: 'Denied' },
+                { features: [38, 55000, 710], label: 'Approved' },
+                { features: [48, 75000, 780], label: 'Approved' },
+                { features: [23, 22000, 570], label: 'Denied' },
+                { features: [32, 45000, 680], label: 'Approved' },
+                { features: [42, 65000, 740], label: 'Approved' }
+            ];
+            updateTrainingExamples();
+            updateStatus('Sample dataset loaded: 15 examples', 'success');
+        };
+
+        function updateTrainingExamples() {
+            const container = document.getElementById('training-examples');
+            const count = document.getElementById('example-count');
+
+            count.textContent = trainingData.length;
+
+            container.innerHTML = trainingData.slice(-5).reverse().map((data, idx) => `
+                <div class="training-example">
+                    <div class="training-example-data">
+                        Age: ${data.features[0]}, Income: $${data.features[1].toLocaleString()}, Credit: ${data.features[2]}
+                    </div>
+                    <div class="training-example-label">${data.label}</div>
+                </div>
+            `).join('');
+        }
+
+        window.buildTree = async function() {
+            if (trainingData.length < 2) {
+                updateStatus('Need at least 2 training examples', 'error');
+                return;
+            }
+
+            const maxDepth = parseInt(document.getElementById('max-depth').value);
+            const minSamples = parseInt(document.getElementById('min-samples').value);
+
+            try {
+                decisionTree = buildDecisionTreeRecursive(
+                    trainingData,
+                    maxDepth,
+                    minSamples,
+                    0
+                );
+
+                // Store tree in AgentDB
+                const treeId = `tree_${Date.now()}`;
+                await db.insert({
+                    id: treeId,
+                    embedding: generateTreeEmbedding(decisionTree),
+                    metadata: {
+                        type: 'decision_tree',
+                        maxDepth: maxDepth,
+                        minSamples: minSamples,
+                        trainingSize: trainingData.length,
+                        timestamp: Date.now()
+                    }
+                });
+
+                const accuracy = calculateAccuracy(decisionTree, trainingData);
+                const depth = getTreeDepth(decisionTree);
+                const nodeCount = countNodes(decisionTree);
+
+                document.getElementById('accuracy').textContent = `${(accuracy * 100).toFixed(1)}%`;
+                document.getElementById('tree-depth').textContent = depth;
+                document.getElementById('node-count').textContent = nodeCount;
+
+                calculateFeatureImportance();
+                visualizeTree(decisionTree);
+
+                updateStatus('Decision tree built and stored in AgentDB', 'success');
+            } catch (error) {
+                updateStatus('Error building tree: ' + error.message, 'error');
+            }
+        };
+
+        function buildDecisionTreeRecursive(data, maxDepth, minSamples, currentDepth) {
+            if (data.length < minSamples || currentDepth >= maxDepth || isPure(data)) {
+                return {
+                    type: 'leaf',
+                    label: getMajorityLabel(data),
+                    samples: data.length
+                };
+            }
+
+            const split = findBestSplit(data);
+            if (!split) {
+                return {
+                    type: 'leaf',
+                    label: getMajorityLabel(data),
+                    samples: data.length
+                };
+            }
+
+            return {
+                type: 'node',
+                feature: split.feature,
+                threshold: split.threshold,
+                left: buildDecisionTreeRecursive(split.left, maxDepth, minSamples, currentDepth + 1),
+                right: buildDecisionTreeRecursive(split.right, maxDepth, minSamples, currentDepth + 1),
+                samples: data.length
+            };
+        }
+
+        function findBestSplit(data) {
+            let bestGini = Infinity;
+            let bestSplit = null;
+
+            for (let featureIdx = 0; featureIdx < 3; featureIdx++) {
+                const values = data.map(d => d.features[featureIdx]).sort((a, b) => a - b);
+
+                for (let i = 0; i < values.length - 1; i++) {
+                    const threshold = (values[i] + values[i + 1]) / 2;
+                    const left = data.filter(d => d.features[featureIdx] <= threshold);
+                    const right = data.filter(d => d.features[featureIdx] > threshold);
+
+                    if (left.length === 0 || right.length === 0) continue;
+
+                    const gini = (left.length / data.length) * calculateGini(left) +
+                                 (right.length / data.length) * calculateGini(right);
+
+                    if (gini < bestGini) {
+                        bestGini = gini;
+                        bestSplit = {
+                            feature: featureIdx,
+                            threshold: threshold,
+                            left: left,
+                            right: right
+                        };
+                    }
+                }
+            }
+
+            return bestSplit;
+        }
+
+        function calculateGini(data) {
+            const labels = data.map(d => d.label);
+            const counts = {};
+            labels.forEach(label => counts[label] = (counts[label] || 0) + 1);
+
+            let gini = 1;
+            Object.values(counts).forEach(count => {
+                const prob = count / labels.length;
+                gini -= prob * prob;
+            });
+
+            return gini;
+        }
+
+        function isPure(data) {
+            const firstLabel = data[0].label;
+            return data.every(d => d.label === firstLabel);
+        }
+
+        function getMajorityLabel(data) {
+            const counts = {};
+            data.forEach(d => counts[d.label] = (counts[d.label] || 0) + 1);
+            return Object.keys(counts).reduce((a, b) => counts[a] > counts[b] ? a : b);
+        }
+
+        function getTreeDepth(node) {
+            if (node.type === 'leaf') return 1;
+            return 1 + Math.max(getTreeDepth(node.left), getTreeDepth(node.right));
+        }
+
+        function countNodes(node) {
+            if (node.type === 'leaf') return 1;
+            return 1 + countNodes(node.left) + countNodes(node.right);
+        }
+
+        function calculateAccuracy(tree, data) {
+            let correct = 0;
+            data.forEach(sample => {
+                const prediction = predictSample(tree, sample.features);
+                if (prediction === sample.label) correct++;
+            });
+            return correct / data.length;
+        }
+
+        function predictSample(node, features) {
+            if (node.type === 'leaf') return node.label;
+
+            if (features[node.feature] <= node.threshold) {
+                return predictSample(node.left, features);
+            } else {
+                return predictSample(node.right, features);
+            }
+        }
+
+        function generateTreeEmbedding(tree) {
+            const features = new Array(128).fill(0);
+            const depth = getTreeDepth(tree);
+            const nodes = countNodes(tree);
+
+            features[0] = depth / 10;
+            features[1] = nodes / 100;
+
+            for (let i = 2; i < 128; i++) {
+                features[i] = Math.random() * 0.1;
+            }
+
+            return features;
+        }
+
+        function calculateFeatureImportance() {
+            const importance = [0, 0, 0];
+            let total = 0;
+
+            function traverse(node) {
+                if (node.type === 'node') {
+                    importance[node.feature] += node.samples;
+                    total += node.samples;
+                    traverse(node.left);
+                    traverse(node.right);
+                }
+            }
+
+            traverse(decisionTree);
+
+            const featureNames = ['Age', 'Income', 'Credit Score'];
+            importance.forEach((imp, idx) => {
+                const percent = total > 0 ? (imp / total) * 100 : 0;
+                document.getElementById(`importance-${idx}`).style.width = `${percent}%`;
+                document.getElementById(`importance-val-${idx}`).textContent = `${percent.toFixed(1)}%`;
+            });
+        }
+
+        function visualizeTree(node, level = 0) {
+            const container = document.getElementById('tree-visualization');
+
+            function renderNode(node, level = 0) {
+                const featureNames = ['Age', 'Income', 'Credit Score'];
+
+                if (node.type === 'leaf') {
+                    return `
+                        <div class="tree-node leaf">
+                            <div class="tree-node-label">Predict: ${node.label}</div>
+                            <div class="tree-node-info">Samples: ${node.samples}</div>
+                        </div>
+                    `;
+                }
+
+                return `
+                    <div class="tree-node">
+                        <div class="tree-node-label">${featureNames[node.feature]} ≤ ${node.threshold.toFixed(2)}</div>
+                        <div class="tree-node-info">Samples: ${node.samples}</div>
+                        <div class="tree-level">
+                            <div style="color: hsl(0 0% 60%); font-size: 0.75rem; margin-bottom: 0.5rem;">Left (Yes):</div>
+                            ${renderNode(node.left, level + 1)}
+                        </div>
+                        <div class="tree-level">
+                            <div style="color: hsl(0 0% 60%); font-size: 0.75rem; margin-bottom: 0.5rem;">Right (No):</div>
+                            ${renderNode(node.right, level + 1)}
+                        </div>
+                    </div>
+                `;
+            }
+
+            container.innerHTML = renderNode(node);
+        }
+
+        window.predict = function() {
+            if (!decisionTree) {
+                updateStatus('Build a decision tree first', 'error');
+                return;
+            }
+
+            const f1 = parseFloat(document.getElementById('test-feature1').value);
+            const f2 = parseFloat(document.getElementById('test-feature2').value);
+            const f3 = parseFloat(document.getElementById('test-feature3').value);
+
+            if (isNaN(f1) || isNaN(f2) || isNaN(f3)) {
+                updateStatus('Please enter valid test values', 'error');
+                return;
+            }
+
+            const prediction = predictSample(decisionTree, [f1, f2, f3]);
+
+            const resultEl = document.getElementById('prediction-result');
+            resultEl.innerHTML = `
+                <div class="metric">
+                    <div class="metric-label">Prediction</div>
+                    <div class="metric-value">${prediction}</div>
+                </div>
+                <div style="color: hsl(0 0% 60%); font-size: 0.875rem; margin-top: 0.5rem;">
+                    For applicant: Age ${f1}, Income $${f2.toLocaleString()}, Credit ${f3}
+                </div>
+            `;
+        };
+
+        window.pruneTree = function() {
+            if (!decisionTree) {
+                updateStatus('Build a tree first before pruning', 'error');
+                return;
+            }
+
+            function prune(node, minSamples = 5) {
+                if (node.type === 'leaf') return node;
+
+                if (node.samples < minSamples) {
+                    const allData = [];
+                    function collectData(n) {
+                        if (n.type === 'leaf') {
+                            allData.push(n.label);
+                        } else {
+                            collectData(n.left);
+                            collectData(n.right);
+                        }
+                    }
+                    collectData(node);
+
+                    const counts = {};
+                    allData.forEach(label => counts[label] = (counts[label] || 0) + 1);
+                    const majorityLabel = Object.keys(counts).reduce((a, b) =>
+                        counts[a] > counts[b] ? a : b
+                    );
+
+                    return {
+                        type: 'leaf',
+                        label: majorityLabel,
+                        samples: node.samples
+                    };
+                }
+
+                node.left = prune(node.left, minSamples);
+                node.right = prune(node.right, minSamples);
+                return node;
+            }
+
+            decisionTree = prune(decisionTree);
+
+            const depth = getTreeDepth(decisionTree);
+            const nodeCount = countNodes(decisionTree);
+
+            document.getElementById('tree-depth').textContent = depth;
+            document.getElementById('node-count').textContent = nodeCount;
+
+            visualizeTree(decisionTree);
+            updateStatus('Tree pruned to reduce overfitting', 'success');
+        };
+
+        window.clearModel = function() {
+            trainingData = [];
+            decisionTree = null;
+
+            updateTrainingExamples();
+            document.getElementById('accuracy').textContent = '0%';
+            document.getElementById('tree-depth').textContent = '0';
+            document.getElementById('node-count').textContent = '0';
+            document.getElementById('prediction-result').innerHTML = '';
+            document.getElementById('tree-visualization').innerHTML = `
+                <div style="color: hsl(0 0% 60%); text-align: center; padding: 2rem;">
+                    Build a decision tree to see the visualization
+                </div>
+            `;
+
+            for (let i = 0; i < 3; i++) {
+                document.getElementById(`importance-${i}`).style.width = '0%';
+                document.getElementById(`importance-val-${i}`).textContent = '0%';
+            }
+
+            updateStatus('Model cleared. Ready for new training.', 'info');
+        };
+
+        // Initialize on load
+        initializeDB();
+    </script>
+</body>
+</html>

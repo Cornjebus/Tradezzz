@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Naive Bayes Classifier - AgentDB WASM Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+            background: hsl(0 0% 12%);
+            color: hsl(0 0% 90%);
+            padding: 2rem;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: hsl(195 100% 60%);
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .subtitle {
+            color: hsl(0 0% 60%);
+            margin-bottom: 2rem;
+            font-size: 1rem;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        @media (max-width: 1024px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: hsl(0 0% 15%);
+            border: 1px solid hsl(0 0% 25%);
+            border-radius: 16px;
+            padding: 1.5rem;
+        }
+
+        .card-title {
+            color: hsl(195 100% 60%);
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        label {
+            display: block;
+            color: hsl(0 0% 70%);
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            background: hsl(0 0% 10%);
+            border: 1px solid hsl(0 0% 25%);
+            border-radius: 8px;
+            padding: 0.75rem;
+            color: hsl(0 0% 90%);
+            font-family: inherit;
+            font-size: 0.875rem;
+        }
+
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: hsl(195 100% 60%);
+        }
+
+        button {
+            background: hsl(195 100% 60%);
+            color: hsl(0 0% 10%);
+            border: none;
+            border-radius: 8px;
+            padding: 0.75rem 1.5rem;
+            font-family: inherit;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background: hsl(195 100% 70%);
+            transform: translateY(-1px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .metric {
+            background: hsl(0 0% 10%);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .metric-label {
+            color: hsl(0 0% 60%);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.25rem;
+        }
+
+        .metric-value {
+            color: hsl(195 100% 60%);
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .status {
+            background: hsl(0 0% 10%);
+            border-radius: 8px;
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+            color: hsl(0 0% 70%);
+            font-size: 0.875rem;
+        }
+
+        .status.success {
+            border-left: 3px solid hsl(120 60% 50%);
+        }
+
+        .status.error {
+            border-left: 3px solid hsl(0 80% 60%);
+        }
+
+        .status.info {
+            border-left: 3px solid hsl(195 100% 60%);
+        }
+
+        .training-example {
+            background: hsl(0 0% 10%);
+            border-radius: 8px;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .training-example-text {
+            color: hsl(0 0% 80%);
+            font-size: 0.875rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .training-example-label {
+            color: hsl(195 100% 60%);
+            font-weight: 600;
+            font-size: 0.75rem;
+        }
+
+        .probability-dist {
+            margin-bottom: 1rem;
+        }
+
+        .class-label {
+            color: hsl(195 100% 60%);
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            font-size: 1rem;
+        }
+
+        .word-prob {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .word-name {
+            color: hsl(0 0% 80%);
+            font-size: 0.875rem;
+            width: 120px;
+        }
+
+        .prob-bar {
+            flex: 1;
+            height: 20px;
+            background: hsl(0 0% 10%);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .prob-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, hsl(195 100% 60%), hsl(195 100% 40%));
+            transition: width 0.3s ease;
+        }
+
+        .prob-value {
+            color: hsl(195 100% 60%);
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-left: 0.5rem;
+            width: 60px;
+        }
+
+        .prediction-result {
+            background: hsl(0 0% 10%);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+
+        .confidence-bar {
+            background: hsl(0 0% 10%);
+            border-radius: 8px;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .confidence-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            color: hsl(0 0% 80%);
+            font-size: 0.875rem;
+        }
+
+        .confidence-value {
+            color: hsl(195 100% 60%);
+            font-weight: 600;
+        }
+
+        .confidence-bar-visual {
+            height: 8px;
+            background: hsl(0 0% 20%);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .confidence-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, hsl(195 100% 60%), hsl(195 100% 50%));
+            transition: width 0.3s ease;
+        }
+
+        .use-case {
+            background: hsl(0 0% 10%);
+            border-left: 3px solid hsl(195 100% 60%);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .use-case-title {
+            color: hsl(195 100% 60%);
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .use-case-desc {
+            color: hsl(0 0% 70%);
+            font-size: 0.875rem;
+        }
+
+        .vocabulary-stats {
+            background: hsl(0 0% 10%);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            color: hsl(0 0% 70%);
+            font-size: 0.875rem;
+        }
+
+        .stat-value {
+            color: hsl(195 100% 60%);
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Naive Bayes Classifier</h1>
+        <p class="subtitle">Text classification demo powered by AgentDB WASM</p>
+
+        <div class="grid">
+            <div class="card">
+                <h2 class="card-title">Training Data</h2>
+                <div id="status" class="status info">
+                    AgentDB initialized. Ready to train Naive Bayes classifier.
+                </div>
+
+                <div class="form-group">
+                    <label>Text Input</label>
+                    <textarea id="training-text" placeholder="Enter text to classify...">This product is amazing! I love it.</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Classification</label>
+                    <select id="training-label">
+                        <option value="Positive">Positive</option>
+                        <option value="Negative">Negative</option>
+                        <option value="Neutral">Neutral</option>
+                    </select>
+                </div>
+
+                <div class="button-group">
+                    <button onclick="addTrainingExample()">Add Training Example</button>
+                    <button onclick="loadSampleData()">Load Sample Dataset</button>
+                    <button onclick="trainModel()">Train Model</button>
+                </div>
+
+                <div style="margin-top: 1.5rem;">
+                    <h3 class="card-title" style="font-size: 1rem;">Training Examples (<span id="example-count">0</span>)</h3>
+                    <div id="training-examples"></div>
+                </div>
+
+                <div class="vocabulary-stats">
+                    <div class="stat-row">
+                        <span>Vocabulary Size:</span>
+                        <span class="stat-value" id="vocab-size">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>Total Words:</span>
+                        <span class="stat-value" id="total-words">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span>Classes:</span>
+                        <span class="stat-value" id="class-count">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2 class="card-title">Model Performance</h2>
+
+                <div class="metric">
+                    <div class="metric-label">Training Accuracy</div>
+                    <div class="metric-value" id="accuracy">0%</div>
+                </div>
+
+                <div class="metric">
+                    <div class="metric-label">Model Status</div>
+                    <div class="metric-value" id="model-status" style="font-size: 1rem;">Not Trained</div>
+                </div>
+
+                <div style="margin-top: 1.5rem;">
+                    <h3 class="card-title" style="font-size: 1rem;">Class Distribution</h3>
+                    <div id="class-distribution"></div>
+                </div>
+
+                <div style="margin-top: 1.5rem;">
+                    <button onclick="clearModel()">Clear Model</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 class="card-title">Test Prediction</h2>
+
+            <div class="form-group">
+                <label>Test Text</label>
+                <textarea id="test-text" placeholder="Enter text to classify...">This is absolutely terrible and disappointing.</textarea>
+            </div>
+
+            <button onclick="predict()">Classify Text</button>
+
+            <div id="prediction-result"></div>
+        </div>
+
+        <div class="grid">
+            <div class="card">
+                <h2 class="card-title">Probability Distribution - Positive</h2>
+                <div id="prob-dist-positive">
+                    <div style="color: hsl(0 0% 60%); text-align: center; padding: 1rem;">
+                        Train the model to see word probabilities
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2 class="card-title">Probability Distribution - Negative</h2>
+                <div id="prob-dist-negative">
+                    <div style="color: hsl(0 0% 60%); text-align: center; padding: 1rem;">
+                        Train the model to see word probabilities
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 class="card-title">Use Cases</h2>
+            <div class="use-case">
+                <div class="use-case-title">Spam Filtering</div>
+                <div class="use-case-desc">
+                    Naive Bayes is widely used in email spam detection, analyzing word frequencies and patterns to classify emails as spam or legitimate. The probabilistic approach works well with the typical vocabulary patterns found in spam messages.
+                </div>
+            </div>
+            <div class="use-case">
+                <div class="use-case-title">Sentiment Analysis</div>
+                <div class="use-case-desc">
+                    Businesses use Naive Bayes to analyze customer reviews, social media posts, and feedback to determine sentiment (positive, negative, neutral). This helps in understanding customer satisfaction and brand perception in real-time.
+                </div>
+            </div>
+            <div class="use-case">
+                <div class="use-case-title">Document Categorization</div>
+                <div class="use-case-desc">
+                    News organizations and content platforms automatically categorize articles into topics (sports, politics, technology, etc.). Naive Bayes efficiently handles large vocabularies and multiple categories, making it ideal for content management systems.
+                </div>
+            </div>
+            <div class="use-case">
+                <div class="use-case-title">Medical Diagnosis</div>
+                <div class="use-case-desc">
+                    Healthcare systems use Naive Bayes to classify medical documents, patient symptoms, and diagnostic reports. The algorithm can process clinical text and help route cases to appropriate specialists based on symptom descriptions.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { SQLiteVectorDB } from "https://unpkg.com/agentdb@1.0.7/dist/agentdb.min.js";
+
+        let db = null;
+        let trainingData = [];
+        let model = null;
+        let vocabulary = new Set();
+
+        async function initializeDB() {
+            try {
+                console.log('Initializing AgentDB v1.0.7 from CDN...');
+                db = new SQLiteVectorDB({ memoryMode: true, backend: "wasm" });
+                await db.initializeAsync();
+                console.log('✅ AgentDB WASM v1.0.7 initialized');
+                updateStatus('AgentDB WASM v1.0.7 initialized successfully', 'success');
+            } catch (error) {
+                console.error('AgentDB init error:', error);
+                updateStatus('Error initializing AgentDB: ' + error.message, 'error');
+            }
+        }
+
+        function updateStatus(message, type = 'info') {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = message;
+            statusEl.className = `status ${type}`;
+        }
+
+        function tokenize(text) {
+            return text.toLowerCase()
+                .replace(/[^\w\s]/g, ' ')
+                .split(/\s+/)
+                .filter(word => word.length > 2);
+        }
+
+        function addTrainingExample() {
+            const text = document.getElementById('training-text').value.trim();
+            const label = document.getElementById('training-label').value;
+
+            if (!text) {
+                updateStatus('Please enter text', 'error');
+                return;
+            }
+
+            const tokens = tokenize(text);
+            tokens.forEach(token => vocabulary.add(token));
+
+            trainingData.push({ text, label, tokens });
+            updateTrainingExamples();
+            updateVocabularyStats();
+            updateStatus(`Training example added. Total: ${trainingData.length}`, 'success');
+
+            // Clear input
+            document.getElementById('training-text').value = '';
+        }
+
+        function loadSampleData() {
+            const samples = [
+                { text: "This product is amazing! I love it.", label: "Positive" },
+                { text: "Absolutely fantastic experience, highly recommend!", label: "Positive" },
+                { text: "Great quality and fast delivery. Very satisfied.", label: "Positive" },
+                { text: "Excellent service and wonderful product.", label: "Positive" },
+                { text: "Best purchase ever! Exceeded my expectations.", label: "Positive" },
+                { text: "This is terrible. Complete waste of money.", label: "Negative" },
+                { text: "Very disappointed with the quality. Would not recommend.", label: "Negative" },
+                { text: "Awful experience. Poor customer service.", label: "Negative" },
+                { text: "Horrible product, broke after one day.", label: "Negative" },
+                { text: "Worst purchase ever. Stay away from this.", label: "Negative" },
+                { text: "It's okay, nothing special but works fine.", label: "Neutral" },
+                { text: "Average product, meets basic expectations.", label: "Neutral" },
+                { text: "Not bad, not great. Just acceptable.", label: "Neutral" },
+                { text: "Standard quality for the price.", label: "Neutral" },
+                { text: "Decent product, does what it says.", label: "Neutral" },
+                { text: "Love the design! So beautiful and elegant.", label: "Positive" },
+                { text: "Perfect for my needs. Thank you!", label: "Positive" },
+                { text: "Waste of time and money. Very unhappy.", label: "Negative" },
+                { text: "Poor quality materials. Feels cheap.", label: "Negative" },
+                { text: "It works as described. Nothing more, nothing less.", label: "Neutral" }
+            ];
+
+            trainingData = [];
+            vocabulary.clear();
+
+            samples.forEach(sample => {
+                const tokens = tokenize(sample.text);
+                tokens.forEach(token => vocabulary.add(token));
+                trainingData.push({
+                    text: sample.text,
+                    label: sample.label,
+                    tokens
+                });
+            });
+
+            updateTrainingExamples();
+            updateVocabularyStats();
+            updateStatus(`Sample dataset loaded: ${trainingData.length} examples`, 'success');
+        }
+
+        function updateTrainingExamples() {
+            const container = document.getElementById('training-examples');
+            const count = document.getElementById('example-count');
+
+            count.textContent = trainingData.length;
+
+            container.innerHTML = trainingData.slice(-5).reverse().map(data => `
+                <div class="training-example">
+                    <div class="training-example-text">${data.text}</div>
+                    <div class="training-example-label">${data.label}</div>
+                </div>
+            `).join('');
+        }
+
+        function updateVocabularyStats() {
+            document.getElementById('vocab-size').textContent = vocabulary.size;
+
+            const totalWords = trainingData.reduce((sum, data) => sum + data.tokens.length, 0);
+            document.getElementById('total-words').textContent = totalWords;
+
+            const classes = new Set(trainingData.map(d => d.label));
+            document.getElementById('class-count').textContent = classes.size;
+        }
+
+        async function trainModel() {
+            if (trainingData.length < 2) {
+                updateStatus('Need at least 2 training examples', 'error');
+                return;
+            }
+
+            try {
+                // Initialize model
+                model = {
+                    classCounts: {},
+                    classWordCounts: {},
+                    classTotalWords: {},
+                    vocabulary: Array.from(vocabulary),
+                    vocabularySize: vocabulary.size
+                };
+
+                // Count classes and initialize structures
+                trainingData.forEach(({ label, tokens }) => {
+                    model.classCounts[label] = (model.classCounts[label] || 0) + 1;
+
+                    if (!model.classWordCounts[label]) {
+                        model.classWordCounts[label] = {};
+                        model.classTotalWords[label] = 0;
+                    }
+
+                    tokens.forEach(token => {
+                        model.classWordCounts[label][token] =
+                            (model.classWordCounts[label][token] || 0) + 1;
+                        model.classTotalWords[label]++;
+                    });
+                });
+
+                // Calculate priors
+                const totalDocs = trainingData.length;
+                model.classPriors = {};
+                Object.keys(model.classCounts).forEach(label => {
+                    model.classPriors[label] = model.classCounts[label] / totalDocs;
+                });
+
+                // Store model in AgentDB
+                const modelId = `naive_bayes_${Date.now()}`;
+                const embedding = generateModelEmbedding(model);
+
+                await db.insert({
+                    id: modelId,
+                    embedding: embedding,
+                    metadata: {
+                        type: 'naive_bayes_model',
+                        vocabularySize: model.vocabularySize,
+                        trainingSize: trainingData.length,
+                        classes: Object.keys(model.classCounts),
+                        timestamp: Date.now()
+                    }
+                });
+
+                // Calculate accuracy
+                const accuracy = calculateAccuracy();
+                document.getElementById('accuracy').textContent = `${(accuracy * 100).toFixed(1)}%`;
+                document.getElementById('model-status').textContent = 'Trained';
+
+                updateClassDistribution();
+                updateProbabilityDistributions();
+
+                updateStatus('Naive Bayes model trained and stored in AgentDB', 'success');
+            } catch (error) {
+                updateStatus('Error training model: ' + error.message, 'error');
+            }
+        };
+
+        function generateModelEmbedding(model) {
+            const features = new Array(128).fill(0);
+
+            features[0] = model.vocabularySize / 1000;
+            features[1] = Object.keys(model.classCounts).length / 10;
+
+            let idx = 2;
+            Object.keys(model.classPriors).forEach(label => {
+                if (idx < 10) {
+                    features[idx++] = model.classPriors[label];
+                }
+            });
+
+            for (let i = idx; i < 128; i++) {
+                features[i] = Math.random() * 0.1;
+            }
+
+            return features;
+        }
+
+        function calculateAccuracy() {
+            let correct = 0;
+            trainingData.forEach(({ tokens, label }) => {
+                const prediction = classifyTokens(tokens);
+                if (prediction.class === label) correct++;
+            });
+            return correct / trainingData.length;
+        }
+
+        function classifyTokens(tokens) {
+            const scores = {};
+
+            Object.keys(model.classCounts).forEach(label => {
+                // Start with log prior
+                scores[label] = Math.log(model.classPriors[label]);
+
+                // Add log likelihoods for each token
+                tokens.forEach(token => {
+                    const wordCount = model.classWordCounts[label][token] || 0;
+                    // Laplace smoothing
+                    const probability = (wordCount + 1) /
+                        (model.classTotalWords[label] + model.vocabularySize);
+                    scores[label] += Math.log(probability);
+                });
+            });
+
+            // Convert log scores to probabilities
+            const maxScore = Math.max(...Object.values(scores));
+            const expScores = {};
+            Object.keys(scores).forEach(label => {
+                expScores[label] = Math.exp(scores[label] - maxScore);
+            });
+
+            const sumExp = Object.values(expScores).reduce((a, b) => a + b, 0);
+            const probabilities = {};
+            Object.keys(expScores).forEach(label => {
+                probabilities[label] = expScores[label] / sumExp;
+            });
+
+            // Find best class
+            const bestClass = Object.keys(probabilities).reduce((a, b) =>
+                probabilities[a] > probabilities[b] ? a : b
+            );
+
+            return {
+                class: bestClass,
+                probabilities: probabilities
+            };
+        }
+
+        function updateClassDistribution() {
+            const container = document.getElementById('class-distribution');
+            const total = trainingData.length;
+
+            container.innerHTML = Object.keys(model.classCounts)
+                .map(label => {
+                    const count = model.classCounts[label];
+                    const percent = (count / total) * 100;
+
+                    return `
+                        <div class="confidence-bar">
+                            <div class="confidence-label">
+                                <span>${label}</span>
+                                <span class="confidence-value">${count} (${percent.toFixed(1)}%)</span>
+                            </div>
+                            <div class="confidence-bar-visual">
+                                <div class="confidence-bar-fill" style="width: ${percent}%"></div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+        }
+
+        function updateProbabilityDistributions() {
+            ['Positive', 'Negative'].forEach(className => {
+                const container = document.getElementById(`prob-dist-${className.toLowerCase()}`);
+
+                if (!model.classWordCounts[className]) {
+                    container.innerHTML = `
+                        <div style="color: hsl(0 0% 60%); text-align: center; padding: 1rem;">
+                            No data for ${className} class
+                        </div>
+                    `;
+                    return;
+                }
+
+                const wordCounts = model.classWordCounts[className];
+                const topWords = Object.entries(wordCounts)
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 10);
+
+                const maxCount = topWords[0]?.[1] || 1;
+
+                container.innerHTML = topWords.map(([word, count]) => {
+                    const percent = (count / maxCount) * 100;
+                    const probability = (count / model.classTotalWords[className] * 100).toFixed(2);
+
+                    return `
+                        <div class="word-prob">
+                            <div class="word-name">${word}</div>
+                            <div class="prob-bar">
+                                <div class="prob-bar-fill" style="width: ${percent}%"></div>
+                            </div>
+                            <div class="prob-value">${probability}%</div>
+                        </div>
+                    `;
+                }).join('');
+            });
+        }
+
+        function predict() {
+            if (!model) {
+                updateStatus('Train the model first', 'error');
+                return;
+            }
+
+            const text = document.getElementById('test-text').value.trim();
+            if (!text) {
+                updateStatus('Please enter test text', 'error');
+                return;
+            }
+
+            const tokens = tokenize(text);
+            const result = classifyTokens(tokens);
+
+            const resultEl = document.getElementById('prediction-result');
+            resultEl.innerHTML = `
+                <div class="prediction-result">
+                    <div class="metric">
+                        <div class="metric-label">Predicted Class</div>
+                        <div class="metric-value">${result.class}</div>
+                    </div>
+
+                    <h3 class="card-title" style="font-size: 1rem; margin-top: 1rem;">Confidence Scores</h3>
+                    ${Object.entries(result.probabilities)
+                        .sort((a, b) => b[1] - a[1])
+                        .map(([label, prob]) => `
+                            <div class="confidence-bar">
+                                <div class="confidence-label">
+                                    <span>${label}</span>
+                                    <span class="confidence-value">${(prob * 100).toFixed(2)}%</span>
+                                </div>
+                                <div class="confidence-bar-visual">
+                                    <div class="confidence-bar-fill" style="width: ${prob * 100}%"></div>
+                                </div>
+                            </div>
+                        `).join('')}
+
+                    <div style="color: hsl(0 0% 60%); font-size: 0.875rem; margin-top: 1rem;">
+                        Analyzed ${tokens.length} words from input text
+                    </div>
+                </div>
+            `;
+        }
+
+        function clearModel() {
+            trainingData = [];
+            model = null;
+            vocabulary.clear();
+
+            updateTrainingExamples();
+            updateVocabularyStats();
+
+            document.getElementById('accuracy').textContent = '0%';
+            document.getElementById('model-status').textContent = 'Not Trained';
+            document.getElementById('class-distribution').innerHTML = '';
+            document.getElementById('prediction-result').innerHTML = '';
+
+            ['positive', 'negative'].forEach(className => {
+                document.getElementById(`prob-dist-${className}`).innerHTML = `
+                    <div style="color: hsl(0 0% 60%); text-align: center; padding: 1rem;">
+                        Train the model to see word probabilities
+                    </div>
+                `;
+            });
+
+            updateStatus('Model cleared. Ready for new training.', 'info');
+        }
+
+        // Expose functions to window for onclick handlers
+        window.addTrainingExample = addTrainingExample;
+        window.loadSampleData = loadSampleData;
+        window.trainModel = trainModel;
+        window.predict = predict;
+        window.clearModel = clearModel;
+
+        // Initialize on load
+        initializeDB();
+    </script>
+</body>
+</html>

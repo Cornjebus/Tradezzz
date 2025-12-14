@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Experience Replay Learning - AgentDB</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+            background: hsl(0 0% 12%);
+            min-height: 100vh;
+            padding: 2rem;
+            color: hsl(0 0% 95%);
+        }
+
+        .container { max-width: 1400px; margin: 0 auto; }
+
+        header {
+            background: hsl(0 0% 15%);
+            border: 1px solid hsl(0 0% 25%);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 6px 24px hsl(222 20% 0% / 0.24);
+        }
+
+        h1 { color: hsl(0 0% 95%); margin-bottom: 0.5rem; }
+        .subtitle { color: hsl(0 0% 85%); }
+
+        .grid { display: grid; grid-template-columns: 2fr 1fr; gap: 2rem; }
+
+        .card {
+            background: hsl(0 0% 15%);
+            border: 1px solid hsl(0 0% 25%);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 6px 24px hsl(222 20% 0% / 0.24);
+        }
+
+        .card h2 { color: hsl(0 0% 95%); margin-bottom: 1rem; }
+
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 0.5rem;
+            margin: 1rem 0;
+        }
+
+        .cell {
+            aspect-ratio: 1;
+            background: hsl(0 0% 20%);
+            border: 2px solid hsl(0 0% 30%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .cell:hover { background: hsl(0 0% 25%); transform: scale(1.05); }
+        .cell.agent { background: hsl(195 100% 60%); color: hsl(0 0% 12%); }
+        .cell.goal { background: hsl(142 70% 45%); color: white; }
+        .cell.obstacle { background: hsl(0 70% 50%); color: white; }
+        .cell.path { background: hsl(195 100% 60% / 0.2); }
+
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+            margin: 1rem 0;
+        }
+
+        .btn {
+            padding: 0.75rem 1rem;
+            background: hsl(195 100% 60%);
+            color: hsl(0 0% 12%);
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+        }
+
+        .btn:hover { background: hsl(195 100% 70%); transform: translateY(-1px); }
+        .btn.secondary {
+            background: hsl(0 0% 35%);
+            color: hsl(0 0% 95%);
+        }
+        .btn.secondary:hover {
+            background: hsl(0 0% 40%);
+        }
+
+        .stat-box {
+            background: hsl(0 0% 18%);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            border: 1px solid hsl(0 0% 25%);
+        }
+
+        .stat-label { color: hsl(0 0% 85%); font-size: 0.9rem; }
+        .stat-value {
+            color: hsl(195 100% 60%);
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-top: 0.25rem;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: hsl(0 0% 20%);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+            border: 1px solid hsl(0 0% 30%);
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: hsl(195 100% 60%);
+            transition: width 0.3s ease;
+        }
+
+        .experience-list {
+            max-height: 300px;
+            overflow-y: auto;
+            background: hsl(0 0% 18%);
+            border-radius: 8px;
+            padding: 1rem;
+            border: 1px solid hsl(0 0% 25%);
+        }
+
+        .experience-item {
+            background: hsl(0 0% 22%);
+            border-radius: 4px;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            font-size: 0.85rem;
+            border-left: 3px solid hsl(195 100% 60%);
+            color: hsl(0 0% 90%);
+        }
+
+        .reward-positive { border-left-color: hsl(142 70% 45%); }
+        .reward-negative { border-left-color: hsl(0 70% 50%); }
+
+        .q-values {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .q-value {
+            background: hsl(0 0% 18%);
+            padding: 0.75rem;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid hsl(0 0% 25%);
+        }
+
+        .q-label { color: hsl(0 0% 85%); font-size: 0.85rem; }
+        .q-number {
+            color: hsl(195 100% 60%);
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-top: 0.25rem;
+        }
+
+        .training-log {
+            background: hsl(0 0% 18%);
+            border-radius: 8px;
+            padding: 1rem;
+            font-family: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+            font-size: 0.85rem;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid hsl(0 0% 25%);
+        }
+
+        .log-entry {
+            margin-bottom: 0.25rem;
+            color: hsl(0 0% 90%);
+        }
+
+        .log-success { color: hsl(142 70% 55%); }
+        .log-fail { color: hsl(0 70% 60%); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎮 Experience Replay Learning</h1>
+            <p class="subtitle">Q-Learning with Experience Buffer and Neural Pattern Training</p>
+        </header>
+
+        <div class="grid">
+            <div>
+                <div class="card" style="margin-bottom: 1rem;">
+                    <h2>Grid World Environment</h2>
+                    <p style="color: #666; margin-bottom: 1rem;">
+                        Navigate to the goal 🎯. Avoid obstacles ⛔. Learn optimal paths!
+                    </p>
+
+                    <div class="game-board" id="gameBoard"></div>
+
+                    <div class="controls">
+                        <button class="btn" id="upBtn">⬆️ Up</button>
+                        <button class="btn" id="trainBtn">🧠 Train Agent</button>
+                        <button class="btn" id="downBtn">⬇️ Down</button>
+                        <button class="btn" id="leftBtn">⬅️ Left</button>
+                        <button class="btn" id="autoBtn">🤖 Auto Play</button>
+                        <button class="btn" id="rightBtn">➡️ Right</button>
+                    </div>
+
+                    <div class="btn" style="margin-top: 1rem; width: 100%; text-align: center;" id="resetBtn">
+                        🔄 Reset Environment
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>Experience Buffer (Last 10)</h2>
+                    <div class="experience-list" id="experienceList">
+                        <p style="color: #666; text-align: center;">No experiences yet</p>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <div class="card" style="margin-bottom: 1rem;">
+                    <h2>Learning Progress</h2>
+
+                    <div class="stat-box">
+                        <div class="stat-label">Episodes Completed</div>
+                        <div class="stat-value" id="episodes">0</div>
+                    </div>
+
+                    <div class="stat-box">
+                        <div class="stat-label">Success Rate</div>
+                        <div class="stat-value" id="successRate">0%</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="successProgress" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <div class="stat-box">
+                        <div class="stat-label">Avg Steps to Goal</div>
+                        <div class="stat-value" id="avgSteps">-</div>
+                    </div>
+
+                    <div class="stat-box">
+                        <div class="stat-label">Total Experiences</div>
+                        <div class="stat-value" id="totalExp">0</div>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-bottom: 1rem;">
+                    <h2>Q-Values (Current State)</h2>
+                    <div class="q-values">
+                        <div class="q-value">
+                            <div class="q-label">Up ⬆️</div>
+                            <div class="q-number" id="qUp">0.00</div>
+                        </div>
+                        <div class="q-value">
+                            <div class="q-label">Down ⬇️</div>
+                            <div class="q-number" id="qDown">0.00</div>
+                        </div>
+                        <div class="q-value">
+                            <div class="q-label">Left ⬅️</div>
+                            <div class="q-number" id="qLeft">0.00</div>
+                        </div>
+                        <div class="q-value">
+                            <div class="q-label">Right ➡️</div>
+                            <div class="q-number" id="qRight">0.00</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>Training Log</h2>
+                    <div class="training-log" id="trainingLog">
+                        <div class="log-entry">Ready to start training...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        /**
+         * Experience Replay Q-Learning Example
+         *
+         * Demonstrates:
+         * 1. Experience buffer management
+         * 2. Q-learning with replay
+         * 3. Exploration vs exploitation
+         * 4. Policy improvement over time
+         */
+
+        import { SQLiteVectorDB } from "https://unpkg.com/agentdb@1.0.7/dist/agentdb.min.js";
+
+        let db = null;
+
+        async function initAgentDB() {
+            console.log('Initializing AgentDB v1.0.7 from CDN...');
+            db = new SQLiteVectorDB({ memoryMode: true, backend: "wasm" });
+            await db.initializeAsync();
+            console.log('✅ AgentDB WASM v1.0.7 initialized');
+        }
+
+        // Initialize on page load
+        initAgentDB();
+
+        const GRID_SIZE = 5;
+        const ACTIONS = ['up', 'down', 'left', 'right'];
+
+        let state = { x: 0, y: 0 };
+        let goal = { x: 4, y: 4 };
+        let obstacles = [{ x: 1, y: 1 }, { x: 2, y: 2 }, { x: 3, y: 1 }];
+        let experienceBuffer = [];
+        let qTable = {};
+        let episodes = 0;
+        let successes = 0;
+        let stepHistory = [];
+        let autoPlaying = false;
+
+        // Hyperparameters
+        const ALPHA = 0.1;  // Learning rate
+        const GAMMA = 0.9;  // Discount factor
+        const EPSILON = 0.1; // Exploration rate
+        const BUFFER_SIZE = 100;
+
+        function initGrid() {
+            const board = document.getElementById('gameBoard');
+            board.innerHTML = '';
+
+            for (let y = 0; y < GRID_SIZE; y++) {
+                for (let x = 0; x < GRID_SIZE; x++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.dataset.x = x;
+                    cell.dataset.y = y;
+
+                    if (x === state.x && y === state.y) {
+                        cell.classList.add('agent');
+                        cell.textContent = '🤖';
+                    } else if (x === goal.x && y === goal.y) {
+                        cell.classList.add('goal');
+                        cell.textContent = '🎯';
+                    } else if (obstacles.some(o => o.x === x && o.y === y)) {
+                        cell.classList.add('obstacle');
+                        cell.textContent = '⛔';
+                    }
+
+                    board.appendChild(cell);
+                }
+            }
+
+            updateQValues();
+        }
+
+        function getStateKey(s) {
+            return `${s.x},${s.y}`;
+        }
+
+        function getQValue(stateKey, action) {
+            if (!qTable[stateKey]) {
+                qTable[stateKey] = { up: 0, down: 0, left: 0, right: 0 };
+            }
+            return qTable[stateKey][action];
+        }
+
+        function setQValue(stateKey, action, value) {
+            if (!qTable[stateKey]) {
+                qTable[stateKey] = { up: 0, down: 0, left: 0, right: 0 };
+            }
+            qTable[stateKey][action] = value;
+        }
+
+        function chooseAction(stateKey) {
+            // Epsilon-greedy policy
+            if (Math.random() < EPSILON) {
+                // Explore: random action
+                return ACTIONS[Math.floor(Math.random() * ACTIONS.length)];
+            } else {
+                // Exploit: best known action
+                let maxQ = -Infinity;
+                let bestAction = ACTIONS[0];
+
+                for (const action of ACTIONS) {
+                    const q = getQValue(stateKey, action);
+                    if (q > maxQ) {
+                        maxQ = q;
+                        bestAction = action;
+                    }
+                }
+
+                return bestAction;
+            }
+        }
+
+        function takeAction(action) {
+            const newState = { ...state };
+
+            switch (action) {
+                case 'up': newState.y = Math.max(0, newState.y - 1); break;
+                case 'down': newState.y = Math.min(GRID_SIZE - 1, newState.y + 1); break;
+                case 'left': newState.x = Math.max(0, newState.x - 1); break;
+                case 'right': newState.x = Math.min(GRID_SIZE - 1, newState.x + 1); break;
+            }
+
+            // Calculate reward
+            let reward = -0.1; // Small penalty for each step
+            let done = false;
+
+            if (newState.x === goal.x && newState.y === goal.y) {
+                reward = 10; // Big reward for reaching goal
+                done = true;
+            } else if (obstacles.some(o => o.x === newState.x && o.y === newState.y)) {
+                reward = -5; // Penalty for hitting obstacle
+                newState.x = state.x;
+                newState.y = state.y;
+            }
+
+            // Store experience
+            const experience = {
+                state: getStateKey(state),
+                action: action,
+                reward: reward,
+                nextState: getStateKey(newState),
+                done: done,
+                timestamp: Date.now()
+            };
+
+            addExperience(experience);
+
+            state = newState;
+            initGrid();
+
+            return { reward, done };
+        }
+
+        function addExperience(exp) {
+            experienceBuffer.unshift(exp);
+            if (experienceBuffer.length > BUFFER_SIZE) {
+                experienceBuffer.pop();
+            }
+
+            renderExperiences();
+            document.getElementById('totalExp').textContent = experienceBuffer.length;
+        }
+
+        function trainFromReplay(batchSize = 10) {
+            if (experienceBuffer.length < batchSize) return;
+
+            // Sample random batch from buffer
+            const batch = [];
+            for (let i = 0; i < batchSize; i++) {
+                const idx = Math.floor(Math.random() * experienceBuffer.length);
+                batch.push(experienceBuffer[idx]);
+            }
+
+            // Update Q-values
+            for (const exp of batch) {
+                let target = exp.reward;
+
+                if (!exp.done) {
+                    // Q-learning: max future Q-value
+                    let maxNextQ = -Infinity;
+                    for (const action of ACTIONS) {
+                        const q = getQValue(exp.nextState, action);
+                        maxNextQ = Math.max(maxNextQ, q);
+                    }
+                    target += GAMMA * maxNextQ;
+                }
+
+                const currentQ = getQValue(exp.state, exp.action);
+                const newQ = currentQ + ALPHA * (target - currentQ);
+                setQValue(exp.state, exp.action, newQ);
+            }
+
+            updateQValues();
+            logTraining(`Trained on ${batchSize} experiences`);
+        }
+
+        async function autoPlay() {
+            autoPlaying = !autoPlaying;
+            const btn = document.getElementById('autoBtn');
+
+            if (autoPlaying) {
+                btn.textContent = '⏸️ Stop';
+                btn.classList.add('secondary');
+
+                while (autoPlaying) {
+                    const stateKey = getStateKey(state);
+                    const action = chooseAction(stateKey);
+                    const { reward, done } = takeAction(action);
+
+                    if (done) {
+                        episodes++;
+                        if (reward > 0) {
+                            successes++;
+                            logTraining(`✓ Episode ${episodes}: Reached goal`, 'success');
+                        } else {
+                            logTraining(`✗ Episode ${episodes}: Failed`, 'fail');
+                        }
+
+                        stepHistory.push(experienceBuffer.filter(e =>
+                            e.timestamp > Date.now() - 5000
+                        ).length);
+
+                        // Train after each episode
+                        trainFromReplay(10);
+
+                        updateStats();
+
+                        // Reset
+                        state = { x: 0, y: 0 };
+                        initGrid();
+
+                        await sleep(500);
+                    }
+
+                    await sleep(100);
+                }
+            } else {
+                btn.textContent = '🤖 Auto Play';
+                btn.classList.remove('secondary');
+            }
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        function updateQValues() {
+            const stateKey = getStateKey(state);
+            document.getElementById('qUp').textContent = getQValue(stateKey, 'up').toFixed(2);
+            document.getElementById('qDown').textContent = getQValue(stateKey, 'down').toFixed(2);
+            document.getElementById('qLeft').textContent = getQValue(stateKey, 'left').toFixed(2);
+            document.getElementById('qRight').textContent = getQValue(stateKey, 'right').toFixed(2);
+        }
+
+        function renderExperiences() {
+            const list = document.getElementById('experienceList');
+
+            if (experienceBuffer.length === 0) {
+                list.innerHTML = '<p style="color: #666; text-align: center;">No experiences yet</p>';
+                return;
+            }
+
+            const recent = experienceBuffer.slice(0, 10);
+            list.innerHTML = recent.map(exp => {
+                const rewardClass = exp.reward > 0 ? 'reward-positive' : exp.reward < -1 ? 'reward-negative' : '';
+                return `
+                    <div class="experience-item ${rewardClass}">
+                        State: ${exp.state} | Action: ${exp.action} | Reward: ${exp.reward.toFixed(2)}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function updateStats() {
+            document.getElementById('episodes').textContent = episodes;
+
+            if (episodes > 0) {
+                const rate = (successes / episodes * 100).toFixed(0);
+                document.getElementById('successRate').textContent = `${rate}%`;
+                document.getElementById('successProgress').style.width = `${rate}%`;
+            }
+
+            if (stepHistory.length > 0) {
+                const avg = stepHistory.reduce((a, b) => a + b, 0) / stepHistory.length;
+                document.getElementById('avgSteps').textContent = avg.toFixed(1);
+            }
+        }
+
+        function logTraining(message, type = '') {
+            const log = document.getElementById('trainingLog');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type ? 'log-' + type : ''}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            log.insertBefore(entry, log.firstChild);
+
+            // Keep only last 20 entries
+            while (log.children.length > 20) {
+                log.removeChild(log.lastChild);
+            }
+        }
+
+        function reset() {
+            state = { x: 0, y: 0 };
+            experienceBuffer = [];
+            qTable = {};
+            episodes = 0;
+            successes = 0;
+            stepHistory = [];
+
+            initGrid();
+            renderExperiences();
+            updateStats();
+            updateQValues();
+
+            document.getElementById('trainingLog').innerHTML = '<div class="log-entry">Environment reset</div>';
+        }
+
+        // Event listeners
+        document.getElementById('upBtn').addEventListener('click', () => {
+            const { reward, done } = takeAction('up');
+            if (done) { state = { x: 0, y: 0 }; initGrid(); }
+        });
+
+        document.getElementById('downBtn').addEventListener('click', () => {
+            const { reward, done } = takeAction('down');
+            if (done) { state = { x: 0, y: 0 }; initGrid(); }
+        });
+
+        document.getElementById('leftBtn').addEventListener('click', () => {
+            const { reward, done } = takeAction('left');
+            if (done) { state = { x: 0, y: 0 }; initGrid(); }
+        });
+
+        document.getElementById('rightBtn').addEventListener('click', () => {
+            const { reward, done } = takeAction('right');
+            if (done) { state = { x: 0, y: 0 }; initGrid(); }
+        });
+
+        document.getElementById('trainBtn').addEventListener('click', () => {
+            trainFromReplay(20);
+        });
+
+        document.getElementById('autoBtn').addEventListener('click', autoPlay);
+        document.getElementById('resetBtn').addEventListener('click', reset);
+
+        // Initialize
+        initGrid();
+    </script>
+</body>
+</html>

@@ -1,0 +1,447 @@
+<!-- ENHANCED VECTOR SEARCH PANEL - Insert this to replace existing panel -->
+<!-- Location: Replace lines 1714-1753 in index.html -->
+
+        <!-- Vector Search Panel -->
+        <div id="panel-vector-search" class="content-panel">
+          <div class="card" style="position: relative;">
+            <button class="help-btn" onclick="showVectorHelp()">❓ Help</button>
+            <div class="card-title">🔍 Advanced Vector Search</div>
+            <p style="color: var(--text-secondary); margin-bottom: 1rem; font-size: 0.875rem;">
+              State-of-the-art semantic search with advanced operations, analytics, and visualization
+            </p>
+
+            <!-- Search Tabs -->
+            <div class="tabs" style="margin-bottom: 1rem;">
+              <button class="tab-button active" onclick="switchVectorTab('basic')">🔍 Basic</button>
+              <button class="tab-button" onclick="switchVectorTab('advanced')">⚡ Advanced</button>
+              <button class="tab-button" onclick="switchVectorTab('operations')">🧮 Operations</button>
+              <button class="tab-button" onclick="switchVectorTab('analytics')">📊 Analytics</button>
+              <button class="tab-button" onclick="switchVectorTab('visualization')">📈 Visualization</button>
+            </div>
+
+            <!-- Basic Search Tab -->
+            <div id="vector-tab-basic" class="vector-tab-content active">
+              <div class="form-group">
+                <label class="form-label">Search Query</label>
+                <div style="position: relative;">
+                  <input type="text" class="form-input" id="vector-query"
+                    placeholder="Enter search query..."
+                    oninput="showSearchSuggestions(this.value)"
+                    autocomplete="off">
+                  <div id="search-suggestions" class="search-suggestions" style="display: none;"></div>
+                </div>
+              </div>
+
+              <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                <div class="form-group" style="margin: 0;">
+                  <label class="form-label">Number of Results</label>
+                  <input type="number" class="form-input" id="vector-limit" value="10" min="1" max="100">
+                </div>
+                <div class="form-group" style="margin: 0;">
+                  <label class="form-label">Similarity Threshold</label>
+                  <input type="number" class="form-input" id="similarity-threshold" value="0.5" min="0" max="1" step="0.05">
+                </div>
+                <div class="form-group" style="margin: 0;">
+                  <label class="form-label">Search Mode</label>
+                  <select class="form-input" id="search-mode">
+                    <option value="semantic">Semantic</option>
+                    <option value="hybrid">Hybrid (Vector + Keyword)</option>
+                    <option value="exact">Exact Match</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Quick Filters -->
+              <div class="form-group">
+                <label class="form-label">Quick Filters</label>
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                  <button class="btn btn-secondary btn-sm" onclick="toggleFilter('type')">🏷️ Type</button>
+                  <button class="btn btn-secondary btn-sm" onclick="toggleFilter('date')">📅 Date Range</button>
+                  <button class="btn btn-secondary btn-sm" onclick="toggleFilter('metadata')">🔖 Metadata</button>
+                  <button class="btn btn-secondary btn-sm" onclick="toggleFilter('source')">📍 Source</button>
+                </div>
+              </div>
+
+              <!-- Filter Options (Collapsible) -->
+              <div id="filter-options" style="display: none; margin-bottom: 1rem;">
+                <div class="card" style="background: var(--bg-tertiary); padding: 1rem;">
+                  <div id="filter-type" class="filter-section" style="display: none;">
+                    <label class="form-label">Content Type</label>
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.75rem;">
+                      <label class="checkbox-label"><input type="checkbox" class="filter-checkbox" value="document"> Document</label>
+                      <label class="checkbox-label"><input type="checkbox" class="filter-checkbox" value="code"> Code</label>
+                      <label class="checkbox-label"><input type="checkbox" class="filter-checkbox" value="conversation"> Conversation</label>
+                      <label class="checkbox-label"><input type="checkbox" class="filter-checkbox" value="pattern"> Pattern</label>
+                    </div>
+                  </div>
+                  <div id="filter-date" class="filter-section" style="display: none;">
+                    <label class="form-label">Date Range</label>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0.75rem;">
+                      <input type="date" class="form-input" id="date-from">
+                      <input type="date" class="form-input" id="date-to">
+                    </div>
+                  </div>
+                  <div id="filter-metadata" class="filter-section" style="display: none;">
+                    <label class="form-label">Metadata Filter (JSON)</label>
+                    <input type="text" class="form-input" id="metadata-filter" placeholder='{"key": "value"}'>
+                  </div>
+                  <div id="filter-source" class="filter-section" style="display: none;">
+                    <label class="form-label">Source Filter</label>
+                    <input type="text" class="form-input" id="source-filter" placeholder="Enter source name...">
+                  </div>
+                </div>
+              </div>
+
+              <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                <button class="btn btn-primary" onclick="performVectorSearch()">🔍 Search</button>
+                <button class="btn btn-secondary btn-sm" onclick="showVectorExamples()">📚 Examples</button>
+                <button class="btn btn-secondary btn-sm" onclick="showSearchHistory()">📜 History</button>
+                <button class="btn btn-secondary btn-sm" onclick="saveSearch()">💾 Save Search</button>
+                <button class="btn btn-secondary btn-sm" onclick="clearVectorSearch()">🗑️ Clear</button>
+              </div>
+            </div>
+
+            <!-- Advanced Search Tab -->
+            <div id="vector-tab-advanced" class="vector-tab-content" style="display: none;">
+              <div class="form-group">
+                <label class="form-label">Multi-Query Search</label>
+                <textarea class="form-input" id="multi-query" rows="3"
+                  placeholder="Enter multiple queries (one per line)&#10;Example:&#10;artificial intelligence&#10;machine learning&#10;neural networks"></textarea>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Query Weights (comma-separated, optional)</label>
+                <input type="text" class="form-input" id="query-weights" placeholder="1.0, 0.8, 0.6">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Negative Search (Exclude Similar)</label>
+                <input type="text" class="form-input" id="negative-query"
+                  placeholder="Enter concepts to exclude from results...">
+              </div>
+
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                <div class="form-group" style="margin: 0;">
+                  <label class="form-label">Diversity Factor</label>
+                  <input type="number" class="form-input" id="diversity-factor" value="0.5" min="0" max="1" step="0.1">
+                  <small style="color: var(--text-secondary);">Higher = more diverse results</small>
+                </div>
+                <div class="form-group" style="margin: 0;">
+                  <label class="form-label">Re-ranking Strategy</label>
+                  <select class="form-input" id="rerank-strategy">
+                    <option value="none">None</option>
+                    <option value="mmr">MMR (Diversity)</option>
+                    <option value="reciprocal">Reciprocal Rank Fusion</option>
+                    <option value="semantic">Semantic Coherence</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="checkbox-label">
+                  <input type="checkbox" id="cluster-results"> Cluster similar results
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" id="explain-relevance"> Explain relevance scores
+                </label>
+              </div>
+
+              <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                <button class="btn btn-primary" onclick="performAdvancedSearch()">⚡ Advanced Search</button>
+                <button class="btn btn-secondary btn-sm" onclick="loadSearchTemplate()">📋 Load Template</button>
+                <button class="btn btn-secondary btn-sm" onclick="clearAdvancedSearch()">🗑️ Clear</button>
+              </div>
+            </div>
+
+            <!-- Vector Operations Tab -->
+            <div id="vector-tab-operations" class="vector-tab-content" style="display: none;">
+              <div class="form-group">
+                <label class="form-label">Operation Type</label>
+                <select class="form-input" id="operation-type" onchange="updateOperationUI()">
+                  <option value="arithmetic">Vector Arithmetic</option>
+                  <option value="analogy">Analogy (A:B::C:?)</option>
+                  <option value="interpolation">Concept Interpolation</option>
+                  <option value="neighbors">Nearest Neighbors Graph</option>
+                  <option value="drift">Vector Drift Detection</option>
+                </select>
+              </div>
+
+              <!-- Vector Arithmetic -->
+              <div id="op-arithmetic" class="operation-panel">
+                <div class="form-group">
+                  <label class="form-label">Positive Concepts (add these)</label>
+                  <input type="text" class="form-input" id="positive-concepts"
+                    placeholder="king, woman (comma-separated)">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Negative Concepts (subtract these)</label>
+                  <input type="text" class="form-input" id="negative-concepts"
+                    placeholder="man (comma-separated)">
+                </div>
+              </div>
+
+              <!-- Analogy -->
+              <div id="op-analogy" class="operation-panel" style="display: none;">
+                <div style="display: grid; grid-template-columns: 1fr auto 1fr auto; gap: 0.5rem; align-items: center;">
+                  <div class="form-group" style="margin: 0;">
+                    <label class="form-label">A</label>
+                    <input type="text" class="form-input" id="analogy-a" placeholder="king">
+                  </div>
+                  <div style="text-align: center; color: var(--text-secondary); padding-top: 1.5rem;">is to</div>
+                  <div class="form-group" style="margin: 0;">
+                    <label class="form-label">B</label>
+                    <input type="text" class="form-input" id="analogy-b" placeholder="queen">
+                  </div>
+                  <div style="text-align: center; color: var(--text-secondary); padding-top: 1.5rem;">as</div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr auto 1fr auto; gap: 0.5rem; align-items: center; margin-top: 0.5rem;">
+                  <div class="form-group" style="margin: 0;">
+                    <label class="form-label">C</label>
+                    <input type="text" class="form-input" id="analogy-c" placeholder="man">
+                  </div>
+                  <div style="text-align: center; color: var(--text-secondary); padding-top: 1.5rem;">is to</div>
+                  <div style="text-align: center; font-weight: 600; color: var(--primary); font-size: 1.5rem; padding-top: 1.5rem;">?</div>
+                  <div></div>
+                </div>
+              </div>
+
+              <!-- Interpolation -->
+              <div id="op-interpolation" class="operation-panel" style="display: none;">
+                <div class="form-group">
+                  <label class="form-label">Concept A</label>
+                  <input type="text" class="form-input" id="interp-a" placeholder="science">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Concept B</label>
+                  <input type="text" class="form-input" id="interp-b" placeholder="art">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Interpolation Steps</label>
+                  <input type="number" class="form-input" id="interp-steps" value="5" min="2" max="20">
+                </div>
+              </div>
+
+              <!-- Neighbors Graph -->
+              <div id="op-neighbors" class="operation-panel" style="display: none;">
+                <div class="form-group">
+                  <label class="form-label">Center Concept</label>
+                  <input type="text" class="form-input" id="neighbors-concept" placeholder="technology">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Number of Neighbors</label>
+                  <input type="number" class="form-input" id="neighbors-count" value="10" min="3" max="50">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Graph Depth</label>
+                  <input type="number" class="form-input" id="graph-depth" value="2" min="1" max="5">
+                </div>
+              </div>
+
+              <!-- Drift Detection -->
+              <div id="op-drift" class="operation-panel" style="display: none;">
+                <div class="form-group">
+                  <label class="form-label">Reference Concept</label>
+                  <input type="text" class="form-input" id="drift-concept" placeholder="baseline concept">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Time Window (days)</label>
+                  <input type="number" class="form-input" id="drift-window" value="30" min="1" max="365">
+                </div>
+              </div>
+
+              <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 1rem;">
+                <button class="btn btn-primary" onclick="performVectorOperation()">🧮 Execute Operation</button>
+                <button class="btn btn-secondary btn-sm" onclick="showOperationExamples()">💡 Examples</button>
+                <button class="btn btn-secondary btn-sm" onclick="clearOperations()">🗑️ Clear</button>
+              </div>
+            </div>
+
+            <!-- Analytics Tab -->
+            <div id="vector-tab-analytics" class="vector-tab-content" style="display: none;">
+              <div class="card" style="background: var(--bg-tertiary); padding: 1rem; margin-bottom: 1rem;">
+                <h4 style="font-size: 0.875rem; font-weight: 600; margin-bottom: 1rem;">Search Analytics</h4>
+
+                <!-- Metrics Grid -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+                  <div class="metric-card">
+                    <div class="metric-value" id="total-searches">0</div>
+                    <div class="metric-label">Total Searches</div>
+                  </div>
+                  <div class="metric-card">
+                    <div class="metric-value" id="avg-results">0</div>
+                    <div class="metric-label">Avg Results</div>
+                  </div>
+                  <div class="metric-card">
+                    <div class="metric-value" id="avg-similarity">0%</div>
+                    <div class="metric-label">Avg Similarity</div>
+                  </div>
+                  <div class="metric-card">
+                    <div class="metric-value" id="click-through-rate">0%</div>
+                    <div class="metric-label">Click-Through Rate</div>
+                  </div>
+                </div>
+
+                <!-- Popular Searches -->
+                <div style="margin-bottom: 1rem;">
+                  <h5 style="font-size: 0.8rem; font-weight: 600; margin-bottom: 0.5rem;">🔥 Popular Searches</h5>
+                  <div id="popular-searches" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    <span class="tag">No searches yet</span>
+                  </div>
+                </div>
+
+                <!-- Search History -->
+                <div>
+                  <h5 style="font-size: 0.8rem; font-weight: 600; margin-bottom: 0.5rem;">📜 Recent Searches</h5>
+                  <div id="search-history-list" style="max-height: 200px; overflow-y: auto;">
+                    <div class="empty-state-text">No search history</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Embedding Statistics -->
+              <div class="card" style="background: var(--bg-tertiary); padding: 1rem;">
+                <h4 style="font-size: 0.875rem; font-weight: 600; margin-bottom: 1rem;">📊 Embedding Statistics</h4>
+                <div id="embedding-stats">
+                  <div class="stat-bar">
+                    <div class="stat-label">Vector Dimensions</div>
+                    <div class="stat-value">
+                      <div class="stat-fill" style="width: 100%;">
+                        <span class="stat-text" id="vector-dimensions">384</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="stat-bar">
+                    <div class="stat-label">Total Vectors</div>
+                    <div class="stat-value">
+                      <div class="stat-fill" style="width: 75%;">
+                        <span class="stat-text" id="total-vectors">0</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="stat-bar">
+                    <div class="stat-label">Avg Vector Norm</div>
+                    <div class="stat-value">
+                      <div class="stat-fill" style="width: 50%;">
+                        <span class="stat-text" id="avg-norm">1.0</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="stat-bar">
+                    <div class="stat-label">Cluster Quality</div>
+                    <div class="stat-value">
+                      <div class="stat-fill success" style="width: 85%;">
+                        <span class="stat-text" id="cluster-quality">85%</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 1rem;">
+                <button class="btn btn-primary" onclick="refreshAnalytics()">🔄 Refresh Analytics</button>
+                <button class="btn btn-secondary btn-sm" onclick="exportAnalytics()">📥 Export Data</button>
+                <button class="btn btn-secondary btn-sm" onclick="clearAnalytics()">🗑️ Clear History</button>
+              </div>
+            </div>
+
+            <!-- Visualization Tab -->
+            <div id="vector-tab-visualization" class="vector-tab-content" style="display: none;">
+              <div class="form-group">
+                <label class="form-label">Visualization Type</label>
+                <select class="form-input" id="viz-type" onchange="updateVisualization()">
+                  <option value="scatter">2D Scatter Plot (t-SNE)</option>
+                  <option value="heatmap">Similarity Heatmap</option>
+                  <option value="network">Concept Network</option>
+                  <option value="cloud">Concept Cloud</option>
+                  <option value="distribution">Result Distribution</option>
+                </select>
+              </div>
+
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                <div class="form-group" style="margin: 0;">
+                  <label class="form-label">Sample Size</label>
+                  <input type="number" class="form-input" id="viz-sample-size" value="100" min="10" max="1000">
+                </div>
+                <div class="form-group" style="margin: 0;">
+                  <label class="form-label">Color Scheme</label>
+                  <select class="form-input" id="viz-color-scheme">
+                    <option value="viridis">Viridis</option>
+                    <option value="plasma">Plasma</option>
+                    <option value="category">Category</option>
+                    <option value="similarity">Similarity</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Visualization Canvas -->
+              <div id="vector-visualization" style="background: var(--bg-tertiary); border-radius: 8px; padding: 1rem; min-height: 400px; position: relative;">
+                <canvas id="viz-canvas" style="display: none; width: 100%; height: 400px;"></canvas>
+                <div class="empty-state" id="viz-empty-state">
+                  <div class="empty-state-icon">📈</div>
+                  <div class="empty-state-title">Generate visualization</div>
+                  <div class="empty-state-text">Click "Generate" to create vector space visualization</div>
+                </div>
+              </div>
+
+              <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 1rem;">
+                <button class="btn btn-primary" onclick="generateVisualization()">📈 Generate</button>
+                <button class="btn btn-secondary btn-sm" onclick="exportVisualization()">💾 Export Image</button>
+                <button class="btn btn-secondary btn-sm" onclick="toggleVizOptions()">⚙️ Options</button>
+              </div>
+            </div>
+
+            <!-- Results Section with View Toggle -->
+            <div style="margin-top: 1.5rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h4 style="font-size: 0.875rem; font-weight: 600; margin: 0;">Search Results</h4>
+                <div style="display: flex; gap: 0.5rem;">
+                  <button class="btn btn-secondary btn-sm" onclick="toggleResultView('grid')" id="view-grid-btn">📊 Grid</button>
+                  <button class="btn btn-secondary btn-sm" onclick="toggleResultView('list')" id="view-list-btn">📋 List</button>
+                  <button class="btn btn-secondary btn-sm" onclick="exportSearchResults()">📥 Export</button>
+                </div>
+              </div>
+
+              <!-- Results Sorting & Pagination -->
+              <div id="results-controls" style="display: none; margin-bottom: 1rem; padding: 0.75rem; background: var(--bg-tertiary); border-radius: 6px;">
+                <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+                  <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <label style="font-size: 0.8rem; color: var(--text-secondary);">Sort by:</label>
+                    <select class="form-input" id="sort-by" onchange="sortResults()" style="width: auto; padding: 0.25rem 0.5rem; font-size: 0.8rem;">
+                      <option value="relevance">Relevance</option>
+                      <option value="date">Date</option>
+                      <option value="type">Type</option>
+                      <option value="similarity">Similarity</option>
+                    </select>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <label style="font-size: 0.8rem; color: var(--text-secondary);">Results per page:</label>
+                    <select class="form-input" id="results-per-page" onchange="updatePagination()" style="width: auto; padding: 0.25rem 0.5rem; font-size: 0.8rem;">
+                      <option value="10">10</option>
+                      <option value="25">25</option>
+                      <option value="50">50</option>
+                      <option value="100">100</option>
+                    </select>
+                  </div>
+                  <div id="pagination-info" style="margin-left: auto; font-size: 0.8rem; color: var(--text-secondary);"></div>
+                </div>
+              </div>
+
+              <div id="vector-results">
+                <div class="empty-state">
+                  <div class="empty-state-icon">🔍</div>
+                  <div class="empty-state-title">Enter a query to search</div>
+                  <div class="empty-state-text">Advanced semantic search with vector embeddings</div>
+                </div>
+              </div>
+
+              <!-- Pagination Controls -->
+              <div id="pagination-controls" style="display: none; margin-top: 1rem; text-align: center;">
+                <button class="btn btn-secondary btn-sm" onclick="previousPage()" id="prev-page-btn">← Previous</button>
+                <span id="page-numbers" style="margin: 0 1rem; font-size: 0.875rem;"></span>
+                <button class="btn btn-secondary btn-sm" onclick="nextPage()" id="next-page-btn">Next →</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+<!-- END ENHANCED VECTOR SEARCH PANEL -->

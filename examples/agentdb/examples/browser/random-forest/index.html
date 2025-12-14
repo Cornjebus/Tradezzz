@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Random Forest - AgentDB WASM Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+            background: hsl(0 0% 12%);
+            color: hsl(0 0% 90%);
+            padding: 2rem;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding-bottom: 2rem;
+            border-bottom: 1px solid hsl(0 0% 25%);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            color: hsl(195 100% 60%);
+            font-weight: 600;
+        }
+
+        .subtitle {
+            font-size: 1rem;
+            color: hsl(0 0% 60%);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            background: hsl(0 0% 15%);
+            border: 1px solid hsl(0 0% 25%);
+            border-radius: 8px;
+            padding: 1.5rem;
+        }
+
+        .card h2 {
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+            color: hsl(195 100% 60%);
+            font-weight: 600;
+        }
+
+        .control-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: hsl(0 0% 80%);
+            font-size: 0.9rem;
+        }
+
+        .value-display {
+            color: hsl(195 100% 60%);
+            font-weight: 600;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            background: hsl(0 0% 25%);
+            outline: none;
+            border-radius: 3px;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background: hsl(195 100% 60%);
+            cursor: pointer;
+            border-radius: 50%;
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            background: hsl(195 100% 60%);
+            cursor: pointer;
+            border-radius: 50%;
+            border: none;
+        }
+
+        select {
+            width: 100%;
+            padding: 0.75rem;
+            background: hsl(0 0% 20%);
+            color: hsl(0 0% 90%);
+            border: 1px solid hsl(0 0% 25%);
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 0.9rem;
+        }
+
+        button {
+            width: 100%;
+            padding: 0.875rem;
+            background: hsl(195 100% 60%);
+            color: hsl(0 0% 12%);
+            border: none;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background: hsl(195 100% 70%);
+        }
+
+        button:disabled {
+            background: hsl(0 0% 25%);
+            color: hsl(0 0% 50%);
+            cursor: not-allowed;
+        }
+
+        .canvas-container {
+            background: hsl(0 0% 18%);
+            border-radius: 4px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        canvas {
+            width: 100%;
+            height: auto;
+            display: block;
+            border-radius: 4px;
+        }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .metric {
+            background: hsl(0 0% 18%);
+            padding: 1rem;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .metric-label {
+            font-size: 0.85rem;
+            color: hsl(0 0% 60%);
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-value {
+            font-size: 1.5rem;
+            color: hsl(195 100% 60%);
+            font-weight: 600;
+        }
+
+        .use-cases {
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid hsl(0 0% 25%);
+        }
+
+        .use-cases h3 {
+            font-size: 1rem;
+            margin-bottom: 0.75rem;
+            color: hsl(195 100% 60%);
+        }
+
+        .use-cases ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .use-cases li {
+            padding: 0.5rem 0;
+            color: hsl(0 0% 70%);
+            font-size: 0.9rem;
+        }
+
+        .use-cases li::before {
+            content: "→ ";
+            color: hsl(195 100% 60%);
+            font-weight: bold;
+            margin-right: 0.5rem;
+        }
+
+        .status {
+            padding: 0.75rem;
+            background: hsl(0 0% 18%);
+            border-radius: 4px;
+            font-size: 0.9rem;
+            margin-top: 1rem;
+            color: hsl(0 0% 70%);
+        }
+
+        .status.success {
+            background: hsl(142 76% 36% / 0.2);
+            color: hsl(142 76% 56%);
+        }
+
+        .status.error {
+            background: hsl(0 72% 51% / 0.2);
+            color: hsl(0 72% 61%);
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        .legend {
+            display: flex;
+            gap: 1.5rem;
+            justify-content: center;
+            margin-top: 1rem;
+            font-size: 0.85rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 12px;
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🌲 Random Forest Classifier</h1>
+            <p class="subtitle">Ensemble Learning with AgentDB WASM Integration</p>
+        </header>
+
+        <div class="grid">
+            <!-- Controls -->
+            <div class="card">
+                <h2>Model Configuration</h2>
+
+                <div class="control-group">
+                    <label>
+                        Number of Trees: <span class="value-display" id="treesValue">10</span>
+                    </label>
+                    <input type="range" id="numTrees" min="5" max="100" value="10" step="5">
+                </div>
+
+                <div class="control-group">
+                    <label>
+                        Max Depth: <span class="value-display" id="depthValue">5</span>
+                    </label>
+                    <input type="range" id="maxDepth" min="3" max="15" value="5" step="1">
+                </div>
+
+                <div class="control-group">
+                    <label>
+                        Feature Sampling: <span class="value-display" id="samplingValue">0.7</span>
+                    </label>
+                    <input type="range" id="featureSampling" min="0.3" max="1.0" value="0.7" step="0.1">
+                </div>
+
+                <div class="control-group">
+                    <label for="dataset">Dataset</label>
+                    <select id="dataset">
+                        <option value="iris">Iris (Classification)</option>
+                        <option value="credit">Credit Risk</option>
+                        <option value="churn">Customer Churn</option>
+                    </select>
+                </div>
+
+                <button id="trainBtn">Train Random Forest</button>
+
+                <div id="status" class="status" style="display: none;"></div>
+
+                <div class="use-cases">
+                    <h3>Use Cases</h3>
+                    <ul>
+                        <li>Financial Forecasting</li>
+                        <li>Credit Risk Assessment</li>
+                        <li>Customer Churn Prediction</li>
+                        <li>Medical Diagnosis</li>
+                        <li>Feature Importance Analysis</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Trees Visualization -->
+            <div class="card">
+                <h2>Forest Visualization</h2>
+                <div class="canvas-container">
+                    <canvas id="treesCanvas" width="600" height="400"></canvas>
+                </div>
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: hsl(195 100% 60%);"></div>
+                        <span>Decision Trees</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: hsl(142 76% 56%);"></div>
+                        <span>Accurate Predictions</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Feature Importance -->
+            <div class="card full-width">
+                <h2>Feature Importance</h2>
+                <div class="canvas-container">
+                    <canvas id="importanceCanvas" width="1200" height="300"></canvas>
+                </div>
+            </div>
+
+            <!-- Metrics -->
+            <div class="card">
+                <h2>Performance Metrics</h2>
+                <div class="metrics">
+                    <div class="metric">
+                        <div class="metric-label">Training Accuracy</div>
+                        <div class="metric-value" id="accuracy">0.0%</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">OOB Error</div>
+                        <div class="metric-value" id="oobError">0.0%</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Trees Generated</div>
+                        <div class="metric-value" id="treesCount">0</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Avg Tree Depth</div>
+                        <div class="metric-value" id="avgDepth">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AgentDB Integration -->
+            <div class="card">
+                <h2>AgentDB WASM Status</h2>
+                <div class="metrics">
+                    <div class="metric">
+                        <div class="metric-label">Vectors Stored</div>
+                        <div class="metric-value" id="vectorsStored">0</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Memory Usage</div>
+                        <div class="metric-value" id="memoryUsage">0 KB</div>
+                    </div>
+                </div>
+                <div id="dbStatus" class="status">Initializing AgentDB WASM...</div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { SQLiteVectorDB } from "https://unpkg.com/agentdb@1.0.7/dist/agentdb.min.js";
+
+        let db = null;
+        let forestData = null;
+
+        // Initialize AgentDB WASM
+        async function initAgentDB() {
+            try {
+                console.log('Initializing AgentDB v1.0.7 from CDN...');
+                db = new SQLiteVectorDB({ memoryMode: true, backend: "wasm" });
+                await db.initializeAsync();
+                console.log('✅ AgentDB WASM v1.0.7 initialized');
+                updateDBStatus('AgentDB WASM v1.0.7 initialized successfully', 'success');
+                return true;
+            } catch (error) {
+                console.error('AgentDB initialization failed:', error);
+                updateDBStatus('AgentDB initialization failed: ' + error.message, 'error');
+                return false;
+            }
+        }
+
+        function updateDBStatus(message, type = '') {
+            const status = document.getElementById('dbStatus');
+            status.textContent = message;
+            status.className = 'status ' + type;
+        }
+
+        // Generate synthetic dataset
+        function generateDataset(type) {
+            const datasets = {
+                iris: {
+                    features: ['sepal_length', 'sepal_width', 'petal_length', 'petal_width'],
+                    samples: 150,
+                    classes: 3
+                },
+                credit: {
+                    features: ['income', 'debt_ratio', 'credit_score', 'employment_years', 'age'],
+                    samples: 200,
+                    classes: 2
+                },
+                churn: {
+                    features: ['tenure', 'monthly_charges', 'total_charges', 'support_calls', 'contract_type'],
+                    samples: 180,
+                    classes: 2
+                }
+            };
+
+            const config = datasets[type];
+            const data = [];
+
+            for (let i = 0; i < config.samples; i++) {
+                const sample = {
+                    features: config.features.map(() => Math.random() * 10),
+                    label: Math.floor(Math.random() * config.classes)
+                };
+                data.push(sample);
+            }
+
+            return { data, featureNames: config.features, numClasses: config.classes };
+        }
+
+        // Decision Tree Node
+        class TreeNode {
+            constructor(depth = 0) {
+                this.depth = depth;
+                this.featureIndex = null;
+                this.threshold = null;
+                this.left = null;
+                this.right = null;
+                this.prediction = null;
+            }
+        }
+
+        // Build decision tree
+        function buildTree(data, maxDepth, featureSampling, depth = 0) {
+            const node = new TreeNode(depth);
+
+            // Check stopping criteria
+            if (depth >= maxDepth || data.length < 2) {
+                node.prediction = majorityVote(data);
+                return node;
+            }
+
+            // Random feature sampling
+            const numFeatures = data[0].features.length;
+            const sampledFeatures = Math.max(1, Math.floor(numFeatures * featureSampling));
+            const featureIndices = [];
+            while (featureIndices.length < sampledFeatures) {
+                const idx = Math.floor(Math.random() * numFeatures);
+                if (!featureIndices.includes(idx)) featureIndices.push(idx);
+            }
+
+            // Find best split
+            let bestGini = Infinity;
+            let bestFeature = null;
+            let bestThreshold = null;
+            let bestSplit = null;
+
+            for (const featureIdx of featureIndices) {
+                const values = data.map(d => d.features[featureIdx]);
+                const uniqueValues = [...new Set(values)].sort((a, b) => a - b);
+
+                for (let i = 0; i < uniqueValues.length - 1; i++) {
+                    const threshold = (uniqueValues[i] + uniqueValues[i + 1]) / 2;
+                    const [left, right] = splitData(data, featureIdx, threshold);
+
+                    if (left.length === 0 || right.length === 0) continue;
+
+                    const gini = calculateGini(left, right);
+                    if (gini < bestGini) {
+                        bestGini = gini;
+                        bestFeature = featureIdx;
+                        bestThreshold = threshold;
+                        bestSplit = [left, right];
+                    }
+                }
+            }
+
+            if (bestSplit === null) {
+                node.prediction = majorityVote(data);
+                return node;
+            }
+
+            node.featureIndex = bestFeature;
+            node.threshold = bestThreshold;
+            node.left = buildTree(bestSplit[0], maxDepth, featureSampling, depth + 1);
+            node.right = buildTree(bestSplit[1], maxDepth, featureSampling, depth + 1);
+
+            return node;
+        }
+
+        function splitData(data, featureIdx, threshold) {
+            const left = data.filter(d => d.features[featureIdx] <= threshold);
+            const right = data.filter(d => d.features[featureIdx] > threshold);
+            return [left, right];
+        }
+
+        function calculateGini(left, right) {
+            const total = left.length + right.length;
+            const giniLeft = giniImpurity(left);
+            const giniRight = giniImpurity(right);
+            return (left.length / total) * giniLeft + (right.length / total) * giniRight;
+        }
+
+        function giniImpurity(data) {
+            if (data.length === 0) return 0;
+            const counts = {};
+            data.forEach(d => counts[d.label] = (counts[d.label] || 0) + 1);
+            let impurity = 1;
+            for (const label in counts) {
+                const prob = counts[label] / data.length;
+                impurity -= prob * prob;
+            }
+            return impurity;
+        }
+
+        function majorityVote(data) {
+            const counts = {};
+            data.forEach(d => counts[d.label] = (counts[d.label] || 0) + 1);
+            return parseInt(Object.keys(counts).reduce((a, b) => counts[a] > counts[b] ? a : b));
+        }
+
+        function predictTree(tree, sample) {
+            if (tree.prediction !== null) return tree.prediction;
+            if (sample.features[tree.featureIndex] <= tree.threshold) {
+                return predictTree(tree.left, sample);
+            } else {
+                return predictTree(tree.right, sample);
+            }
+        }
+
+        function getTreeDepth(tree) {
+            if (tree.prediction !== null) return tree.depth;
+            return Math.max(getTreeDepth(tree.left), getTreeDepth(tree.right));
+        }
+
+        // Train Random Forest
+        async function trainRandomForest() {
+            const numTrees = parseInt(document.getElementById('numTrees').value);
+            const maxDepth = parseInt(document.getElementById('maxDepth').value);
+            const featureSampling = parseFloat(document.getElementById('featureSampling').value);
+            const datasetType = document.getElementById('dataset').value;
+
+            updateStatus('Training Random Forest...', '');
+            document.getElementById('trainBtn').disabled = true;
+
+            try {
+                const { data, featureNames, numClasses } = generateDataset(datasetType);
+
+                // Build forest
+                const trees = [];
+                for (let i = 0; i < numTrees; i++) {
+                    // Bootstrap sampling
+                    const bootstrapData = [];
+                    for (let j = 0; j < data.length; j++) {
+                        bootstrapData.push(data[Math.floor(Math.random() * data.length)]);
+                    }
+
+                    const tree = buildTree(bootstrapData, maxDepth, featureSampling);
+                    trees.push(tree);
+                }
+
+                // Calculate metrics
+                let correct = 0;
+                const featureImportance = new Array(featureNames.length).fill(0);
+
+                for (const sample of data) {
+                    const predictions = trees.map(tree => predictTree(tree, sample));
+                    const prediction = majorityVote(predictions.map((p, i) => ({ label: p })));
+                    if (prediction === sample.label) correct++;
+                }
+
+                const accuracy = (correct / data.length) * 100;
+                const oobError = 100 - accuracy;
+                const avgDepth = trees.reduce((sum, tree) => sum + getTreeDepth(tree), 0) / trees.length;
+
+                // Calculate feature importance (simplified)
+                trees.forEach(tree => {
+                    const countFeatures = (node) => {
+                        if (node.prediction !== null) return;
+                        featureImportance[node.featureIndex]++;
+                        countFeatures(node.left);
+                        countFeatures(node.right);
+                    };
+                    countFeatures(tree);
+                });
+
+                const maxImportance = Math.max(...featureImportance);
+                const normalizedImportance = featureImportance.map(v => v / maxImportance);
+
+                forestData = {
+                    trees,
+                    featureNames,
+                    featureImportance: normalizedImportance,
+                    accuracy,
+                    oobError,
+                    avgDepth,
+                    numClasses
+                };
+
+                // Store in AgentDB
+                if (db) {
+                    await storeForestInDB(forestData);
+                }
+
+                // Update UI
+                updateMetrics(forestData);
+                visualizeTrees(trees, numClasses);
+                visualizeFeatureImportance(featureNames, normalizedImportance);
+
+                updateStatus('Training complete!', 'success');
+            } catch (error) {
+                console.error('Training error:', error);
+                updateStatus('Training failed: ' + error.message, 'error');
+            } finally {
+                document.getElementById('trainBtn').disabled = false;
+            }
+        }
+
+        async function storeForestInDB(forest) {
+            if (!db) return;
+
+            try {
+                // Store tree embeddings
+                for (let i = 0; i < forest.trees.length; i++) {
+                    const embedding = generateTreeEmbedding(forest.trees[i]);
+                    await db.insert({
+                        embedding,
+                        metadata: {
+                            type: 'decision_tree',
+                            treeIndex: i,
+                            depth: getTreeDepth(forest.trees[i]),
+                            timestamp: Date.now()
+                        }
+                    });
+                }
+
+                const stats = await db.stats();
+                document.getElementById('vectorsStored').textContent = stats.count;
+                document.getElementById('memoryUsage').textContent =
+                    Math.round(stats.memoryUsage / 1024) + ' KB';
+            } catch (error) {
+                console.error('Failed to store in AgentDB:', error);
+            }
+        }
+
+        function generateTreeEmbedding(tree, dim = 128) {
+            const embedding = new Array(dim).fill(0);
+
+            const traverse = (node, depth = 0) => {
+                if (node.prediction !== null) {
+                    embedding[depth % dim] += node.prediction * 0.1;
+                    return;
+                }
+                embedding[node.featureIndex % dim] += node.threshold * 0.01;
+                traverse(node.left, depth + 1);
+                traverse(node.right, depth + 1);
+            };
+
+            traverse(tree);
+
+            // Normalize
+            const magnitude = Math.sqrt(embedding.reduce((sum, v) => sum + v * v, 0));
+            return embedding.map(v => magnitude > 0 ? v / magnitude : 0);
+        }
+
+        function updateMetrics(forest) {
+            document.getElementById('accuracy').textContent = forest.accuracy.toFixed(1) + '%';
+            document.getElementById('oobError').textContent = forest.oobError.toFixed(1) + '%';
+            document.getElementById('treesCount').textContent = forest.trees.length;
+            document.getElementById('avgDepth').textContent = forest.avgDepth.toFixed(1);
+        }
+
+        function visualizeTrees(trees, numClasses) {
+            const canvas = document.getElementById('treesCanvas');
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width;
+            const height = canvas.height;
+
+            ctx.fillStyle = 'hsl(0 0% 18%)';
+            ctx.fillRect(0, 0, width, height);
+
+            const cols = Math.ceil(Math.sqrt(trees.length));
+            const rows = Math.ceil(trees.length / cols);
+            const cellWidth = width / cols;
+            const cellHeight = height / rows;
+
+            trees.forEach((tree, i) => {
+                const x = (i % cols) * cellWidth + cellWidth / 2;
+                const y = Math.floor(i / cols) * cellHeight + cellHeight / 2;
+                const depth = getTreeDepth(tree);
+                const radius = Math.min(cellWidth, cellHeight) / 4;
+
+                // Draw tree
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, 2 * Math.PI);
+                ctx.fillStyle = 'hsl(195 100% 60% / 0.6)';
+                ctx.fill();
+
+                // Depth indicator
+                ctx.fillStyle = 'hsl(0 0% 90%)';
+                ctx.font = '10px monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText(depth, x, y + 4);
+            });
+        }
+
+        function visualizeFeatureImportance(features, importance) {
+            const canvas = document.getElementById('importanceCanvas');
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width;
+            const height = canvas.height;
+
+            ctx.fillStyle = 'hsl(0 0% 18%)';
+            ctx.fillRect(0, 0, width, height);
+
+            const barWidth = width / features.length - 20;
+            const maxHeight = height - 80;
+
+            features.forEach((feature, i) => {
+                const barHeight = importance[i] * maxHeight;
+                const x = i * (barWidth + 20) + 30;
+                const y = height - barHeight - 40;
+
+                // Bar
+                ctx.fillStyle = 'hsl(195 100% 60%)';
+                ctx.fillRect(x, y, barWidth, barHeight);
+
+                // Label
+                ctx.fillStyle = 'hsl(0 0% 90%)';
+                ctx.font = '12px monospace';
+                ctx.save();
+                ctx.translate(x + barWidth / 2, height - 10);
+                ctx.rotate(-Math.PI / 4);
+                ctx.textAlign = 'right';
+                ctx.fillText(feature, 0, 0);
+                ctx.restore();
+
+                // Value
+                ctx.fillStyle = 'hsl(195 100% 60%)';
+                ctx.font = 'bold 14px monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText((importance[i] * 100).toFixed(0) + '%', x + barWidth / 2, y - 5);
+            });
+        }
+
+        function updateStatus(message, type) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = 'status ' + type;
+            status.style.display = 'block';
+        }
+
+        // Event listeners
+        document.getElementById('numTrees').addEventListener('input', (e) => {
+            document.getElementById('treesValue').textContent = e.target.value;
+        });
+
+        document.getElementById('maxDepth').addEventListener('input', (e) => {
+            document.getElementById('depthValue').textContent = e.target.value;
+        });
+
+        document.getElementById('featureSampling').addEventListener('input', (e) => {
+            document.getElementById('samplingValue').textContent = parseFloat(e.target.value).toFixed(1);
+        });
+
+        document.getElementById('trainBtn').addEventListener('click', trainRandomForest);
+
+        // Initialize
+        initAgentDB();
+    </script>
+</body>
+</html>

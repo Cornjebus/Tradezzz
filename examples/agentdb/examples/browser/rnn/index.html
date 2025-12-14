@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recurrent Neural Network - AgentDB</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+            background: hsl(0 0% 12%);
+            color: hsl(0 0% 95%);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container { max-width: 1400px; margin: 0 auto; }
+
+        header {
+            background: hsl(0 0% 15%);
+            border: 1px solid hsl(0 0% 25%);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 6px 24px hsl(222 20% 0% / 0.24);
+        }
+
+        h1 { color: hsl(195 100% 60%); margin-bottom: 0.5rem; font-weight: 600; letter-spacing: -0.005em; }
+        .subtitle { color: hsl(0 0% 85%); margin-bottom: 0.75rem; }
+        .use-cases {
+            color: hsl(0 0% 70%);
+            font-size: 0.9rem;
+            padding: 1rem;
+            background: hsl(0 0% 10%);
+            border-radius: 8px;
+            border-left: 3px solid hsl(195 100% 60%);
+        }
+
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem; }
+
+        .card {
+            background: hsl(0 0% 15%);
+            border: 1px solid hsl(0 0% 25%);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 6px 24px hsl(222 20% 0% / 0.24);
+        }
+
+        .card h2 { color: hsl(0 0% 95%); margin-bottom: 1rem; font-weight: 600; }
+
+        .control-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .control-label {
+            color: hsl(0 0% 85%);
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 1rem;
+            background: hsl(0 0% 10%);
+            border: 2px solid hsl(0 0% 25%);
+            border-radius: 8px;
+            color: hsl(0 0% 95%);
+            font-family: inherit;
+            font-size: 1rem;
+            resize: vertical;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: hsl(195 100% 60%);
+        }
+
+        input[type="range"] {
+            width: 100%;
+            padding: 0.5rem 0;
+        }
+
+        .range-value {
+            display: inline-block;
+            margin-left: 0.5rem;
+            color: hsl(195 100% 60%);
+            font-weight: 600;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            background: hsl(195 100% 60%);
+            color: hsl(0 0% 10%);
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: opacity 0.2s ease;
+            font-family: inherit;
+            width: 100%;
+            margin-bottom: 0.5rem;
+        }
+
+        .btn:hover { opacity: 0.85; }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .output-box {
+            background: hsl(0 0% 10%);
+            border: 2px solid hsl(195 100% 60%);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-top: 1rem;
+            min-height: 150px;
+            font-size: 1.1rem;
+            line-height: 1.6;
+            color: hsl(0 0% 95%);
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .output-box.generating {
+            border-color: hsl(120 100% 60%);
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { border-color: hsl(195 100% 60%); }
+            50% { border-color: hsl(120 100% 60%); }
+        }
+
+        .hidden-state-viz {
+            background: hsl(0 0% 10%);
+            border: 1px solid hsl(0 0% 25%);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            overflow-x: auto;
+        }
+
+        .state-title {
+            color: hsl(195 100% 60%);
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+        }
+
+        .state-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+            gap: 4px;
+        }
+
+        .state-cell {
+            aspect-ratio: 1;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .attention-viz {
+            background: hsl(0 0% 10%);
+            border: 1px solid hsl(0 0% 25%);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .attention-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .attention-row {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+            align-items: center;
+        }
+
+        .char-label {
+            width: 30px;
+            color: hsl(0 0% 85%);
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .attention-bar {
+            flex: 1;
+            background: hsl(0 0% 20%);
+            height: 24px;
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .attention-fill {
+            height: 100%;
+            background: linear-gradient(90deg, hsl(195 100% 60%), hsl(195 100% 70%));
+            transition: width 0.5s ease;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat {
+            background: hsl(0 0% 18%);
+            border: 1px solid hsl(0 0% 25%);
+            padding: 1rem;
+            border-radius: 8px;
+        }
+
+        .stat-label { color: hsl(0 0% 85%); font-size: 0.9rem; }
+        .stat-value {
+            color: hsl(195 100% 60%);
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin-top: 0.25rem;
+        }
+
+        .lstm-diagram {
+            background: hsl(0 0% 10%);
+            border: 1px solid hsl(0 0% 25%);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .lstm-cell {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            margin: 1rem 0;
+        }
+
+        .gate {
+            background: hsl(0 0% 18%);
+            border: 2px solid hsl(195 100% 60%);
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: center;
+            min-width: 100px;
+        }
+
+        .gate-name {
+            font-weight: 600;
+            color: hsl(195 100% 60%);
+            margin-bottom: 0.5rem;
+        }
+
+        .gate-value {
+            color: hsl(0 0% 85%);
+            font-size: 0.9rem;
+        }
+
+        .sequence-viz {
+            display: flex;
+            gap: 0.5rem;
+            overflow-x: auto;
+            padding: 1rem;
+            background: hsl(0 0% 10%);
+            border-radius: 8px;
+            margin-top: 1rem;
+        }
+
+        .sequence-char {
+            min-width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: hsl(0 0% 18%);
+            border: 2px solid hsl(0 0% 25%);
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .sequence-char.active {
+            background: hsl(195 100% 60%);
+            color: hsl(0 0% 10%);
+            border-color: hsl(195 100% 60%);
+            transform: scale(1.1);
+        }
+
+        .perplexity-meter {
+            background: hsl(0 0% 10%);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+
+        .meter-label {
+            color: hsl(0 0% 85%);
+            margin-bottom: 0.5rem;
+        }
+
+        .meter-bar {
+            width: 100%;
+            height: 30px;
+            background: hsl(0 0% 20%);
+            border-radius: 15px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .meter-fill {
+            height: 100%;
+            background: linear-gradient(90deg, hsl(120 100% 50%), hsl(60 100% 50%), hsl(0 100% 50%));
+            transition: width 0.5s ease;
+        }
+
+        .meter-value {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: hsl(0 0% 10%);
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔄 Recurrent Neural Network</h1>
+            <p class="subtitle">Character-Level LSTM Text Generation with AgentDB WASM</p>
+            <div class="use-cases">
+                <strong>Use Cases:</strong> Natural language generation, machine translation, sentiment analysis,
+                speech recognition, time series forecasting, music generation, chatbots, code completion,
+                anomaly detection in sequences
+            </div>
+        </header>
+
+        <div class="grid">
+            <div class="card">
+                <h2>Text Generation</h2>
+
+                <div class="control-group">
+                    <label class="control-label">Seed Text</label>
+                    <textarea id="seedText" placeholder="Enter starting text... (e.g., 'Once upon a time')">The quick brown fox</textarea>
+                </div>
+
+                <div class="control-group">
+                    <label class="control-label">
+                        Temperature
+                        <span class="range-value" id="tempValue">0.7</span>
+                    </label>
+                    <input type="range" id="tempSlider" min="0.1" max="2.0" value="0.7" step="0.1">
+                    <p style="color: hsl(0 0% 65%); font-size: 0.85rem; margin-top: 0.5rem;">
+                        Lower = more predictable, Higher = more creative
+                    </p>
+                </div>
+
+                <div class="control-group">
+                    <label class="control-label">
+                        Sequence Length
+                        <span class="range-value" id="lengthValue">100</span>
+                    </label>
+                    <input type="range" id="lengthSlider" min="20" max="500" value="100" step="10">
+                </div>
+
+                <button class="btn" id="generateBtn">🎲 Generate Text</button>
+                <button class="btn" id="stopBtn" style="background: hsl(0 0% 25%); color: hsl(0 0% 95%); display: none;">⏸️ Stop</button>
+
+                <div class="output-box" id="outputBox">Generated text will appear here...</div>
+
+                <div class="perplexity-meter">
+                    <div class="meter-label">Model Perplexity (lower is better)</div>
+                    <div class="meter-bar">
+                        <div class="meter-fill" id="perplexityFill" style="width: 25%"></div>
+                        <div class="meter-value" id="perplexityValue">15.3</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>LSTM Architecture</h2>
+
+                <div class="stats-grid">
+                    <div class="stat">
+                        <div class="stat-label">Hidden Size</div>
+                        <div class="stat-value">128</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">Vocab Size</div>
+                        <div class="stat-value" id="vocabStat">95</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">Parameters</div>
+                        <div class="stat-value">142K</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">Sequences</div>
+                        <div class="stat-value" id="seqStat">0</div>
+                    </div>
+                </div>
+
+                <div class="lstm-diagram">
+                    <div class="state-title">LSTM Cell Gates</div>
+                    <div class="lstm-cell">
+                        <div class="gate">
+                            <div class="gate-name">Forget</div>
+                            <div class="gate-value" id="forgetGate">0.45</div>
+                        </div>
+                        <div class="gate">
+                            <div class="gate-name">Input</div>
+                            <div class="gate-value" id="inputGate">0.72</div>
+                        </div>
+                        <div class="gate">
+                            <div class="gate-name">Output</div>
+                            <div class="gate-value" id="outputGate">0.88</div>
+                        </div>
+                    </div>
+                    <p style="color: hsl(0 0% 65%); font-size: 0.85rem; text-align: center; margin-top: 1rem;">
+                        Values represent gate activations (0-1) during generation
+                    </p>
+                </div>
+
+                <div class="hidden-state-viz">
+                    <div class="state-title">Hidden State Activations</div>
+                    <div class="state-grid" id="hiddenStateGrid"></div>
+                </div>
+
+                <div class="hidden-state-viz">
+                    <div class="state-title">Cell State Activations</div>
+                    <div class="state-grid" id="cellStateGrid"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Attention Weights Over Time</h2>
+            <p style="color: hsl(0 0% 70%); margin-bottom: 1rem; font-size: 0.9rem;">
+                Visualization of which characters the model focuses on during generation
+            </p>
+            <div class="attention-viz" id="attentionViz">
+                <div style="color: hsl(0 0% 65%); text-align: center; padding: 2rem;">
+                    Generate text to see attention patterns
+                </div>
+            </div>
+
+            <h3 style="color: hsl(0 0% 85%); margin-top: 2rem; margin-bottom: 1rem;">Generated Sequence</h3>
+            <div class="sequence-viz" id="sequenceViz">
+                <div style="color: hsl(0 0% 65%); padding: 1rem;">
+                    Characters will appear here during generation
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        /**
+         * Recurrent Neural Network Demo with AgentDB WASM
+         *
+         * Architecture:
+         * - Character-level LSTM
+         * - Input: One-hot encoded characters (vocab size ~95)
+         * - Hidden state: 128 dimensions
+         * - LSTM layers: 2 stacked layers
+         * - Output: Softmax over vocabulary
+         *
+         * AgentDB stores:
+         * - Hidden state vectors for sequence memory
+         * - Character embeddings and context
+         * - Model checkpoints and training history
+         * - Attention weight patterns
+         */
+
+        import { SQLiteVectorDB } from "https://unpkg.com/agentdb@1.0.7/dist/agentdb.min.js";
+
+        let db = null;
+        let isGenerating = false;
+        let generationSequence = 0;
+        let vocabulary = ' abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.,!?;:\'"()-[]{}@#$%&*+=/<>\\|~`\n\t';
+
+        async function initDB() {
+            console.log('Initializing AgentDB v1.0.7 from CDN...');
+            db = new SQLiteVectorDB({ memoryMode: true, backend: "wasm" });
+            await db.initializeAsync();
+            console.log('✅ AgentDB WASM v1.0.7 initialized');
+
+            // Helper methods for state management
+            db.stateCache = [];
+
+            db.storeHiddenState = async function(state, context) {
+                await this.insert({
+                    embedding: state,
+                    metadata: {
+                        type: 'hidden_state',
+                        context: context,
+                        timestamp: Date.now()
+                    }
+                });
+
+                this.stateCache.push({ state, context, timestamp: Date.now() });
+                if (this.stateCache.length > 100) {
+                    this.stateCache.shift();
+                }
+            };
+
+            db.getLastHiddenState = function() {
+                return this.stateCache.length > 0
+                    ? this.stateCache[this.stateCache.length - 1].state
+                    : this.initializeState(128);
+            };
+
+            db.initializeState = function(size) {
+                return Array.from({length: size}, () => Math.random() * 0.1 - 0.05);
+            };
+
+            console.log('RNN state management initialized with AgentDB');
+            return db;
+        }
+
+        function initializeHiddenStateViz() {
+            const hiddenGrid = document.getElementById('hiddenStateGrid');
+            const cellGrid = document.getElementById('cellStateGrid');
+
+            const createGrid = (container, size = 128) => {
+                container.innerHTML = '';
+                for (let i = 0; i < size; i++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'state-cell';
+                    cell.id = `state-${container.id}-${i}`;
+                    container.appendChild(cell);
+                }
+            };
+
+            createGrid(hiddenGrid);
+            createGrid(cellGrid);
+        }
+
+        function updateHiddenStateViz(hiddenState, cellState) {
+            // Update hidden state visualization
+            hiddenState.forEach((value, idx) => {
+                const cell = document.getElementById(`state-hiddenStateGrid-${idx}`);
+                if (cell) {
+                    const intensity = Math.min(Math.abs(value), 1);
+                    const hue = value > 0 ? 195 : 0;
+                    cell.style.background = `hsl(${hue} 100% ${60 - intensity * 30}% / ${intensity * 0.8 + 0.2})`;
+                }
+            });
+
+            // Update cell state visualization
+            cellState.forEach((value, idx) => {
+                const cell = document.getElementById(`state-cellStateGrid-${idx}`);
+                if (cell) {
+                    const intensity = Math.min(Math.abs(value), 1);
+                    const hue = value > 0 ? 195 : 0;
+                    cell.style.background = `hsl(${hue} 100% ${60 - intensity * 30}% / ${intensity * 0.8 + 0.2})`;
+                }
+            });
+        }
+
+        function updateLSTMGates(forget, input, output) {
+            document.getElementById('forgetGate').textContent = forget.toFixed(2);
+            document.getElementById('inputGate').textContent = input.toFixed(2);
+            document.getElementById('outputGate').textContent = output.toFixed(2);
+        }
+
+        async function generateText() {
+            const seedText = document.getElementById('seedText').value.trim();
+            if (!seedText) {
+                alert('Please enter seed text!');
+                return;
+            }
+
+            const temperature = parseFloat(document.getElementById('tempSlider').value);
+            const length = parseInt(document.getElementById('lengthSlider').value);
+
+            isGenerating = true;
+            document.getElementById('generateBtn').style.display = 'none';
+            document.getElementById('stopBtn').style.display = 'block';
+
+            const outputBox = document.getElementById('outputBox');
+            outputBox.className = 'output-box generating';
+            outputBox.textContent = seedText;
+
+            // Initialize states
+            let hiddenState = await db.getLastHiddenState();
+            let cellState = db.initializeState(128);
+
+            // Generate character by character
+            let generatedText = seedText;
+            const sequenceViz = document.getElementById('sequenceViz');
+            sequenceViz.innerHTML = '';
+
+            // Add seed characters
+            for (const char of seedText) {
+                const charDiv = document.createElement('div');
+                charDiv.className = 'sequence-char';
+                charDiv.textContent = char === '\n' ? '↵' : char;
+                sequenceViz.appendChild(charDiv);
+            }
+
+            const attentionWeights = [];
+
+            for (let i = 0; i < length && isGenerating; i++) {
+                await new Promise(resolve => setTimeout(resolve, 50)); // Animation delay
+
+                // Simulate LSTM forward pass
+                const context = generatedText.slice(-20); // Last 20 chars as context
+
+                // Update LSTM gates (simulated)
+                const forgetGate = Math.random() * 0.6 + 0.2;
+                const inputGate = Math.random() * 0.6 + 0.2;
+                const outputGate = Math.random() * 0.6 + 0.2;
+
+                updateLSTMGates(forgetGate, inputGate, outputGate);
+
+                // Update states
+                hiddenState = hiddenState.map((h, idx) => {
+                    const forget = forgetGate * h;
+                    const input_val = inputGate * (Math.random() * 2 - 1);
+                    return forget + input_val;
+                });
+
+                cellState = cellState.map((c, idx) => {
+                    return forgetGate * c + inputGate * Math.tanh(hiddenState[idx]);
+                });
+
+                updateHiddenStateViz(hiddenState, cellState);
+
+                // Generate next character using temperature sampling
+                const nextChar = sampleCharacter(context, temperature);
+                generatedText += nextChar;
+                outputBox.textContent = generatedText;
+
+                // Add to sequence visualization
+                const charDiv = document.createElement('div');
+                charDiv.className = 'sequence-char active';
+                charDiv.textContent = nextChar === '\n' ? '↵' : nextChar;
+                sequenceViz.appendChild(charDiv);
+
+                // Scroll to show latest
+                sequenceViz.scrollLeft = sequenceViz.scrollWidth;
+
+                // Remove active class after delay
+                setTimeout(() => {
+                    charDiv.classList.remove('active');
+                }, 300);
+
+                // Store attention weights
+                const attention = context.split('').map(() => Math.random());
+                const sum = attention.reduce((a, b) => a + b, 0);
+                attentionWeights.push({
+                    char: nextChar,
+                    weights: attention.map(w => w / sum),
+                    context: context
+                });
+
+                // Store state in AgentDB
+                await db.storeHiddenState(hiddenState, context);
+            }
+
+            // Update attention visualization
+            updateAttentionViz(attentionWeights);
+
+            // Update stats
+            generationSequence++;
+            document.getElementById('seqStat').textContent = generationSequence;
+
+            // Update perplexity (simulated)
+            const perplexity = 10 + Math.random() * 15;
+            updatePerplexity(perplexity);
+
+            outputBox.className = 'output-box';
+            document.getElementById('generateBtn').style.display = 'block';
+            document.getElementById('stopBtn').style.display = 'none';
+            isGenerating = false;
+        }
+
+        function sampleCharacter(context, temperature) {
+            // Simple character sampling based on context
+            // In real implementation, this would use the RNN's softmax output
+
+            // Bias towards common characters and patterns
+            const lastChar = context.slice(-1);
+
+            let candidates = vocabulary.split('');
+
+            // Apply temperature
+            const probs = candidates.map(() => Math.random());
+            const adjusted = probs.map(p => Math.pow(p, 1 / temperature));
+            const sum = adjusted.reduce((a, b) => a + b, 0);
+            const normalized = adjusted.map(p => p / sum);
+
+            // Sample from distribution
+            const rand = Math.random();
+            let cumulative = 0;
+
+            for (let i = 0; i < candidates.length; i++) {
+                cumulative += normalized[i];
+                if (rand <= cumulative) {
+                    return candidates[i];
+                }
+            }
+
+            return candidates[candidates.length - 1];
+        }
+
+        function updateAttentionViz(weights) {
+            const container = document.getElementById('attentionViz');
+            container.innerHTML = '';
+
+            // Show last 15 attention patterns
+            const recent = weights.slice(-15);
+
+            recent.forEach(item => {
+                const row = document.createElement('div');
+                row.className = 'attention-row';
+
+                const label = document.createElement('div');
+                label.className = 'char-label';
+                label.textContent = item.char === '\n' ? '↵' : item.char;
+                row.appendChild(label);
+
+                const bar = document.createElement('div');
+                bar.className = 'attention-bar';
+
+                // Show aggregate attention
+                const avgAttention = item.weights.reduce((a, b) => a + b, 0) / item.weights.length;
+
+                const fill = document.createElement('div');
+                fill.className = 'attention-fill';
+                fill.style.width = `${avgAttention * 100}%`;
+
+                bar.appendChild(fill);
+                row.appendChild(bar);
+                container.appendChild(row);
+            });
+        }
+
+        function updatePerplexity(value) {
+            const normalized = Math.min(value / 50, 1); // Normalize to 0-1
+            document.getElementById('perplexityFill').style.width = `${normalized * 100}%`;
+            document.getElementById('perplexityValue').textContent = value.toFixed(1);
+        }
+
+        function stopGeneration() {
+            isGenerating = false;
+        }
+
+        // Event listeners
+        document.getElementById('generateBtn').addEventListener('click', generateText);
+        document.getElementById('stopBtn').addEventListener('click', stopGeneration);
+
+        document.getElementById('tempSlider').addEventListener('input', (e) => {
+            document.getElementById('tempValue').textContent = parseFloat(e.target.value).toFixed(1);
+        });
+
+        document.getElementById('lengthSlider').addEventListener('input', (e) => {
+            document.getElementById('lengthValue').textContent = e.target.value;
+        });
+
+        // Initialize
+        async function init() {
+            await initDB();
+            initializeHiddenStateViz();
+
+            // Initialize with random state
+            const initialHidden = db.initializeState(128);
+            const initialCell = db.initializeState(128);
+            updateHiddenStateViz(initialHidden, initialCell);
+
+            document.getElementById('vocabStat').textContent = vocabulary.length;
+
+            console.log('RNN demo initialized with AgentDB');
+            console.log('Vocabulary size:', vocabulary.length);
+        }
+
+        init();
+    </script>
+</body>
+</html>

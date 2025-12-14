@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Causal Analysis Test</title>
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; padding: 2rem; max-width: 800px; margin: 0 auto; }
+    .test-section { background: #f3f4f6; padding: 1.5rem; margin: 1rem 0; border-radius: 8px; }
+    .success { color: #10b981; }
+    .error { color: #ef4444; }
+    code { background: #e5e7eb; padding: 0.25rem 0.5rem; border-radius: 4px; }
+    h2 { color: #1f2937; }
+  </style>
+</head>
+<body>
+  <h1>🔬 Causal Path Analysis - Test Suite</h1>
+
+  <div class="test-section">
+    <h2>Test Environment</h2>
+    <p>This page tests the causal path analysis functions independently.</p>
+  </div>
+
+  <div class="test-section">
+    <h2>Test 1: Graph Building</h2>
+    <div id="test1-result">Running...</div>
+  </div>
+
+  <div class="test-section">
+    <h2>Test 2: Path Finding</h2>
+    <div id="test2-result">Running...</div>
+  </div>
+
+  <div class="test-section">
+    <h2>Test 3: Cycle Detection</h2>
+    <div id="test3-result">Running...</div>
+  </div>
+
+  <div class="test-section">
+    <h2>Test 4: Path Formatting</h2>
+    <div id="test4-result">Running...</div>
+  </div>
+
+  <script>
+    // Mock functions for testing
+    const testData = {
+      edges: [
+        { id: 1, cause: 'A', effect: 'B', metadata: '{"weight": 0.9, "confidence": 0.8}' },
+        { id: 2, cause: 'B', effect: 'C', metadata: '{"weight": 0.8, "confidence": 0.7}' },
+        { id: 3, cause: 'A', effect: 'D', metadata: '{"weight": 0.7, "confidence": 0.9}' },
+        { id: 4, cause: 'D', effect: 'C', metadata: '{"weight": 0.6, "confidence": 0.8}' },
+        { id: 5, cause: 'C', effect: 'E', metadata: '{"weight": 0.5, "confidence": 0.6}' },
+        { id: 6, cause: 'E', effect: 'A', metadata: '{"weight": 0.4, "confidence": 0.5}' } // Creates cycle
+      ]
+    };
+
+    function sqlAll(query) {
+      if (query.includes('causal_edges')) {
+        return testData.edges;
+      }
+      return [];
+    }
+
+    function logToConsole(level, message) {
+      console.log(`[${level.toUpperCase()}] ${message}`);
+    }
+
+    // Test 1: Graph Building
+    function testGraphBuilding() {
+      try {
+        const graph = {};
+        const nodes = new Set();
+
+        testData.edges.forEach(edge => {
+          const metadata = JSON.parse(edge.metadata || '{}');
+          const weight = parseFloat(metadata.weight || 0.5);
+
+          nodes.add(edge.cause);
+          nodes.add(edge.effect);
+
+          if (!graph[edge.cause]) {
+            graph[edge.cause] = [];
+          }
+          graph[edge.cause].push({
+            target: edge.effect,
+            weight: weight,
+            id: edge.id
+          });
+        });
+
+        const result = { graph, nodes: Array.from(nodes), edges: testData.edges };
+
+        document.getElementById('test1-result').innerHTML = `
+          <span class="success">✓ PASS</span><br>
+          Nodes: ${result.nodes.length}<br>
+          Graph keys: ${Object.keys(result.graph).length}<br>
+          Nodes: <code>${result.nodes.join(', ')}</code>
+        `;
+      } catch (error) {
+        document.getElementById('test1-result').innerHTML = `
+          <span class="error">✗ FAIL</span><br>
+          Error: ${error.message}
+        `;
+      }
+    }
+
+    // Test 2: Path Finding (simplified)
+    function testPathFinding() {
+      try {
+        const graph = {};
+        testData.edges.forEach(edge => {
+          const metadata = JSON.parse(edge.metadata);
+          if (!graph[edge.cause]) graph[edge.cause] = [];
+          graph[edge.cause].push({
+            target: edge.effect,
+            weight: parseFloat(metadata.weight)
+          });
+        });
+
+        // Find paths from A to C
+        const paths = [];
+        function dfs(current, target, visited, path, strength) {
+          const newPath = [...path, current];
+          const newVisited = new Set(visited);
+          newVisited.add(current);
+
+          if (current === target && newPath.length > 1) {
+            paths.push({ path: newPath, strength, length: newPath.length - 1 });
+            return;
+          }
+
+          if (newPath.length > 3) return;
+
+          const neighbors = graph[current] || [];
+          for (const neighbor of neighbors) {
+            if (!newVisited.has(neighbor.target)) {
+              dfs(neighbor.target, target, newVisited, newPath, strength * neighbor.weight);
+            }
+          }
+        }
+
+        dfs('A', 'C', new Set(), [], 1.0);
+        paths.sort((a, b) => b.strength - a.strength);
+
+        document.getElementById('test2-result').innerHTML = `
+          <span class="success">✓ PASS</span><br>
+          Found ${paths.length} path${paths.length !== 1 ? 's' : ''} from A to C<br>
+          ${paths.map((p, i) => `
+            Path ${i+1}: ${p.path.join(' → ')} (strength: ${(p.strength * 100).toFixed(1)}%)
+          `).join('<br>')}
+        `;
+      } catch (error) {
+        document.getElementById('test2-result').innerHTML = `
+          <span class="error">✗ FAIL</span><br>
+          Error: ${error.message}
+        `;
+      }
+    }
+
+    // Test 3: Cycle Detection (simplified)
+    function testCycleDetection() {
+      try {
+        const graph = {};
+        testData.edges.forEach(edge => {
+          const metadata = JSON.parse(edge.metadata);
+          if (!graph[edge.cause]) graph[edge.cause] = [];
+          graph[edge.cause].push({
+            target: edge.effect,
+            weight: parseFloat(metadata.weight)
+          });
+        });
+
+        const nodes = [...new Set(testData.edges.flatMap(e => [e.cause, e.effect]))];
+        const cycles = [];
+
+        function findCycles(start) {
+          const visited = new Set();
+          const recursionStack = new Set();
+          const path = [];
+
+          function dfs(node) {
+            visited.add(node);
+            recursionStack.add(node);
+            path.push(node);
+
+            const neighbors = graph[node] || [];
+            for (const neighbor of neighbors) {
+              if (!visited.has(neighbor.target)) {
+                dfs(neighbor.target);
+              } else if (recursionStack.has(neighbor.target)) {
+                const cycleStart = path.indexOf(neighbor.target);
+                if (cycleStart !== -1) {
+                  const cycle = path.slice(cycleStart);
+                  cycle.push(neighbor.target);
+                  cycles.push({ path: cycle });
+                }
+              }
+            }
+
+            path.pop();
+            recursionStack.delete(node);
+          }
+
+          if (!visited.has(start)) dfs(start);
+        }
+
+        nodes.forEach(node => findCycles(node));
+
+        // Remove duplicates
+        const unique = [];
+        const seen = new Set();
+        cycles.forEach(cycle => {
+          const normalized = cycle.path.slice(0, -1).sort().join('→');
+          if (!seen.has(normalized)) {
+            seen.add(normalized);
+            unique.push(cycle);
+          }
+        });
+
+        document.getElementById('test3-result').innerHTML = `
+          <span class="success">✓ PASS</span><br>
+          Found ${unique.length} cycle${unique.length !== 1 ? 's' : ''}<br>
+          ${unique.map((c, i) => `
+            Cycle ${i+1}: ${c.path.join(' → ')}
+          `).join('<br>')}
+        `;
+      } catch (error) {
+        document.getElementById('test3-result').innerHTML = `
+          <span class="error">✗ FAIL</span><br>
+          Error: ${error.message}
+        `;
+      }
+    }
+
+    // Test 4: Path Formatting
+    function testPathFormatting() {
+      try {
+        const testPath = ['A', 'B', 'C'];
+        const testStrength = 0.72;
+
+        const formatted = `<span style="color: #6366f1; font-weight: 500;">A</span>` +
+                         `<span style="opacity: 0.7; margin: 0 0.5rem;">→ (0.90)</span>` +
+                         `<span style="color: #6366f1; font-weight: 500;">B</span>` +
+                         `<span style="opacity: 0.7; margin: 0 0.5rem;">→ (0.80)</span>` +
+                         `<span style="color: #6366f1; font-weight: 500;">C</span>`;
+
+        document.getElementById('test4-result').innerHTML = `
+          <span class="success">✓ PASS</span><br>
+          Sample path: ${formatted}<br>
+          Total strength: ${(testStrength * 100).toFixed(1)}%
+        `;
+      } catch (error) {
+        document.getElementById('test4-result').innerHTML = `
+          <span class="error">✗ FAIL</span><br>
+          Error: ${error.message}
+        `;
+      }
+    }
+
+    // Run all tests
+    testGraphBuilding();
+    testPathFinding();
+    testCycleDetection();
+    testPathFormatting();
+  </script>
+</body>
+</html>

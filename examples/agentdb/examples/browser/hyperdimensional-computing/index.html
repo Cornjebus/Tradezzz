@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hyperdimensional Computing - AgentDB WASM Demo</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+      background: hsl(0 0% 12%);
+      color: hsl(0 0% 90%);
+      padding: 2rem;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    header {
+      margin-bottom: 2rem;
+      border-bottom: 2px solid hsl(195 100% 60%);
+      padding-bottom: 1rem;
+    }
+
+    h1 {
+      color: hsl(195 100% 60%);
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .subtitle {
+      color: hsl(0 0% 70%);
+      font-size: 0.9rem;
+    }
+
+    .demo-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    .panel {
+      background: hsl(0 0% 16%);
+      border: 1px solid hsl(0 0% 25%);
+      border-radius: 8px;
+      padding: 1.5rem;
+    }
+
+    .panel h2 {
+      color: hsl(195 100% 60%);
+      font-size: 1.2rem;
+      margin-bottom: 1rem;
+      border-bottom: 1px solid hsl(0 0% 25%);
+      padding-bottom: 0.5rem;
+    }
+
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    label {
+      color: hsl(195 100% 60%);
+      font-size: 0.85rem;
+      font-weight: bold;
+    }
+
+    .slider-container {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    input[type="range"] {
+      flex: 1;
+      height: 4px;
+      background: hsl(0 0% 25%);
+      border-radius: 2px;
+      outline: none;
+      -webkit-appearance: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      background: hsl(195 100% 60%);
+      cursor: pointer;
+      border-radius: 50%;
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      background: hsl(195 100% 60%);
+      cursor: pointer;
+      border-radius: 50%;
+      border: none;
+    }
+
+    .value-display {
+      color: hsl(195 100% 60%);
+      font-weight: bold;
+      min-width: 70px;
+      text-align: right;
+    }
+
+    input[type="text"], textarea {
+      background: hsl(0 0% 10%);
+      color: hsl(0 0% 90%);
+      border: 1px solid hsl(0 0% 25%);
+      padding: 0.5rem;
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 0.9rem;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    button {
+      background: hsl(195 100% 60%);
+      color: hsl(0 0% 12%);
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    button:hover {
+      background: hsl(195 100% 70%);
+      transform: translateY(-1px);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    button:disabled {
+      background: hsl(0 0% 30%);
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .button-group {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 0.5rem;
+    }
+
+    .canvas-container {
+      background: hsl(0 0% 8%);
+      border-radius: 4px;
+      padding: 1rem;
+      margin-top: 1rem;
+    }
+
+    canvas {
+      width: 100%;
+      height: 350px;
+      border: 1px solid hsl(0 0% 25%);
+      border-radius: 4px;
+      background: hsl(0 0% 10%);
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .metric {
+      background: hsl(0 0% 10%);
+      padding: 1rem;
+      border-radius: 4px;
+      border-left: 3px solid hsl(195 100% 60%);
+    }
+
+    .metric-label {
+      color: hsl(0 0% 70%);
+      font-size: 0.8rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .metric-value {
+      color: hsl(195 100% 60%);
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+
+    .info-box {
+      background: hsl(220 100% 15%);
+      border: 1px solid hsl(220 100% 30%);
+      border-radius: 4px;
+      padding: 1rem;
+      margin-top: 1rem;
+    }
+
+    .info-box h3 {
+      color: hsl(195 100% 60%);
+      font-size: 0.9rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .info-box p {
+      color: hsl(0 0% 80%);
+      font-size: 0.85rem;
+      line-height: 1.5;
+    }
+
+    .status {
+      background: hsl(0 0% 10%);
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      border-left: 3px solid hsl(195 100% 60%);
+      margin-top: 1rem;
+      font-size: 0.85rem;
+    }
+
+    .status.loading {
+      border-left-color: hsl(45 100% 60%);
+      color: hsl(45 100% 60%);
+    }
+
+    .status.error {
+      border-left-color: hsl(0 100% 60%);
+      color: hsl(0 100% 60%);
+    }
+
+    .status.success {
+      border-left-color: hsl(120 100% 60%);
+      color: hsl(120 100% 60%);
+    }
+
+    .vector-display {
+      background: hsl(0 0% 10%);
+      padding: 1rem;
+      border-radius: 4px;
+      margin-top: 1rem;
+      font-size: 0.75rem;
+      word-break: break-all;
+      max-height: 150px;
+      overflow-y: auto;
+    }
+
+    .vector-display::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .vector-display::-webkit-scrollbar-track {
+      background: hsl(0 0% 15%);
+    }
+
+    .vector-display::-webkit-scrollbar-thumb {
+      background: hsl(195 100% 60%);
+      border-radius: 4px;
+    }
+
+    .search-results {
+      margin-top: 1rem;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .result-item {
+      background: hsl(0 0% 10%);
+      padding: 1rem;
+      border-radius: 4px;
+      margin-bottom: 0.5rem;
+      border-left: 3px solid hsl(195 100% 60%);
+    }
+
+    .result-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.5rem;
+    }
+
+    .result-label {
+      color: hsl(195 100% 60%);
+      font-weight: bold;
+    }
+
+    .result-distance {
+      color: hsl(0 0% 70%);
+      font-size: 0.85rem;
+    }
+
+    .result-content {
+      color: hsl(0 0% 80%);
+      font-size: 0.85rem;
+    }
+
+    .language-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+
+    .language-btn {
+      padding: 0.5rem;
+      font-size: 0.85rem;
+      background: hsl(0 0% 20%);
+    }
+
+    .language-btn.active {
+      background: hsl(195 100% 60%);
+    }
+
+    @media (max-width: 1024px) {
+      .demo-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🧠 Hyperdimensional Computing Demo</h1>
+      <div class="subtitle">High-dimensional binary vector operations with language recognition and similarity search powered by AgentDB WASM</div>
+    </header>
+
+    <div class="demo-grid">
+      <div class="panel">
+        <h2>⚙️ Hypervector Configuration</h2>
+        <div class="controls">
+          <div class="control-group">
+            <label for="vectorDim">Vector Dimensions</label>
+            <div class="slider-container">
+              <input type="range" id="vectorDim" min="1000" max="10000" value="5000" step="1000">
+              <span class="value-display" id="vectorDimValue">5000</span>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <label for="inputText">Input Text to Encode</label>
+            <textarea id="inputText" placeholder="Enter text to encode as hypervector...">Hello world this is hyperdimensional computing</textarea>
+          </div>
+
+          <button id="encodeBtn">Encode to Hypervector</button>
+
+          <div class="control-group">
+            <label for="queryText">Query Text for Similarity Search</label>
+            <input type="text" id="queryText" placeholder="Enter query text...">
+          </div>
+
+          <button id="searchBtn">Search Similar Vectors</button>
+        </div>
+
+        <div class="info-box">
+          <h3>💡 About Hyperdimensional Computing</h3>
+          <p>
+            HDC uses very high-dimensional vectors (thousands of dimensions) to represent data.
+            Operations like binding (XOR), bundling (majority), and permutation enable cognitive
+            computing with extreme robustness to noise and hardware errors.
+          </p>
+        </div>
+
+        <div class="status" id="status">Ready to encode data</div>
+      </div>
+
+      <div class="panel">
+        <h2>📊 Vector Space Visualization (PCA)</h2>
+        <div class="canvas-container">
+          <canvas id="pcaCanvas"></canvas>
+        </div>
+
+        <div class="metrics">
+          <div class="metric">
+            <div class="metric-label">Stored Vectors</div>
+            <div class="metric-value" id="storedVectors">0</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Avg Hamming Dist</div>
+            <div class="metric-value" id="avgHamming">0</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Dimension</div>
+            <div class="metric-value" id="dimension">5000</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="demo-grid">
+      <div class="panel">
+        <h2>🔍 Similarity Search Results</h2>
+        <div class="search-results" id="searchResults">
+          <div class="info-box">
+            <h3>Search Instructions</h3>
+            <p>
+              1. Encode text samples using the "Encode to Hypervector" button<br>
+              2. Enter a query in the search box<br>
+              3. Click "Search Similar Vectors" to find matches<br>
+              4. Results show Hamming distance (lower = more similar)
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>🔀 Hypervector Operations</h2>
+        <div class="controls">
+          <div class="button-group">
+            <button id="bindBtn">Bind (XOR)</button>
+            <button id="bundleBtn">Bundle (OR)</button>
+            <button id="permuteBtn">Permute</button>
+            <button id="inverseBtn">Inverse</button>
+          </div>
+        </div>
+
+        <div class="canvas-container">
+          <canvas id="operationsCanvas"></canvas>
+        </div>
+
+        <div class="info-box">
+          <h3>Vector Operations</h3>
+          <p>
+            <strong>Bind (XOR):</strong> Creates associations between vectors<br>
+            <strong>Bundle (OR):</strong> Combines multiple vectors into one<br>
+            <strong>Permute:</strong> Shifts vector elements for sequence encoding<br>
+            <strong>Inverse:</strong> Reverses binding operations
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>🌍 Language Recognition Demo</h2>
+      <div class="demo-grid">
+        <div class="control-group">
+          <label>Train Language Models</label>
+          <div class="language-grid">
+            <button class="language-btn" data-lang="en">English</button>
+            <button class="language-btn" data-lang="es">Spanish</button>
+            <button class="language-btn" data-lang="fr">French</button>
+            <button class="language-btn" data-lang="de">German</button>
+            <button class="language-btn" data-lang="it">Italian</button>
+            <button class="language-btn" data-lang="pt">Portuguese</button>
+          </div>
+          <button id="trainLanguagesBtn" style="margin-top: 1rem;">Train All Languages</button>
+        </div>
+
+        <div class="control-group">
+          <label for="testText">Test Text for Classification</label>
+          <textarea id="testText" placeholder="Enter text to classify...">Hello how are you doing today?</textarea>
+          <button id="classifyBtn">Classify Language</button>
+          <div class="metric" style="margin-top: 1rem;">
+            <div class="metric-label">Detected Language</div>
+            <div class="metric-value" id="detectedLang">—</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="canvas-container">
+        <canvas id="languageCanvas"></canvas>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>🎓 Use Cases & Applications</h2>
+      <div class="demo-grid">
+        <div class="info-box">
+          <h3>Neuromorphic Computing</h3>
+          <p>
+            HDC maps naturally to brain-inspired hardware, enabling ultra-low-power AI on
+            neuromorphic chips with massive parallelism and fault tolerance.
+          </p>
+        </div>
+        <div class="info-box">
+          <h3>Cognitive Architectures</h3>
+          <p>
+            High-dimensional representations support symbolic reasoning, analogical thinking,
+            and compositional understanding—key aspects of human-like intelligence.
+          </p>
+        </div>
+        <div class="info-box">
+          <h3>IoT & Edge AI</h3>
+          <p>
+            Lightweight operations and extreme efficiency make HDC perfect for resource-constrained
+            devices, enabling on-device intelligence without cloud connectivity.
+          </p>
+        </div>
+        <div class="info-box">
+          <h3>Robust Classification</h3>
+          <p>
+            HDC's inherent noise tolerance makes it ideal for noisy environments, sensor fusion,
+            and applications requiring reliable operation under adverse conditions.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { SQLiteVectorDB } from "https://unpkg.com/agentdb@1.0.7/dist/agentdb.min.js";
+
+    // State
+    let db = null;
+    let vectorDim = 5000;
+    let storedVectors = [];
+    let languageModels = {};
+    let operationHistory = [];
+
+    // Sample language data
+    const languageSamples = {
+      en: ["hello world", "how are you", "good morning", "thank you very much", "see you later"],
+      es: ["hola mundo", "cómo estás", "buenos días", "muchas gracias", "hasta luego"],
+      fr: ["bonjour monde", "comment allez-vous", "bon matin", "merci beaucoup", "à plus tard"],
+      de: ["hallo welt", "wie geht es dir", "guten morgen", "vielen dank", "bis später"],
+      it: ["ciao mondo", "come stai", "buon giorno", "grazie mille", "a dopo"],
+      pt: ["olá mundo", "como vai você", "bom dia", "muito obrigado", "até logo"]
+    };
+
+    // UI Elements
+    const vectorDimSlider = document.getElementById('vectorDim');
+    const inputText = document.getElementById('inputText');
+    const queryText = document.getElementById('queryText');
+    const encodeBtn = document.getElementById('encodeBtn');
+    const searchBtn = document.getElementById('searchBtn');
+    const bindBtn = document.getElementById('bindBtn');
+    const bundleBtn = document.getElementById('bundleBtn');
+    const permuteBtn = document.getElementById('permuteBtn');
+    const inverseBtn = document.getElementById('inverseBtn');
+    const trainLanguagesBtn = document.getElementById('trainLanguagesBtn');
+    const classifyBtn = document.getElementById('classifyBtn');
+    const testText = document.getElementById('testText');
+    const statusDiv = document.getElementById('status');
+    const searchResults = document.getElementById('searchResults');
+    const pcaCanvas = document.getElementById('pcaCanvas');
+    const operationsCanvas = document.getElementById('operationsCanvas');
+    const languageCanvas = document.getElementById('languageCanvas');
+
+    // Initialize AgentDB
+    async function initAgentDB() {
+      try {
+        setStatus('Initializing AgentDB v1.0.7 from CDN...', 'loading');
+        db = new SQLiteVectorDB({ memoryMode: true, backend: "wasm" });
+        await db.initializeAsync();
+        setStatus('✅ AgentDB WASM v1.0.7 initialized', 'success');
+        return true;
+      } catch (error) {
+        setStatus(`Failed to initialize AgentDB: ${error.message}`, 'error');
+        console.error(error);
+        return false;
+      }
+    }
+
+    // Set status message
+    function setStatus(message, type = '') {
+      statusDiv.textContent = message;
+      statusDiv.className = `status ${type}`;
+    }
+
+    // Update slider value
+    vectorDimSlider.addEventListener('input', (e) => {
+      vectorDim = parseInt(e.target.value);
+      document.getElementById('vectorDimValue').textContent = vectorDim;
+      document.getElementById('dimension').textContent = vectorDim;
+    });
+
+    // Generate random binary hypervector
+    function generateRandomVector(dim) {
+      return Array.from({ length: dim }, () => Math.random() > 0.5 ? 1 : 0);
+    }
+
+    // Encode text to hypervector
+    function encodeText(text, dim) {
+      const vector = new Array(dim).fill(0);
+      const chars = text.toLowerCase().split('');
+
+      // Simple character-based encoding with n-grams
+      for (let i = 0; i < chars.length; i++) {
+        const charCode = chars[i].charCodeAt(0);
+        const seed = charCode + i * 1000;
+
+        // Use character code to generate positions
+        for (let j = 0; j < 20; j++) {
+          const pos = (seed * (j + 1) * 2654435761) % dim;
+          vector[pos] = (vector[pos] + 1) % 2;
+        }
+      }
+
+      return vector;
+    }
+
+    // Calculate Hamming distance
+    function hammingDistance(vec1, vec2) {
+      let dist = 0;
+      for (let i = 0; i < vec1.length; i++) {
+        if (vec1[i] !== vec2[i]) dist++;
+      }
+      return dist;
+    }
+
+    // Bind operation (XOR)
+    function bind(vec1, vec2) {
+      return vec1.map((v, i) => v ^ vec2[i]);
+    }
+
+    // Bundle operation (majority vote)
+    function bundle(vectors) {
+      const result = new Array(vectors[0].length).fill(0);
+      const threshold = Math.floor(vectors.length / 2);
+
+      for (let i = 0; i < result.length; i++) {
+        const sum = vectors.reduce((acc, vec) => acc + vec[i], 0);
+        result[i] = sum > threshold ? 1 : 0;
+      }
+
+      return result;
+    }
+
+    // Permute operation
+    function permute(vector, shift = 1) {
+      const result = new Array(vector.length);
+      for (let i = 0; i < vector.length; i++) {
+        result[(i + shift) % vector.length] = vector[i];
+      }
+      return result;
+    }
+
+    // Encode and store vector
+    async function encodeAndStore() {
+      if (!db) {
+        setStatus('AgentDB not initialized', 'error');
+        return;
+      }
+
+      const text = inputText.value.trim();
+      if (!text) {
+        setStatus('Please enter text to encode', 'error');
+        return;
+      }
+
+      try {
+        setStatus('Encoding text to hypervector...', 'loading');
+
+        const vector = encodeText(text, vectorDim);
+        const id = `hv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+        // Convert binary to embedding format (normalize to [-1, 1])
+        const embedding = vector.map(v => v * 2 - 1);
+
+        await db.insert({
+          id,
+          embedding,
+          metadata: {
+            text,
+            type: 'hypervector',
+            binaryVector: vector.join('').substring(0, 100) + '...',
+            timestamp: Date.now()
+          }
+        });
+
+        storedVectors.push({ id, text, vector, embedding });
+
+        updateMetrics();
+        updatePCAVisualization();
+        setStatus(`Encoded and stored: "${text.substring(0, 50)}..."`, 'success');
+      } catch (error) {
+        setStatus(`Encoding failed: ${error.message}`, 'error');
+        console.error(error);
+      }
+    }
+
+    // Search similar vectors
+    async function searchSimilar() {
+      if (!db || storedVectors.length === 0) {
+        setStatus('Please encode some vectors first', 'error');
+        return;
+      }
+
+      const query = queryText.value.trim();
+      if (!query) {
+        setStatus('Please enter query text', 'error');
+        return;
+      }
+
+      try {
+        setStatus('Searching for similar vectors...', 'loading');
+
+        const queryVector = encodeText(query, vectorDim);
+        const queryEmbedding = queryVector.map(v => v * 2 - 1);
+
+        // Search using AgentDB
+        const results = await db.search({
+          queryEmbedding,
+          k: 5,
+          threshold: 0
+        });
+
+        // Display results
+        displaySearchResults(results, queryVector);
+        setStatus(`Found ${results.length} similar vectors`, 'success');
+      } catch (error) {
+        setStatus(`Search failed: ${error.message}`, 'error');
+        console.error(error);
+      }
+    }
+
+    // Display search results
+    function displaySearchResults(results, queryVector) {
+      searchResults.innerHTML = '';
+
+      results.forEach((result, index) => {
+        const storedVec = storedVectors.find(v => v.id === result.id);
+        if (!storedVec) return;
+
+        const hamming = hammingDistance(queryVector, storedVec.vector);
+        const similarity = ((1 - hamming / vectorDim) * 100).toFixed(2);
+
+        const item = document.createElement('div');
+        item.className = 'result-item';
+        item.innerHTML = `
+          <div class="result-header">
+            <span class="result-label">Result ${index + 1}</span>
+            <span class="result-distance">Hamming: ${hamming} | Similarity: ${similarity}%</span>
+          </div>
+          <div class="result-content">"${result.metadata.text}"</div>
+        `;
+        searchResults.appendChild(item);
+      });
+    }
+
+    // Perform vector operations
+    async function performOperation(operation) {
+      if (storedVectors.length < 2) {
+        setStatus('Need at least 2 vectors for operations', 'error');
+        return;
+      }
+
+      try {
+        setStatus(`Performing ${operation} operation...`, 'loading');
+
+        const vec1 = storedVectors[storedVectors.length - 1].vector;
+        const vec2 = storedVectors[storedVectors.length - 2].vector;
+
+        let result;
+        let label;
+
+        switch (operation) {
+          case 'bind':
+            result = bind(vec1, vec2);
+            label = 'Bind (XOR)';
+            break;
+          case 'bundle':
+            result = bundle([vec1, vec2]);
+            label = 'Bundle (Majority)';
+            break;
+          case 'permute':
+            result = permute(vec1, 100);
+            label = 'Permute (shift=100)';
+            break;
+          case 'inverse':
+            result = vec1; // Inverse of XOR is itself
+            label = 'Inverse';
+            break;
+        }
+
+        operationHistory.push({ operation: label, result });
+        updateOperationsVisualization();
+        setStatus(`${label} completed successfully`, 'success');
+      } catch (error) {
+        setStatus(`Operation failed: ${error.message}`, 'error');
+        console.error(error);
+      }
+    }
+
+    // Train language models
+    async function trainLanguages() {
+      if (!db) {
+        setStatus('AgentDB not initialized', 'error');
+        return;
+      }
+
+      try {
+        setStatus('Training language models...', 'loading');
+
+        for (const [lang, samples] of Object.entries(languageSamples)) {
+          const vectors = samples.map(text => encodeText(text, vectorDim));
+          const langVector = bundle(vectors);
+          languageModels[lang] = langVector;
+
+          // Store in AgentDB
+          const embedding = langVector.map(v => v * 2 - 1);
+          await db.insert({
+            id: `lang_${lang}`,
+            embedding,
+            metadata: {
+              language: lang,
+              type: 'language_model',
+              samples: samples.length
+            }
+          });
+
+          // Update UI
+          document.querySelector(`[data-lang="${lang}"]`).classList.add('active');
+        }
+
+        updateLanguageVisualization();
+        setStatus('All language models trained successfully', 'success');
+      } catch (error) {
+        setStatus(`Training failed: ${error.message}`, 'error');
+        console.error(error);
+      }
+    }
+
+    // Classify language
+    async function classifyLanguage() {
+      if (Object.keys(languageModels).length === 0) {
+        setStatus('Please train language models first', 'error');
+        return;
+      }
+
+      const text = testText.value.trim();
+      if (!text) {
+        setStatus('Please enter text to classify', 'error');
+        return;
+      }
+
+      try {
+        setStatus('Classifying language...', 'loading');
+
+        const testVector = encodeText(text, vectorDim);
+
+        let minDistance = Infinity;
+        let detectedLang = '';
+
+        for (const [lang, langVector] of Object.entries(languageModels)) {
+          const distance = hammingDistance(testVector, langVector);
+          if (distance < minDistance) {
+            minDistance = distance;
+            detectedLang = lang;
+          }
+        }
+
+        const similarity = ((1 - minDistance / vectorDim) * 100).toFixed(1);
+        document.getElementById('detectedLang').textContent =
+          `${detectedLang.toUpperCase()} (${similarity}%)`;
+
+        setStatus(`Language classified: ${detectedLang} with ${similarity}% similarity`, 'success');
+        updateLanguageVisualization();
+      } catch (error) {
+        setStatus(`Classification failed: ${error.message}`, 'error');
+        console.error(error);
+      }
+    }
+
+    // Update metrics
+    function updateMetrics() {
+      document.getElementById('storedVectors').textContent = storedVectors.length;
+
+      if (storedVectors.length > 1) {
+        let totalDist = 0;
+        let count = 0;
+        for (let i = 0; i < storedVectors.length; i++) {
+          for (let j = i + 1; j < storedVectors.length; j++) {
+            totalDist += hammingDistance(storedVectors[i].vector, storedVectors[j].vector);
+            count++;
+          }
+        }
+        const avgDist = count > 0 ? Math.round(totalDist / count) : 0;
+        document.getElementById('avgHamming').textContent = avgDist;
+      }
+    }
+
+    // Update PCA visualization
+    function updatePCAVisualization() {
+      const canvas = pcaCanvas;
+      const ctx = canvas.getContext('2d');
+      const width = canvas.width = canvas.offsetWidth * 2;
+      const height = canvas.height = canvas.offsetHeight * 2;
+
+      ctx.clearRect(0, 0, width, height);
+
+      if (storedVectors.length === 0) {
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+        ctx.font = '24px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('No vectors to visualize', width / 2, height / 2);
+        return;
+      }
+
+      // Simple 2D projection (sum of chunks)
+      const points = storedVectors.map(v => {
+        const chunkSize = Math.floor(vectorDim / 2);
+        const x = v.vector.slice(0, chunkSize).reduce((a, b) => a + b, 0) / chunkSize;
+        const y = v.vector.slice(chunkSize).reduce((a, b) => a + b, 0) / (vectorDim - chunkSize);
+        return { x, y, text: v.text };
+      });
+
+      // Scale to canvas
+      const padding = 60;
+      const plotWidth = width - padding * 2;
+      const plotHeight = height - padding * 2;
+
+      // Draw axes
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(padding, height / 2);
+      ctx.lineTo(width - padding, height / 2);
+      ctx.moveTo(width / 2, padding);
+      ctx.lineTo(width / 2, height - padding);
+      ctx.stroke();
+
+      // Draw points
+      points.forEach((point, i) => {
+        const x = padding + point.x * plotWidth;
+        const y = padding + (1 - point.y) * plotHeight;
+
+        const hue = (i / points.length) * 360;
+        ctx.fillStyle = `hsl(${hue}, 70%, 60%)`;
+        ctx.beginPath();
+        ctx.arc(x, y, 8, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+        ctx.font = '16px monospace';
+        ctx.fillText(i + 1, x + 12, y + 5);
+      });
+
+      // Labels
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+      ctx.font = '20px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('PCA Component 1', width / 2, height - 20);
+      ctx.save();
+      ctx.translate(20, height / 2);
+      ctx.rotate(-Math.PI / 2);
+      ctx.fillText('PCA Component 2', 0, 0);
+      ctx.restore();
+    }
+
+    // Update operations visualization
+    function updateOperationsVisualization() {
+      const canvas = operationsCanvas;
+      const ctx = canvas.getContext('2d');
+      const width = canvas.width = canvas.offsetWidth * 2;
+      const height = canvas.height = canvas.offsetHeight * 2;
+
+      ctx.clearRect(0, 0, width, height);
+
+      if (operationHistory.length === 0) {
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+        ctx.font = '24px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('Perform operations to see results', width / 2, height / 2);
+        return;
+      }
+
+      const recent = operationHistory.slice(-5);
+      const barHeight = height / recent.length;
+
+      recent.forEach((op, i) => {
+        const y = i * barHeight;
+        const density = op.result.reduce((a, b) => a + b, 0) / op.result.length;
+
+        ctx.fillStyle = `hsl(195, ${density * 100}%, 50%)`;
+        ctx.fillRect(0, y, width * density, barHeight - 4);
+
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.font = '20px monospace';
+        ctx.textAlign = 'left';
+        ctx.fillText(`${op.operation}: ${(density * 100).toFixed(1)}% ones`, 10, y + barHeight / 2 + 7);
+      });
+    }
+
+    // Update language visualization
+    function updateLanguageVisualization() {
+      const canvas = languageCanvas;
+      const ctx = canvas.getContext('2d');
+      const width = canvas.width = canvas.offsetWidth * 2;
+      const height = canvas.height = canvas.offsetHeight * 2;
+
+      ctx.clearRect(0, 0, width, height);
+
+      const languages = Object.keys(languageModels);
+      if (languages.length === 0) {
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+        ctx.font = '24px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('Train language models to see visualization', width / 2, height / 2);
+        return;
+      }
+
+      const centerX = width / 2;
+      const centerY = height / 2;
+      const radius = Math.min(width, height) * 0.35;
+
+      languages.forEach((lang, i) => {
+        const angle = (i / languages.length) * Math.PI * 2 - Math.PI / 2;
+        const x = centerX + Math.cos(angle) * radius;
+        const y = centerY + Math.sin(angle) * radius;
+
+        // Draw connection lines
+        ctx.strokeStyle = 'rgba(0, 255, 255, 0.2)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+
+        // Draw language node
+        const hue = (i / languages.length) * 360;
+        ctx.fillStyle = `hsl(${hue}, 70%, 50%)`;
+        ctx.beginPath();
+        ctx.arc(x, y, 30, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#000';
+        ctx.font = 'bold 24px monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(lang.toUpperCase(), x, y);
+      });
+
+      // Draw center
+      ctx.fillStyle = 'hsl(195, 100%, 60%)';
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, 20, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#000';
+      ctx.font = 'bold 20px monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('HDC', centerX, centerY);
+    }
+
+    // Event listeners
+    encodeBtn.addEventListener('click', encodeAndStore);
+    searchBtn.addEventListener('click', searchSimilar);
+    bindBtn.addEventListener('click', () => performOperation('bind'));
+    bundleBtn.addEventListener('click', () => performOperation('bundle'));
+    permuteBtn.addEventListener('click', () => performOperation('permute'));
+    inverseBtn.addEventListener('click', () => performOperation('inverse'));
+    trainLanguagesBtn.addEventListener('click', trainLanguages);
+    classifyBtn.addEventListener('click', classifyLanguage);
+
+    // Initialize on load
+    window.addEventListener('load', async () => {
+      await initAgentDB();
+
+      // Setup canvas resize
+      const resizeCanvases = () => {
+        updatePCAVisualization();
+        updateOperationsVisualization();
+        updateLanguageVisualization();
+      };
+      window.addEventListener('resize', resizeCanvases);
+
+      // Initial visualization
+      updateOperationsVisualization();
+      updateLanguageVisualization();
+    });
+  </script>
+</body>
+</html>

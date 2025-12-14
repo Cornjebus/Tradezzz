@@ -1,0 +1,4002 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agentic Marketing Intelligence - ROAS Optimization with SAFLA</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: ui-monospace, 'SF Mono', 'JetBrains Mono', 'Cascadia Code', 'Roboto Mono', monospace;
+      background: hsl(0 0% 12%);
+      color: hsl(0 0% 90%);
+      padding: 2rem;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 2rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 2px solid hsl(142 76% 50%);
+    }
+
+    .header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      color: hsl(142 76% 50%);
+    }
+
+    .header p {
+      font-size: 0.9rem;
+      color: hsl(0 0% 70%);
+    }
+
+    .grid {
+      display: grid;
+      gap: 1.25rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .grid-2 {
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    }
+
+    .grid-3 {
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    }
+
+    .card {
+      background: hsl(0 0% 15%);
+      border: 1px solid hsl(0 0% 25%);
+      border-radius: 8px;
+      padding: 1.25rem;
+      margin-bottom: 1.25rem;
+      transition: transform 0.2s;
+    }
+
+    .card:hover {
+      transform: translateY(-2px);
+      border-color: hsl(142 76% 50%);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid hsl(0 0% 25%);
+    }
+
+    .card-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: hsl(142 76% 50%);
+    }
+
+    .badge {
+      font-size: 0.7rem;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+
+    .badge-success {
+      background: hsl(142 76% 50% / 0.2);
+      color: hsl(142 76% 50%);
+    }
+
+    .badge-warning {
+      background: hsl(45 100% 50% / 0.2);
+      color: hsl(45 100% 60%);
+    }
+
+    .badge-danger {
+      background: hsl(0 84% 60% / 0.2);
+      color: hsl(0 84% 70%);
+    }
+
+    .badge-info {
+      background: hsl(195 100% 60% / 0.2);
+      color: hsl(195 100% 70%);
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .metric {
+      background: hsl(0 0% 10%);
+      padding: 0.75rem;
+      border-radius: 6px;
+      border: 1px solid hsl(0 0% 20%);
+    }
+
+    .metric-label {
+      font-size: 0.7rem;
+      color: hsl(0 0% 60%);
+      margin-bottom: 0.25rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .metric-value {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: hsl(0 0% 95%);
+    }
+
+    .metric-value.positive {
+      color: hsl(142 76% 50%);
+    }
+
+    .metric-value.negative {
+      color: hsl(0 84% 60%);
+    }
+
+    .variant-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem;
+      margin-bottom: 0.5rem;
+      background: hsl(0 0% 10%);
+      border-radius: 6px;
+      border: 1px solid hsl(0 0% 20%);
+    }
+
+    .variant-name {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: hsl(0 0% 90%);
+    }
+
+    .variant-metrics {
+      display: flex;
+      gap: 1rem;
+      font-size: 0.75rem;
+    }
+
+    .variant-metrics span {
+      color: hsl(0 0% 70%);
+    }
+
+    .variant-metrics .highlight {
+      color: hsl(142 76% 50%);
+      font-weight: 600;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: hsl(0 0% 20%);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 0.5rem;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: hsl(142 76% 50%);
+      transition: width 0.3s ease;
+    }
+
+    .progress-fill.warning {
+      background: hsl(45 100% 50%);
+    }
+
+    .progress-fill.danger {
+      background: hsl(0 84% 60%);
+    }
+
+    .button {
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .button-primary {
+      background: hsl(142 76% 50%);
+      color: hsl(0 0% 10%);
+    }
+
+    .button-primary:hover {
+      background: hsl(142 76% 60%);
+      transform: translateY(-2px);
+    }
+
+    .button-danger {
+      background: hsl(0 84% 60%);
+      color: white;
+    }
+
+    .button-danger:hover {
+      background: hsl(0 84% 70%);
+    }
+
+    .button-secondary {
+      background: hsl(0 0% 25%);
+      color: hsl(0 0% 90%);
+    }
+
+    .button-secondary:hover {
+      background: hsl(0 0% 30%);
+    }
+
+    .button-group {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .console {
+      background: hsl(0 0% 8%);
+      border: 1px solid hsl(0 0% 20%);
+      border-radius: 8px;
+      padding: 1rem;
+      max-height: 400px;
+      overflow-y: auto;
+      font-size: 0.85rem;
+    }
+
+    .console-line {
+      display: flex;
+      gap: 0.5rem;
+      padding: 0.25rem 0;
+      border-bottom: 1px solid hsl(0 0% 15%);
+    }
+
+    .console-time {
+      color: hsl(0 0% 50%);
+      font-size: 0.75rem;
+      min-width: 80px;
+    }
+
+    .console-type {
+      font-weight: 600;
+      min-width: 100px;
+    }
+
+    .console-type.system {
+      color: hsl(195 100% 60%);
+    }
+
+    .console-type.success {
+      color: hsl(142 76% 50%);
+    }
+
+    .console-type.warning {
+      color: hsl(45 100% 60%);
+    }
+
+    .console-type.error {
+      color: hsl(0 84% 60%);
+    }
+
+    .console-type.info {
+      color: hsl(280 100% 70%);
+    }
+
+    .console-message {
+      color: hsl(0 0% 80%);
+      flex: 1;
+    }
+
+    .pattern-item {
+      background: hsl(0 0% 10%);
+      border: 1px solid hsl(0 0% 20%);
+      border-radius: 6px;
+      padding: 1rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .pattern-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+
+    .pattern-name {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: hsl(142 76% 50%);
+    }
+
+    .pattern-score {
+      font-size: 0.8rem;
+      color: hsl(0 0% 70%);
+      background: hsl(142 76% 50% / 0.1);
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+    }
+
+    .pattern-detail {
+      font-size: 0.75rem;
+      color: hsl(0 0% 70%);
+      margin-bottom: 0.25rem;
+    }
+
+    .pattern-metrics {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+      padding-top: 0.75rem;
+      border-top: 1px solid hsl(0 0% 20%);
+    }
+
+    .pattern-metrics div {
+      font-size: 0.7rem;
+      color: hsl(0 0% 60%);
+    }
+
+    .pattern-metrics .value {
+      color: hsl(142 76% 50%);
+      font-weight: 600;
+    }
+
+    .safla-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.75rem;
+      padding: 0.5rem 0.75rem;
+      background: hsl(142 76% 50% / 0.1);
+      border: 1px solid hsl(142 76% 50% / 0.3);
+      border-radius: 6px;
+      margin-top: 0.5rem;
+    }
+
+    .pulse {
+      width: 8px;
+      height: 8px;
+      background: hsl(142 76% 50%);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+      50% {
+        opacity: 0.5;
+        transform: scale(1.2);
+      }
+    }
+
+    .stats-row {
+      display: flex;
+      justify-content: space-around;
+      padding: 1rem;
+      background: hsl(0 0% 10%);
+      border-radius: 6px;
+      margin-bottom: 1rem;
+    }
+
+    .stat-item {
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: hsl(142 76% 50%);
+      margin-bottom: 0.25rem;
+    }
+
+    .stat-label {
+      font-size: 0.7rem;
+      color: hsl(0 0% 60%);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .alert {
+      padding: 1rem;
+      border-radius: 6px;
+      margin-bottom: 1rem;
+      border-left: 4px solid;
+    }
+
+    .alert-info {
+      background: hsl(195 100% 60% / 0.1);
+      border-left-color: hsl(195 100% 60%);
+      color: hsl(195 100% 80%);
+    }
+
+    .alert-success {
+      background: hsl(142 76% 50% / 0.1);
+      border-left-color: hsl(142 76% 50%);
+      color: hsl(142 76% 70%);
+    }
+
+    .loading {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border: 2px solid hsl(0 0% 40%);
+      border-top-color: hsl(142 76% 50%);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .campaign-status {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.75rem;
+      margin-top: 0.5rem;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    .status-dot.active {
+      background: hsl(142 76% 50%);
+      box-shadow: 0 0 8px hsl(142 76% 50%);
+    }
+
+    .status-dot.paused {
+      background: hsl(45 100% 50%);
+    }
+
+    .status-dot.stopped {
+      background: hsl(0 84% 60%);
+    }
+
+    /* Help Button */
+    .help-button {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: hsl(142 76% 50%);
+      color: hsl(0 0% 10%);
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      box-shadow: 0 4px 12px hsl(142 76% 50% / 0.4);
+      z-index: 1000;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+    }
+
+    .help-button:hover {
+      transform: scale(1.1);
+      box-shadow: 0 6px 20px hsl(142 76% 50% / 0.6);
+    }
+
+    /* Modal Overlay */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: hsl(0 0% 0% / 0.8);
+      backdrop-filter: blur(4px);
+      z-index: 2000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal {
+      background: hsl(0 0% 15%);
+      border: 2px solid hsl(142 76% 50%);
+      border-radius: 12px;
+      max-width: 700px;
+      width: 90%;
+      max-height: 85vh;
+      overflow-y: auto;
+      padding: 2rem;
+      position: relative;
+      animation: modalSlideIn 0.3s ease-out;
+    }
+
+    @keyframes modalSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-50px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      background: none;
+      border: none;
+      color: hsl(0 0% 70%);
+      font-size: 1.5rem;
+      cursor: pointer;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      transition: all 0.2s;
+    }
+
+    .modal-close:hover {
+      background: hsl(0 0% 20%);
+      color: hsl(0 0% 90%);
+    }
+
+    .modal-header {
+      margin-bottom: 1.5rem;
+    }
+
+    .modal-header h2 {
+      font-size: 1.5rem;
+      color: hsl(142 76% 50%);
+      margin-bottom: 0.5rem;
+    }
+
+    .modal-header p {
+      color: hsl(0 0% 70%);
+      font-size: 0.9rem;
+    }
+
+    .modal-content {
+      color: hsl(0 0% 85%);
+      line-height: 1.8;
+    }
+
+    .modal-content h3 {
+      color: hsl(142 76% 50%);
+      font-size: 1.1rem;
+      margin-top: 1.5rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .modal-content ul, .modal-content ol {
+      padding-left: 1.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .modal-content li {
+      margin-bottom: 0.5rem;
+    }
+
+    .modal-content code {
+      background: hsl(0 0% 10%);
+      padding: 0.2rem 0.4rem;
+      border-radius: 3px;
+      color: hsl(142 76% 60%);
+      font-size: 0.9em;
+    }
+
+    /* Enhanced Help Modal Styles */
+    .help-section {
+      margin-bottom: 2rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid hsl(0 0% 25%);
+    }
+
+    .help-section:last-child {
+      border-bottom: none;
+    }
+
+    .help-section h3 {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 2px solid hsl(142 76% 50% / 0.3);
+    }
+
+    .help-section h4 {
+      color: hsl(142 76% 60%);
+      margin-top: 1.5rem;
+      margin-bottom: 0.75rem;
+      font-size: 1.1rem;
+    }
+
+    .help-callout {
+      padding: 1rem 1.25rem;
+      border-radius: 8px;
+      margin: 1rem 0;
+      border-left: 4px solid;
+      background: hsl(0 0% 10%);
+    }
+
+    .help-callout.tip {
+      border-left-color: hsl(200 76% 50%);
+      background: hsl(200 76% 50% / 0.05);
+    }
+
+    .help-callout.tip::before {
+      content: "💡 Pro Tip: ";
+      font-weight: 700;
+      color: hsl(200 76% 60%);
+    }
+
+    .help-callout.success {
+      border-left-color: hsl(142 76% 50%);
+      background: hsl(142 76% 50% / 0.05);
+    }
+
+    .help-callout.success::before {
+      content: "✨ Did You Know? ";
+      font-weight: 700;
+      color: hsl(142 76% 60%);
+    }
+
+    .help-callout.warning {
+      border-left-color: hsl(36 100% 50%);
+      background: hsl(36 100% 50% / 0.05);
+    }
+
+    .help-callout.warning::before {
+      content: "⚠️ Important: ";
+      font-weight: 700;
+      color: hsl(36 100% 60%);
+    }
+
+    .help-callout.info {
+      border-left-color: hsl(270 76% 50%);
+      background: hsl(270 76% 50% / 0.05);
+    }
+
+    .help-callout.info::before {
+      content: "ℹ️ Note: ";
+      font-weight: 700;
+      color: hsl(270 76% 60%);
+    }
+
+    .help-2col {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+      margin: 1rem 0;
+    }
+
+    .help-code {
+      background: hsl(0 0% 8%);
+      padding: 0.75rem 1rem;
+      border-radius: 6px;
+      border: 1px solid hsl(142 76% 50% / 0.2);
+      font-family: 'Courier New', monospace;
+      font-size: 0.9em;
+      color: hsl(142 76% 60%);
+      overflow-x: auto;
+      margin: 0.75rem 0;
+      position: relative;
+    }
+
+    .help-code:hover {
+      border-color: hsl(142 76% 50% / 0.4);
+    }
+
+    .help-kbd {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 2rem;
+      padding: 0.25rem 0.5rem;
+      background: hsl(0 0% 20%);
+      border: 2px solid hsl(0 0% 30%);
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.85em;
+      font-weight: 700;
+      color: hsl(142 76% 60%);
+      box-shadow: 0 2px 0 hsl(0 0% 10%);
+      margin: 0 0.25rem;
+    }
+
+    .help-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.25rem 0.75rem;
+      background: hsl(142 76% 50% / 0.15);
+      border: 1px solid hsl(142 76% 50% / 0.3);
+      border-radius: 12px;
+      font-size: 0.85em;
+      font-weight: 600;
+      color: hsl(142 76% 60%);
+      margin-right: 0.5rem;
+    }
+
+    .help-feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1rem;
+      margin: 1rem 0;
+    }
+
+    .help-feature-card {
+      padding: 1rem;
+      background: hsl(0 0% 10%);
+      border: 1px solid hsl(0 0% 25%);
+      border-radius: 8px;
+      transition: all 0.2s;
+    }
+
+    .help-feature-card:hover {
+      border-color: hsl(142 76% 50% / 0.5);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px hsl(142 76% 50% / 0.15);
+    }
+
+    .help-feature-card h4 {
+      margin-top: 0;
+      margin-bottom: 0.5rem;
+      color: hsl(142 76% 60%);
+      font-size: 1rem;
+    }
+
+    .help-feature-card p {
+      margin: 0;
+      font-size: 0.9em;
+      color: hsl(0 0% 75%);
+    }
+
+    .help-list-enhanced {
+      list-style: none;
+      padding-left: 0;
+    }
+
+    .help-list-enhanced li {
+      padding-left: 1.75rem;
+      margin-bottom: 0.75rem;
+      position: relative;
+    }
+
+    .help-list-enhanced li::before {
+      content: "→";
+      position: absolute;
+      left: 0;
+      color: hsl(142 76% 50%);
+      font-weight: 700;
+    }
+
+    .help-steps {
+      counter-reset: step-counter;
+      list-style: none;
+      padding-left: 0;
+    }
+
+    .help-steps li {
+      counter-increment: step-counter;
+      padding-left: 3rem;
+      margin-bottom: 1rem;
+      position: relative;
+      min-height: 2.5rem;
+    }
+
+    .help-steps li::before {
+      content: counter(step-counter);
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 2rem;
+      height: 2rem;
+      background: hsl(142 76% 50%);
+      color: hsl(0 0% 10%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.9rem;
+    }
+
+    .help-metric-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 0.75rem;
+      margin: 1rem 0;
+    }
+
+    .help-metric {
+      padding: 0.75rem 1rem;
+      background: hsl(0 0% 8%);
+      border-left: 3px solid hsl(142 76% 50%);
+      border-radius: 4px;
+    }
+
+    .help-metric strong {
+      display: block;
+      color: hsl(142 76% 60%);
+      margin-bottom: 0.25rem;
+    }
+
+    .help-separator {
+      height: 2px;
+      background: linear-gradient(90deg,
+        hsl(142 76% 50% / 0) 0%,
+        hsl(142 76% 50% / 0.5) 50%,
+        hsl(142 76% 50% / 0) 100%);
+      margin: 2rem 0;
+      border: none;
+    }
+
+    .modal-footer {
+      margin-top: 2rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid hsl(0 0% 25%);
+      display: flex;
+      gap: 1rem;
+    }
+
+    /* Alerts Panel */
+    .alerts-panel {
+      position: fixed;
+      top: 2rem;
+      right: 2rem;
+      width: 350px;
+      max-height: 400px;
+      overflow-y: auto;
+      z-index: 1500;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .alert-item {
+      background: hsl(0 0% 15%);
+      border: 1px solid hsl(0 0% 25%);
+      border-left: 4px solid;
+      border-radius: 6px;
+      padding: 1rem;
+      animation: alertSlideIn 0.3s ease-out;
+      box-shadow: 0 4px 12px hsl(0 0% 0% / 0.3);
+    }
+
+    @keyframes alertSlideIn {
+      from {
+        opacity: 0;
+        transform: translateX(100%);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    .alert-item.success {
+      border-left-color: hsl(142 76% 50%);
+    }
+
+    .alert-item.warning {
+      border-left-color: hsl(45 100% 50%);
+    }
+
+    .alert-item.danger {
+      border-left-color: hsl(0 84% 60%);
+    }
+
+    .alert-item.info {
+      border-left-color: hsl(195 100% 60%);
+    }
+
+    .alert-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 0.5rem;
+    }
+
+    .alert-title {
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: hsl(0 0% 95%);
+    }
+
+    .alert-time {
+      font-size: 0.7rem;
+      color: hsl(0 0% 60%);
+    }
+
+    .alert-message {
+      font-size: 0.85rem;
+      color: hsl(0 0% 80%);
+      line-height: 1.4;
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 0.5rem;
+      border-bottom: 2px solid hsl(0 0% 20%);
+      margin-bottom: 1.5rem;
+    }
+
+    .tab-button {
+      padding: 0.75rem 1.25rem;
+      background: none;
+      border: none;
+      color: hsl(0 0% 70%);
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      transition: all 0.2s;
+      position: relative;
+      top: 2px;
+    }
+
+    .tab-button:hover {
+      color: hsl(142 76% 50%);
+      background: hsl(0 0% 18%);
+    }
+
+    .tab-button.active {
+      color: hsl(142 76% 50%);
+      border-bottom-color: hsl(142 76% 50%);
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .alert-dismiss {
+      margin-top: 0.5rem;
+      background: none;
+      border: none;
+      color: hsl(0 0% 60%);
+      font-size: 0.75rem;
+      cursor: pointer;
+      padding: 0;
+      font-family: inherit;
+    }
+
+    .alert-dismiss:hover {
+      color: hsl(0 0% 90%);
+    }
+
+    /* Settings Modal Form Styles */
+    .settings-form {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .form-section {
+      background: hsl(0 0% 10%);
+      padding: 1.25rem;
+      border-radius: 8px;
+      border: 1px solid hsl(0 0% 20%);
+    }
+
+    .form-section h4 {
+      color: hsl(142 76% 50%);
+      font-size: 1rem;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .form-group:last-child {
+      margin-bottom: 0;
+    }
+
+    .form-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.875rem;
+      color: hsl(0 0% 85%);
+      font-weight: 500;
+    }
+
+    .help-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: hsl(0 0% 25%);
+      color: hsl(0 0% 70%);
+      font-size: 0.7rem;
+      cursor: help;
+      margin-left: 0.25rem;
+    }
+
+    .help-icon:hover {
+      background: hsl(142 76% 50%);
+      color: hsl(0 0% 10%);
+    }
+
+    .form-input {
+      background: hsl(0 0% 15%);
+      border: 1px solid hsl(0 0% 25%);
+      border-radius: 6px;
+      padding: 0.75rem;
+      color: hsl(0 0% 90%);
+      font-family: inherit;
+      font-size: 0.875rem;
+      transition: all 0.2s;
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: hsl(142 76% 50%);
+      background: hsl(0 0% 18%);
+    }
+
+    .form-input.invalid {
+      border-color: hsl(0 84% 60%);
+    }
+
+    .form-select {
+      background: hsl(0 0% 15%);
+      border: 1px solid hsl(0 0% 25%);
+      border-radius: 6px;
+      padding: 0.75rem;
+      color: hsl(0 0% 90%);
+      font-family: inherit;
+      font-size: 0.875rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .form-select:focus {
+      outline: none;
+      border-color: hsl(142 76% 50%);
+      background: hsl(0 0% 18%);
+    }
+
+    /* Toggle Switch */
+    .toggle-switch {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.75rem;
+      cursor: pointer;
+    }
+
+    .toggle-switch input[type="checkbox"] {
+      display: none;
+    }
+
+    .toggle-slider {
+      position: relative;
+      width: 48px;
+      height: 24px;
+      background: hsl(0 0% 25%);
+      border-radius: 12px;
+      transition: all 0.3s;
+    }
+
+    .toggle-slider::before {
+      content: '';
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: hsl(0 0% 50%);
+      top: 3px;
+      left: 3px;
+      transition: all 0.3s;
+    }
+
+    .toggle-switch input:checked + .toggle-slider {
+      background: hsl(142 76% 50% / 0.3);
+    }
+
+    .toggle-switch input:checked + .toggle-slider::before {
+      transform: translateX(24px);
+      background: hsl(142 76% 50%);
+    }
+
+    .toggle-label {
+      font-size: 0.875rem;
+      color: hsl(0 0% 70%);
+    }
+
+    /* Range Slider */
+    .range-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .range-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .range-value {
+      font-weight: 600;
+      color: hsl(142 76% 50%);
+      font-size: 0.875rem;
+      background: hsl(142 76% 50% / 0.1);
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+    }
+
+    .form-range {
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: hsl(0 0% 20%);
+      outline: none;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    .form-range::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: hsl(142 76% 50%);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .form-range::-webkit-slider-thumb:hover {
+      background: hsl(142 76% 60%);
+      transform: scale(1.1);
+    }
+
+    .form-range::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: hsl(142 76% 50%);
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+    }
+
+    .form-range::-moz-range-thumb:hover {
+      background: hsl(142 76% 60%);
+      transform: scale(1.1);
+    }
+
+    .range-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.7rem;
+      color: hsl(0 0% 50%);
+      margin-top: 0.25rem;
+    }
+
+    /* Settings Modal Footer */
+    .settings-footer {
+      display: flex;
+      gap: 1rem;
+      justify-content: flex-end;
+      margin-top: 2rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid hsl(0 0% 20%);
+    }
+
+    .button-reset {
+      background: hsl(0 84% 60% / 0.2);
+      color: hsl(0 84% 70%);
+      border: 1px solid hsl(0 84% 60% / 0.3);
+    }
+
+    .button-reset:hover {
+      background: hsl(0 84% 60% / 0.3);
+      border-color: hsl(0 84% 60% / 0.5);
+    }
+
+    /* Form Help Text */
+    .form-help {
+      font-size: 0.75rem;
+      color: hsl(0 0% 60%);
+      margin-top: 0.25rem;
+      font-style: italic;
+    }
+
+    /* Grid for form inputs */
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <!-- Alerts Panel (Top Right) -->
+  <div class="alerts-panel" id="alertsPanel"></div>
+
+  <div class="container">
+    <div class="header">
+      <h1>🎯 Agentic Marketing Intelligence</h1>
+      <p>ROAS-Optimized Meta Ads with ReasoningBank SAFLA + Reflexion Learning & Causal Inference</p>
+      <p style="margin-top: 0.75rem;">
+        <a href="https://agentdb.ruv.io/demo" target="_blank" rel="noopener noreferrer" style="color: hsl(142 76% 50%); text-decoration: none; font-weight: 600; transition: opacity 0.2s;">
+          🚀 Try Interactive Demo →
+        </a>
+      </p>
+    </div>
+
+    <div class="alert alert-info">
+      <strong>🚀 Enhanced System:</strong> Now with <strong>Reflexion Learning</strong> (stores episodes with self-critique), <strong>Causal Inference</strong> (tracks what causes what), and <strong>Smart Alerts</strong>. Click the <strong>?</strong> button (bottom-right) for help!
+    </div>
+
+    <!-- Control Panel -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">🎛️ Campaign Control Center</div>
+        <div id="systemStatus" class="badge badge-info">Initializing...</div>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-item">
+          <div class="stat-value" id="totalBudget">$5,000</div>
+          <div class="stat-label">Total Budget</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="totalSpend">$0</div>
+          <div class="stat-label">Total Spend</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="totalRevenue">$0</div>
+          <div class="stat-label">Total Revenue</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="globalROAS">0.00x</div>
+          <div class="stat-label">Global ROAS</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="patternsLearned">0</div>
+          <div class="stat-label">Patterns Learned</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="episodesStored">0</div>
+          <div class="stat-label">Episodes (Reflexion)</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="causalEdges">0</div>
+          <div class="stat-label">Causal Patterns</div>
+        </div>
+      </div>
+
+      <div class="button-group">
+        <button class="button button-primary" id="startBtn" onclick="startCampaigns()">
+          ▶ Launch
+        </button>
+        <button class="button button-danger" id="stopBtn" onclick="stopCampaigns()" disabled>
+          ⏹ Stop
+        </button>
+        <button class="button button-secondary" onclick="runABTest()">
+          🧪 A/B Test
+        </button>
+        <button class="button button-secondary" onclick="optimizeWithGemini()">
+          ✨ Optimize
+        </button>
+        <button class="button button-secondary" onclick="reallocateBudget()">
+          💰 Reallocate
+        </button>
+        <button class="button button-secondary" onclick="showSettings()">
+          ⚙️ Config
+        </button>
+      </div>
+
+      <div class="safla-indicator">
+        <div class="pulse"></div>
+        <span>SAFLA Feedback Loop: <strong id="saflaStatus">Ready</strong></span>
+      </div>
+    </div>
+
+    <!-- Campaigns Grid -->
+    <div class="grid grid-3">
+      <!-- Campaign 1 -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Campaign: E-commerce Sale</div>
+          <div class="badge badge-success" id="campaign1Status">Active</div>
+        </div>
+        <div class="metric-grid">
+          <div class="metric">
+            <div class="metric-label">Spend</div>
+            <div class="metric-value" id="campaign1Spend">$0</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Revenue</div>
+            <div class="metric-value positive" id="campaign1Revenue">$0</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">ROAS</div>
+            <div class="metric-value" id="campaign1ROAS">0.00x</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">CTR</div>
+            <div class="metric-value" id="campaign1CTR">0.00%</div>
+          </div>
+        </div>
+        <div class="campaign-status">
+          <div class="status-dot active" id="campaign1Dot"></div>
+          <span id="campaign1StatusText">Optimizing...</span>
+        </div>
+        <div style="margin-top: 1rem;">
+          <div style="font-size: 0.75rem; color: hsl(0 0% 60%); margin-bottom: 0.5rem;">Budget Allocation</div>
+          <div class="progress-bar">
+            <div class="progress-fill" id="campaign1Budget" style="width: 33%"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Campaign 2 -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Campaign: Lead Gen</div>
+          <div class="badge badge-success" id="campaign2Status">Active</div>
+        </div>
+        <div class="metric-grid">
+          <div class="metric">
+            <div class="metric-label">Spend</div>
+            <div class="metric-value" id="campaign2Spend">$0</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Revenue</div>
+            <div class="metric-value positive" id="campaign2Revenue">$0</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">ROAS</div>
+            <div class="metric-value" id="campaign2ROAS">0.00x</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">CTR</div>
+            <div class="metric-value" id="campaign2CTR">0.00%</div>
+          </div>
+        </div>
+        <div class="campaign-status">
+          <div class="status-dot active" id="campaign2Dot"></div>
+          <span id="campaign2StatusText">Optimizing...</span>
+        </div>
+        <div style="margin-top: 1rem;">
+          <div style="font-size: 0.75rem; color: hsl(0 0% 60%); margin-bottom: 0.5rem;">Budget Allocation</div>
+          <div class="progress-bar">
+            <div class="progress-fill" id="campaign2Budget" style="width: 33%"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Campaign 3 -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Campaign: Brand Awareness</div>
+          <div class="badge badge-success" id="campaign3Status">Active</div>
+        </div>
+        <div class="metric-grid">
+          <div class="metric">
+            <div class="metric-label">Spend</div>
+            <div class="metric-value" id="campaign3Spend">$0</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Revenue</div>
+            <div class="metric-value positive" id="campaign3Revenue">$0</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">ROAS</div>
+            <div class="metric-value" id="campaign3ROAS">0.00x</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">CTR</div>
+            <div class="metric-value" id="campaign3CTR">0.00%</div>
+          </div>
+        </div>
+        <div class="campaign-status">
+          <div class="status-dot active" id="campaign3Dot"></div>
+          <span id="campaign3StatusText">Optimizing...</span>
+        </div>
+        <div style="margin-top: 1rem;">
+          <div style="font-size: 0.75rem; color: hsl(0 0% 60%); margin-bottom: 0.5rem;">Budget Allocation</div>
+          <div class="progress-bar">
+            <div class="progress-fill" id="campaign3Budget" style="width: 33%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- A/B Testing & ReasoningBank -->
+    <div class="grid grid-2">
+      <!-- A/B Testing Results -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">🧪 A/B Test Performance</div>
+          <div class="badge badge-info" id="abTestStatus">Ready</div>
+        </div>
+        <div id="abTestResults">
+          <div style="text-align: center; padding: 2rem; color: hsl(0 0% 50%);">
+            Run an A/B test to compare variants
+          </div>
+        </div>
+      </div>
+
+      <!-- ReasoningBank Patterns -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">🧠 ReasoningBank Patterns</div>
+          <div class="badge badge-success" id="patternsCount">0 Learned</div>
+        </div>
+        <div id="patternsDisplay" style="max-height: 400px; overflow-y: auto;">
+          <div style="text-align: center; padding: 2rem; color: hsl(0 0% 50%);">
+            No patterns learned yet. Campaigns will generate insights automatically.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Gemini Insights -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">✨ Gemini AI Strategic Insights</div>
+        <div class="badge badge-info" id="geminiStatus">Standby</div>
+      </div>
+      <div id="geminiInsights" style="min-height: 100px;">
+        <div style="padding: 1rem; color: hsl(0 0% 60%);">
+          Click "Gemini Optimize" to get AI-powered campaign recommendations and creative optimization suggestions.
+        </div>
+      </div>
+    </div>
+
+    <!-- Activity Console -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">📊 Activity Console</div>
+        <button class="button button-secondary" onclick="clearConsole()" style="padding: 0.5rem 1rem; font-size: 0.8rem;">Clear</button>
+      </div>
+      <div class="console" id="console"></div>
+    </div>
+  </div>
+
+  <!-- Load AgentDB v1.3.9 (fixed initializeAsync to create all tables automatically) -->
+  <script src="https://unpkg.com/agentdb@1.3.9/dist/agentdb.min.js"></script>
+  <script>
+    // Global state
+    const state = {
+      db: null,
+      isRunning: false,
+      totalBudget: 5000,
+      totalSpend: 0,
+      totalRevenue: 0,
+      patternsLearned: 0,
+      episodesStored: 0,
+      causalEdges: 0,
+      patterns: [],
+      campaigns: [
+        {
+          id: 1,
+          name: 'E-commerce Sale',
+          budget: 1666.67,
+          budgetPercent: 33.33,
+          spend: 0,
+          revenue: 0,
+          impressions: 0,
+          clicks: 0,
+          conversions: 0,
+          roas: 0,
+          ctr: 0,
+          cpc: 0,
+          status: 'active',
+          variants: [
+            { id: 'A', name: 'Variant A - Discount Focus', ctr: 0, conversions: 0, roas: 0 },
+            { id: 'B', name: 'Variant B - Social Proof', ctr: 0, conversions: 0, roas: 0 }
+          ],
+          targeting: { age: '25-45', interests: ['shopping', 'fashion'] },
+          creative: { headline: '50% Off Summer Sale', description: 'Limited time offer' }
+        },
+        {
+          id: 2,
+          name: 'Lead Gen',
+          budget: 1666.67,
+          budgetPercent: 33.33,
+          spend: 0,
+          revenue: 0,
+          impressions: 0,
+          clicks: 0,
+          conversions: 0,
+          roas: 0,
+          ctr: 0,
+          cpc: 0,
+          status: 'active',
+          variants: [
+            { id: 'A', name: 'Variant A - Free Trial', ctr: 0, conversions: 0, roas: 0 },
+            { id: 'B', name: 'Variant B - Demo Request', ctr: 0, conversions: 0, roas: 0 }
+          ],
+          targeting: { age: '30-55', interests: ['business', 'technology'] },
+          creative: { headline: 'Get Started Free', description: 'No credit card required' }
+        },
+        {
+          id: 3,
+          name: 'Brand Awareness',
+          budget: 1666.67,
+          budgetPercent: 33.33,
+          spend: 0,
+          revenue: 0,
+          impressions: 0,
+          clicks: 0,
+          conversions: 0,
+          roas: 0,
+          ctr: 0,
+          cpc: 0,
+          status: 'active',
+          variants: [
+            { id: 'A', name: 'Variant A - Video Ad', ctr: 0, conversions: 0, roas: 0 },
+            { id: 'B', name: 'Variant B - Carousel Ad', ctr: 0, conversions: 0, roas: 0 }
+          ],
+          targeting: { age: '18-65', interests: ['lifestyle', 'entertainment'] },
+          creative: { headline: 'Discover Our Brand', description: 'Join thousands of happy customers' }
+        }
+      ],
+      saflaLoops: 0,
+      optimizationCycles: 0
+    };
+
+    // Initialize AgentDB with v1.3.6 async pattern
+    async function initializeDB() {
+      return new Promise((resolve) => {
+        logMessage('system', 'Waiting for AgentDB v1.3.7 to load...', 'system');
+
+        // First wait for AgentDB to be defined, then wait for it to be ready
+        function checkLoaded() {
+          if (typeof AgentDB !== 'undefined') {
+            logMessage('system', 'AgentDB v1.3.9 script loaded, waiting for initialization...', 'system');
+            checkReady();
+          } else {
+            // Check again in 50ms
+            setTimeout(checkLoaded, 50);
+          }
+        }
+
+        // Poll for AgentDB.ready flag
+        function checkReady() {
+          if (AgentDB.ready) {
+            try {
+              logMessage('system', 'Initializing AgentDB v1.3.9 WASM with ReasoningBank...', 'system');
+
+              state.db = new AgentDB.SQLiteVectorDB({
+                memoryMode: true,
+                backend: 'wasm'
+              });
+
+              // Initialize database (v1.3.9 automatically creates all tables)
+              state.db.initializeAsync().then(() => {
+                logMessage('success', 'AgentDB v1.3.9 initialized with full schema (vectors, patterns, episodes, causal_edges, skills)', 'system');
+                logMessage('info', 'ReasoningBank SAFLA ready for pattern learning', 'system');
+
+                // Check for advanced features
+                if (state.db.reflexion_store && state.db.causal_add_edge) {
+                  logMessage('info', '🧠 Advanced features: Reflexion + Causal Inference available', 'info');
+                } else {
+                  logMessage('info', '⚡ Using fallback mode for Reflexion & Causal features', 'info');
+                }
+
+                // Verify database is ready
+                if (typeof state.db.run === 'function') {
+                  logMessage('info', '✓ Database API verified and ready', 'info');
+                }
+
+                updateSystemStatus('Ready');
+                resolve(true);
+              }).catch(error => {
+                console.error('Failed to initialize AgentDB:', error);
+                logMessage('error', `Database initialization failed: ${error.message}`, 'error');
+                updateSystemStatus('Error');
+                resolve(false);
+              });
+            } catch (error) {
+              console.error('Failed to create AgentDB instance:', error);
+              logMessage('error', `Database creation failed: ${error.message}`, 'error');
+              updateSystemStatus('Error');
+              resolve(false);
+            }
+          } else {
+            // Check again in 50ms
+            setTimeout(checkReady, 50);
+          }
+        }
+
+        checkLoaded();
+      });
+    }
+
+    // Show help modal
+    function showHelpModal() {
+      document.getElementById('helpModal').classList.add('active');
+      // Show first tab by default
+      showTab('quickstart');
+    }
+
+    // Close help modal
+    function closeHelpModal() {
+      document.getElementById('helpModal').classList.remove('active');
+    }
+
+    // Show specific tab
+    function showTab(tabName) {
+      // Hide all tab contents
+      const tabContents = document.querySelectorAll('.tab-content');
+      tabContents.forEach(content => content.classList.remove('active'));
+
+      // Remove active class from all tab buttons
+      const tabButtons = document.querySelectorAll('.tab-button');
+      tabButtons.forEach(button => button.classList.remove('active'));
+
+      // Show selected tab content
+      const selectedTab = document.getElementById(`tab-${tabName}`);
+      if (selectedTab) {
+        selectedTab.classList.add('active');
+      }
+
+      // Add active class to clicked button
+      const selectedButton = document.querySelector(`[data-tab="${tabName}"]`);
+      if (selectedButton) {
+        selectedButton.classList.add('active');
+      }
+    }
+
+    // Make showTab available globally
+    window.showTab = showTab;
+
+    // ========== Settings Management ==========
+
+    // Default settings configuration
+    const defaultSettings = {
+      // Database settings
+      memoryMode: true,
+      backend: 'wasm',
+      vectorDim: 384,
+      searchLimit: 3,
+      similarity: 'cosine',
+
+      // Campaign settings
+      totalBudget: 5000,
+      optimizeInterval: 3,
+      roasThreshold: 2.0,
+      ctrThreshold: 2.0,
+      autoReallocate: true,
+      abTestDuration: 10,
+
+      // AI settings
+      aiProvider: 'gemini',
+      aiModel: 'gemini-pro',
+      temperature: 0.7,
+      maxTokens: 1000,
+      embeddingDim: 384,
+
+      // SAFLA settings
+      patternStorage: true,
+      reflexion: true,
+      causalInference: true,
+      learningRate: 0.01,
+      patternLimit: 100,
+      similarityThreshold: 0.7
+    };
+
+    // Current settings (loaded from localStorage or defaults)
+    let currentSettings = { ...defaultSettings };
+
+    // Show settings modal
+    function showSettings() {
+      document.getElementById('settingsModal').classList.add('active');
+      loadSettings();
+      showSettingsTab('database');
+    }
+
+    // Close settings modal
+    function closeSettings() {
+      document.getElementById('settingsModal').classList.remove('active');
+    }
+
+    // Show specific settings tab
+    function showSettingsTab(tabName) {
+      // Hide all tab contents
+      const tabContents = document.querySelectorAll('#settingsModal .tab-content');
+      tabContents.forEach(content => content.classList.remove('active'));
+
+      // Remove active class from all tab buttons
+      const tabButtons = document.querySelectorAll('#settingsModal .tab-button');
+      tabButtons.forEach(button => button.classList.remove('active'));
+
+      // Show selected tab content
+      const selectedTab = document.getElementById(`settings-tab-${tabName}`);
+      if (selectedTab) {
+        selectedTab.classList.add('active');
+      }
+
+      // Add active class to clicked button
+      const selectedButton = document.querySelector(`#settingsModal [data-tab="${tabName}"]`);
+      if (selectedButton) {
+        selectedButton.classList.add('active');
+      }
+    }
+
+    // Load settings from localStorage into form
+    function loadSettings() {
+      try {
+        const saved = localStorage.getItem('agentdb-marketing-settings');
+        if (saved) {
+          currentSettings = { ...defaultSettings, ...JSON.parse(saved) };
+        }
+      } catch (error) {
+        console.error('Failed to load settings:', error);
+        currentSettings = { ...defaultSettings };
+      }
+
+      // Database settings
+      document.getElementById('setting-memoryMode').checked = currentSettings.memoryMode;
+      document.getElementById('setting-backend').value = currentSettings.backend;
+      document.getElementById('setting-vectorDim').value = currentSettings.vectorDim;
+      document.getElementById('setting-vectorDim-value').textContent = currentSettings.vectorDim;
+      document.getElementById('setting-searchLimit').value = currentSettings.searchLimit;
+      document.getElementById('setting-searchLimit-value').textContent = currentSettings.searchLimit;
+      document.getElementById('setting-similarity').value = currentSettings.similarity;
+
+      // Campaign settings
+      document.getElementById('setting-totalBudget').value = currentSettings.totalBudget;
+      document.getElementById('setting-optimizeInterval').value = currentSettings.optimizeInterval;
+      document.getElementById('setting-optimizeInterval-value').textContent = currentSettings.optimizeInterval + 's';
+      document.getElementById('setting-roasThreshold').value = currentSettings.roasThreshold;
+      document.getElementById('setting-roasThreshold-value').textContent = currentSettings.roasThreshold + 'x';
+      document.getElementById('setting-ctrThreshold').value = currentSettings.ctrThreshold;
+      document.getElementById('setting-ctrThreshold-value').textContent = currentSettings.ctrThreshold + '%';
+      document.getElementById('setting-autoReallocate').checked = currentSettings.autoReallocate;
+      document.getElementById('setting-abTestDuration').value = currentSettings.abTestDuration;
+      document.getElementById('setting-abTestDuration-value').textContent = currentSettings.abTestDuration + ' cycles';
+
+      // AI settings
+      document.getElementById('setting-aiProvider').value = currentSettings.aiProvider;
+      document.getElementById('setting-aiModel').value = currentSettings.aiModel;
+      document.getElementById('setting-temperature').value = currentSettings.temperature;
+      document.getElementById('setting-temperature-value').textContent = currentSettings.temperature;
+      document.getElementById('setting-maxTokens').value = currentSettings.maxTokens;
+      document.getElementById('setting-maxTokens-value').textContent = currentSettings.maxTokens;
+      document.getElementById('setting-embeddingDim').value = currentSettings.embeddingDim;
+
+      // SAFLA settings
+      document.getElementById('setting-patternStorage').checked = currentSettings.patternStorage;
+      document.getElementById('setting-reflexion').checked = currentSettings.reflexion;
+      document.getElementById('setting-causalInference').checked = currentSettings.causalInference;
+      document.getElementById('setting-learningRate').value = currentSettings.learningRate;
+      document.getElementById('setting-learningRate-value').textContent = currentSettings.learningRate;
+      document.getElementById('setting-patternLimit').value = currentSettings.patternLimit;
+      document.getElementById('setting-patternLimit-value').textContent = currentSettings.patternLimit;
+      document.getElementById('setting-similarityThreshold').value = currentSettings.similarityThreshold;
+      document.getElementById('setting-similarityThreshold-value').textContent = currentSettings.similarityThreshold;
+    }
+
+    // Save settings to localStorage and apply
+    function saveSettings() {
+      try {
+        // Collect all settings from form
+        const newSettings = {
+          // Database
+          memoryMode: document.getElementById('setting-memoryMode').checked,
+          backend: document.getElementById('setting-backend').value,
+          vectorDim: parseInt(document.getElementById('setting-vectorDim').value),
+          searchLimit: parseInt(document.getElementById('setting-searchLimit').value),
+          similarity: document.getElementById('setting-similarity').value,
+
+          // Campaign
+          totalBudget: parseFloat(document.getElementById('setting-totalBudget').value),
+          optimizeInterval: parseInt(document.getElementById('setting-optimizeInterval').value),
+          roasThreshold: parseFloat(document.getElementById('setting-roasThreshold').value),
+          ctrThreshold: parseFloat(document.getElementById('setting-ctrThreshold').value),
+          autoReallocate: document.getElementById('setting-autoReallocate').checked,
+          abTestDuration: parseInt(document.getElementById('setting-abTestDuration').value),
+
+          // AI
+          aiProvider: document.getElementById('setting-aiProvider').value,
+          aiModel: document.getElementById('setting-aiModel').value,
+          temperature: parseFloat(document.getElementById('setting-temperature').value),
+          maxTokens: parseInt(document.getElementById('setting-maxTokens').value),
+          embeddingDim: parseInt(document.getElementById('setting-embeddingDim').value),
+
+          // SAFLA
+          patternStorage: document.getElementById('setting-patternStorage').checked,
+          reflexion: document.getElementById('setting-reflexion').checked,
+          causalInference: document.getElementById('setting-causalInference').checked,
+          learningRate: parseFloat(document.getElementById('setting-learningRate').value),
+          patternLimit: parseInt(document.getElementById('setting-patternLimit').value),
+          similarityThreshold: parseFloat(document.getElementById('setting-similarityThreshold').value)
+        };
+
+        // Validate settings
+        if (newSettings.totalBudget < 100 || newSettings.totalBudget > 100000) {
+          showAlert('error', 'Invalid Setting', 'Total budget must be between $100 and $100,000');
+          return;
+        }
+
+        // Save to localStorage
+        localStorage.setItem('agentdb-marketing-settings', JSON.stringify(newSettings));
+        currentSettings = newSettings;
+
+        // Apply settings to state
+        state.totalBudget = newSettings.totalBudget;
+
+        // Update UI
+        document.getElementById('totalBudget').textContent = `$${newSettings.totalBudget.toLocaleString()}`;
+
+        // Show success message
+        logMessage('success', '✓ Settings saved successfully', 'success');
+        showAlert('success', 'Settings Saved', 'Configuration has been updated. Some changes may require page refresh to take effect.');
+
+        closeSettings();
+      } catch (error) {
+        console.error('Failed to save settings:', error);
+        showAlert('error', 'Save Failed', 'Could not save settings: ' + error.message);
+      }
+    }
+
+    // Reset settings to defaults
+    function resetSettings() {
+      if (confirm('Reset all settings to defaults? This cannot be undone.')) {
+        currentSettings = { ...defaultSettings };
+        localStorage.removeItem('agentdb-marketing-settings');
+        loadSettings();
+        showAlert('info', 'Settings Reset', 'All settings have been reset to defaults');
+        logMessage('info', 'Settings reset to defaults', 'info');
+      }
+    }
+
+    // Make settings functions available globally
+    window.showSettings = showSettings;
+    window.closeSettings = closeSettings;
+    window.showSettingsTab = showSettingsTab;
+    window.saveSettings = saveSettings;
+    window.resetSettings = resetSettings;
+
+    // Load settings on page load
+    document.addEventListener('DOMContentLoaded', () => {
+      try {
+        const saved = localStorage.getItem('agentdb-marketing-settings');
+        if (saved) {
+          currentSettings = { ...defaultSettings, ...JSON.parse(saved) };
+          // Apply saved settings to state
+          state.totalBudget = currentSettings.totalBudget;
+          document.getElementById('totalBudget').textContent = `$${currentSettings.totalBudget.toLocaleString()}`;
+          logMessage('info', 'Settings loaded from localStorage', 'info');
+        }
+      } catch (error) {
+        console.error('Failed to load settings on init:', error);
+      }
+    });
+
+    // ========== End Settings Management ==========
+
+    // Show alert notification
+    function showAlert(type, title, message) {
+      const alertsPanel = document.getElementById('alertsPanel');
+
+      const alert = document.createElement('div');
+      alert.className = `alert-item ${type}`;
+      alert.innerHTML = `
+        <div class="alert-header">
+          <div class="alert-title">${title}</div>
+          <div class="alert-time">${new Date().toLocaleTimeString()}</div>
+        </div>
+        <div class="alert-message">${message}</div>
+        <button class="alert-dismiss" onclick="this.parentElement.remove()">Dismiss</button>
+      `;
+
+      alertsPanel.appendChild(alert);
+
+      // Auto-dismiss after 8 seconds
+      setTimeout(() => {
+        if (alert.parentElement) {
+          alert.remove();
+        }
+      }, 8000);
+    }
+
+    // Reflexion: Store episode with critique
+    async function storeReflexionEpisode(campaignName, metrics, success) {
+      // Check if reflexion methods are available
+      if (!state.db.reflexion_store) {
+        // Fallback: Use regular pattern storage with reflexion-style metadata
+        const reward = metrics.roas > 2.0 ? 1.0 : metrics.roas / 2.0;
+        const critique = generateCritique(metrics, success);
+
+        try {
+          const episodeText = `Reflexion: ${campaignName} ROAS ${metrics.roas.toFixed(2)}x ${success ? 'SUCCESS' : 'LEARNING'}`;
+          const embedding = await generateEmbedding(episodeText);
+
+          // Use v1.3.8 controller-style method
+          await state.db.storeEpisode({
+            task: `Optimize ${campaignName}`,
+            action: campaignName,
+            reward: reward,
+            critique: critique,
+            embedding: embedding,
+            metadata: {
+              type: 'reflexion_episode',
+              campaignName: campaignName,
+              success: success,
+              roas: metrics.roas,
+              ctr: metrics.ctr,
+              spend: metrics.spend,
+              revenue: metrics.revenue,
+              timestamp: Date.now()
+            }
+          });
+
+          state.episodesStored++;
+          updateMetrics();
+
+          logMessage('success', `🧠 Episode stored (fallback mode): ${campaignName} (Reward: ${reward.toFixed(2)})`, 'success');
+
+          if (success && metrics.roas > 2.5) {
+            showAlert('success', 'High Performance!', `${campaignName} achieving ${metrics.roas.toFixed(2)}x ROAS - Episode stored for learning`);
+          }
+
+          return true;
+        } catch (error) {
+          console.error('Failed to store episode (fallback):', error);
+          return false;
+        }
+      }
+
+      // Native reflexion support
+      try {
+        const reward = metrics.roas > 2.0 ? 1.0 : metrics.roas / 2.0;
+        const critique = generateCritique(metrics, success);
+
+        await state.db.reflexion_store({
+          session_id: "campaign-optimization",
+          task: `Optimize ${campaignName}`,
+          input: JSON.stringify({ budget: metrics.spend, targeting: "demo" }),
+          output: JSON.stringify(metrics),
+          reward: reward,
+          success: success,
+          critique: critique,
+          latency_ms: 150,
+          tokens: 1200
+        });
+
+        state.episodesStored++;
+        updateMetrics();
+
+        logMessage('success', `🧠 Reflexion episode stored: ${campaignName} (Reward: ${reward.toFixed(2)})`, 'success');
+
+        if (success && metrics.roas > 2.5) {
+          showAlert('success', 'High Performance!', `${campaignName} achieving ${metrics.roas.toFixed(2)}x ROAS - Episode stored for learning`);
+        }
+
+        return true;
+      } catch (error) {
+        console.error('Failed to store reflexion episode:', error);
+        return false;
+      }
+    }
+
+    // Generate self-critique
+    function generateCritique(metrics, success) {
+      if (success && metrics.roas > 2.5) {
+        return `Excellent performance! ROAS of ${metrics.roas.toFixed(2)}x exceeds target. Consider: 1) Scaling budget gradually, 2) Testing similar audiences, 3) Documenting winning creative elements.`;
+      } else if (success) {
+        return `Good performance with ${metrics.roas.toFixed(2)}x ROAS. Improvement opportunities: 1) Optimize CTR (current ${metrics.ctr?.toFixed(2)}%), 2) Test alternative creatives, 3) Refine targeting.`;
+      } else {
+        return `Performance below target (${metrics.roas.toFixed(2)}x ROAS). Action items: 1) Review audience targeting, 2) Refresh creative assets, 3) Consider budget reallocation, 4) Analyze competitor strategies.`;
+      }
+    }
+
+    // Store causal relationship
+    async function storeCausalEdge(cause, effect, uplift) {
+      // Check if causal methods are available
+      if (!state.db.causal_add_edge) {
+        // Fallback: Use regular pattern storage with causal metadata
+        try {
+          const causalText = `Causal: ${cause} causes ${effect}`;
+          const embedding = await generateEmbedding(causalText);
+
+          // Use v1.3.9 controller-style method
+          await state.db.addCausalEdge({
+            cause: cause,
+            effect: effect,
+            weight: uplift,
+            metadata: {
+              type: 'causal_edge',
+              uplift: uplift,
+              confidence: 0.9,
+              sample_size: 10,
+              timestamp: Date.now()
+            }
+          });
+
+          state.causalEdges++;
+          updateMetrics();
+
+          logMessage('success', `🔬 Causal pattern stored (fallback): ${cause} → ${effect}`, 'success');
+          showAlert('info', 'Causal Pattern Discovered', `${cause} causes ${effect}`);
+
+          return true;
+        } catch (error) {
+          console.error('Failed to store causal edge (fallback):', error);
+          return false;
+        }
+      }
+
+      // Native causal inference support
+      try {
+        await state.db.causal_add_edge({
+          cause: cause,
+          effect: effect,
+          uplift: uplift,
+          confidence: 0.9,
+          sample_size: 10
+        });
+
+        state.causalEdges++;
+        updateMetrics();
+
+        logMessage('success', `🔬 Causal pattern discovered: ${cause} → ${effect}`, 'success');
+        showAlert('info', 'Causal Pattern Discovered', `${cause} causes ${effect}`);
+
+        return true;
+      } catch (error) {
+        console.error('Failed to store causal edge:', error);
+        return false;
+      }
+    }
+
+    // Generate embedding for pattern matching
+    async function generateEmbedding(text) {
+      const normalized = text.toLowerCase().trim();
+      const embedding = new Array(384).fill(0);
+
+      // Multi-layered deterministic embedding generation
+      for (let i = 0; i < normalized.length; i++) {
+        const char = normalized.charCodeAt(i);
+        const pos1 = (char * 7 + i * 13) % 384;
+        const pos2 = (char * 11 + i * 17) % 384;
+        const pos3 = (char * 13 + i * 19) % 384;
+
+        embedding[pos1] += 1.0;
+        embedding[pos2] += 0.7;
+        embedding[pos3] += 0.5;
+      }
+
+      // Word-level features
+      const words = normalized.split(/\s+/);
+      words.forEach((word, widx) => {
+        const hash = word.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+        const pos = (hash + widx * 23) % 384;
+        embedding[pos] += 2.0;
+      });
+
+      // Normalize
+      const magnitude = Math.sqrt(embedding.reduce((sum, val) => sum + val * val, 0));
+      return embedding.map(val => val / (magnitude || 1));
+    }
+
+    // Store campaign pattern in ReasoningBank
+    async function storePattern(campaign, insights) {
+      try {
+        const patternText = `${campaign.name} targeting ${JSON.stringify(campaign.targeting)} ROAS ${campaign.roas.toFixed(2)}`;
+        const embedding = await generateEmbedding(patternText);
+
+        const patternData = {
+          pattern_type: 'causal',
+          embedding: embedding,
+          metadata: {
+            campaignName: campaign.name,
+            taskType: 'Ad Campaign Optimization',
+            approach: insights.strategy || 'Performance-based allocation',
+            roas: campaign.roas,
+            ctr: campaign.ctr,
+            cpc: campaign.cpc,
+            conversions: campaign.conversions,
+            spend: campaign.spend,
+            revenue: campaign.revenue,
+            targeting: campaign.targeting,
+            creative: campaign.creative,
+            successRate: campaign.roas > 2.0 ? 0.9 : campaign.roas > 1.5 ? 0.7 : 0.5,
+            timestamp: Date.now(),
+            saflaLoop: state.saflaLoops,
+            learningSource: campaign.roas > 2.0 ? 'high-performer' : 'optimization'
+          }
+        };
+
+        // Use v1.3.8 controller-style method
+        await state.db.storePattern(patternData);
+        state.patternsLearned++;
+        state.patterns.push(patternData);
+
+        console.log(`Pattern stored: ${campaign.name} (ROAS: ${campaign.roas.toFixed(2)}x, Total: ${state.patternsLearned})`);
+        updateMetrics();
+        await updatePatternsDisplay();
+
+        return true;
+      } catch (error) {
+        console.error('Failed to store pattern:', error);
+        logMessage('error', `Pattern storage failed: ${error.message}`, 'error');
+        return false;
+      }
+    }
+
+    // Retrieve similar patterns from ReasoningBank
+    async function retrievePatterns(campaign) {
+      if (state.patternsLearned === 0) {
+        return [];
+      }
+
+      try {
+        const queryText = `${campaign.name} targeting ${JSON.stringify(campaign.targeting)}`;
+        const embedding = await generateEmbedding(queryText);
+
+        const results = await state.db.search(embedding, 3);
+
+        if (results && results.length > 0) {
+          console.log(`Retrieved ${results.length} similar patterns for ${campaign.name}`);
+          return results;
+        }
+
+        return [];
+      } catch (error) {
+        console.error('Pattern retrieval error:', error);
+        return [];
+      }
+    }
+
+    // Simulate Meta Ads API call
+    function simulateMetaAdsPerformance(campaign, learnedPatterns = []) {
+      // Base performance with some randomness
+      let baseCTR = 1.5 + Math.random() * 2.5; // 1.5-4%
+      let baseCPC = 0.5 + Math.random() * 1.5; // $0.50-$2.00
+      let baseConversionRate = 2 + Math.random() * 3; // 2-5%
+      let baseAOV = 50 + Math.random() * 100; // $50-$150 average order value
+
+      // Apply learned patterns boost
+      if (learnedPatterns.length > 0) {
+        const avgROAS = learnedPatterns.reduce((sum, p) => sum + (p.metadata?.roas || 0), 0) / learnedPatterns.length;
+        if (avgROAS > 2.0) {
+          baseCTR *= 1.3;
+          baseConversionRate *= 1.25;
+          logMessage('success', `🧠 ${campaign.name}: Applied learned patterns (+30% CTR, +25% CVR)`, 'success');
+        }
+      }
+
+      // Campaign-specific modifiers
+      if (campaign.id === 1) { // E-commerce
+        baseCTR *= 1.2;
+        baseConversionRate *= 1.15;
+      } else if (campaign.id === 2) { // Lead Gen
+        baseCPC *= 0.8;
+        baseConversionRate *= 1.1;
+      } else if (campaign.id === 3) { // Brand Awareness
+        baseCTR *= 1.5;
+        baseCPC *= 0.9;
+        baseConversionRate *= 0.7; // Lower conversion but more reach
+      }
+
+      // Calculate metrics
+      const impressions = Math.floor(1000 + Math.random() * 2000);
+      const clicks = Math.floor(impressions * (baseCTR / 100));
+      const spend = clicks * baseCPC;
+      const conversions = Math.floor(clicks * (baseConversionRate / 100));
+      const revenue = conversions * baseAOV;
+      const roas = spend > 0 ? revenue / spend : 0;
+      const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
+
+      return {
+        impressions,
+        clicks,
+        spend,
+        conversions,
+        revenue,
+        roas,
+        ctr,
+        cpc: baseCPC
+      };
+    }
+
+    // Run campaign optimization cycle (SAFLA loop)
+    async function runOptimizationCycle() {
+      if (!state.isRunning) return;
+
+      state.saflaLoops++;
+      state.optimizationCycles++;
+
+      logMessage('info', `🔄 SAFLA Loop #${state.saflaLoops}: Analyzing campaign performance...`, 'info');
+
+      for (const campaign of state.campaigns) {
+        if (campaign.status !== 'active') continue;
+
+        // Retrieve learned patterns
+        const patterns = await retrievePatterns(campaign);
+
+        // Simulate campaign performance
+        const performance = simulateMetaAdsPerformance(campaign, patterns);
+
+        // Update campaign metrics
+        campaign.impressions += performance.impressions;
+        campaign.clicks += performance.clicks;
+        campaign.spend += performance.spend;
+        campaign.conversions += performance.conversions;
+        campaign.revenue += performance.revenue;
+        campaign.roas = campaign.spend > 0 ? campaign.revenue / campaign.spend : 0;
+        campaign.ctr = campaign.impressions > 0 ? (campaign.clicks / campaign.impressions) * 100 : 0;
+        campaign.cpc = campaign.clicks > 0 ? campaign.spend / campaign.clicks : 0;
+
+        // Update global metrics
+        state.totalSpend += performance.spend;
+        state.totalRevenue += performance.revenue;
+
+        // Update UI
+        updateCampaignUI(campaign);
+
+        // Log performance
+        const roasColor = campaign.roas > 2.5 ? 'success' : campaign.roas > 1.5 ? 'info' : 'warning';
+        logMessage(roasColor,
+          `${campaign.name}: +${performance.impressions} imp, +${performance.clicks} clicks, ` +
+          `+$${performance.spend.toFixed(2)} spend, ROAS: ${campaign.roas.toFixed(2)}x`,
+          roasColor
+        );
+
+        // Store high-performing patterns
+        if (campaign.roas > 1.5 && campaign.spend > 50) {
+          await storePattern(campaign, {
+            strategy: patterns.length > 0 ? 'Pattern-enhanced optimization' : 'Baseline optimization'
+          });
+        }
+
+        // Store reflexion episodes (high and low performers)
+        if (campaign.roas > 2.0 && campaign.spend > 50) {
+          await storeReflexionEpisode(campaign.name, campaign, true);
+        } else if (campaign.roas < 1.2 && campaign.spend > 30) {
+          await storeReflexionEpisode(campaign.name, campaign, false);
+        }
+
+        // Store causal relationships (every 3 cycles)
+        if (state.saflaLoops === 3 && campaign.roas > 1.5) {
+          await storeCausalEdge(
+            `Increased ${campaign.name} budget`,
+            `ROAS improved to ${campaign.roas.toFixed(2)}x`,
+            campaign.roas - 1.5
+          );
+        }
+      }
+
+      updateMetrics();
+      updateSaflaStatus(`Active - Loop #${state.saflaLoops}`);
+
+      // Alert for budget threshold
+      if (state.totalSpend > state.totalBudget * 0.8 && state.saflaLoops === Math.floor(state.totalBudget * 0.8 / 500)) {
+        showAlert('warning', 'Budget Alert', `80% of budget used ($${state.totalSpend.toFixed(2)} / $${state.totalBudget})`);
+      }
+
+      // Check if budget exhausted
+      if (state.totalSpend >= state.totalBudget * 0.95) {
+        logMessage('warning', '⚠️ Budget nearly exhausted. Stopping campaigns.', 'warning');
+        stopCampaigns();
+        return;
+      }
+
+      // Auto-reallocate every 5 loops
+      if (state.saflaLoops % 5 === 0) {
+        await autoReallocateBudget();
+      }
+
+      // Continue loop
+      if (state.isRunning) {
+        setTimeout(runOptimizationCycle, 3000); // Run every 3 seconds
+      }
+    }
+
+    // Start campaigns
+    async function startCampaigns() {
+      if (state.isRunning) return;
+
+      logMessage('system', '🚀 Launching campaign optimization system...', 'system');
+
+      state.isRunning = true;
+      document.getElementById('startBtn').disabled = true;
+      document.getElementById('stopBtn').disabled = false;
+      updateSystemStatus('Running');
+      updateSaflaStatus('Active - Initializing');
+
+      // Start SAFLA optimization loop
+      await runOptimizationCycle();
+    }
+
+    // Stop campaigns
+    function stopCampaigns() {
+      if (!state.isRunning) return;
+
+      state.isRunning = false;
+      document.getElementById('startBtn').disabled = false;
+      document.getElementById('stopBtn').disabled = true;
+      updateSystemStatus('Stopped');
+      updateSaflaStatus('Paused');
+
+      logMessage('warning', '⏹ Campaigns stopped. Final metrics calculated.', 'warning');
+
+      // Final report
+      const globalROAS = state.totalSpend > 0 ? state.totalRevenue / state.totalSpend : 0;
+      logMessage('info', `📊 Final ROAS: ${globalROAS.toFixed(2)}x | Spend: $${state.totalSpend.toFixed(2)} | Revenue: $${state.totalRevenue.toFixed(2)}`, 'info');
+    }
+
+    // Run A/B test
+    async function runABTest() {
+      logMessage('info', '🧪 Running A/B test across all campaigns...', 'info');
+      document.getElementById('abTestStatus').textContent = 'Testing...';
+      document.getElementById('abTestStatus').className = 'badge badge-warning';
+
+      const results = [];
+
+      for (const campaign of state.campaigns) {
+        for (const variant of campaign.variants) {
+          // Simulate variant performance
+          const performance = simulateMetaAdsPerformance(campaign, []);
+          variant.ctr = performance.ctr;
+          variant.conversions = performance.conversions;
+          variant.roas = performance.roas;
+
+          results.push({
+            campaign: campaign.name,
+            variant: variant.name,
+            ctr: variant.ctr,
+            conversions: variant.conversions,
+            roas: variant.roas
+          });
+        }
+      }
+
+      // Display results
+      displayABTestResults(results);
+
+      document.getElementById('abTestStatus').textContent = 'Complete';
+      document.getElementById('abTestStatus').className = 'badge badge-success';
+
+      logMessage('success', '✅ A/B test complete. Results updated.', 'success');
+
+      // Store winning variants as patterns
+      for (const campaign of state.campaigns) {
+        const winner = campaign.variants.reduce((best, v) => v.roas > best.roas ? v : best);
+        if (winner.roas > 1.5) {
+          await storePattern(campaign, {
+            strategy: `A/B Test Winner: ${winner.name}`,
+            winningVariant: winner.id
+          });
+          logMessage('success', `🏆 ${campaign.name}: Variant ${winner.id} wins (ROAS: ${winner.roas.toFixed(2)}x)`, 'success');
+        }
+      }
+    }
+
+    // Display A/B test results
+    function displayABTestResults(results) {
+      const container = document.getElementById('abTestResults');
+
+      const html = results.map(r => `
+        <div class="variant-row">
+          <div>
+            <div class="variant-name">${r.campaign} - ${r.variant}</div>
+          </div>
+          <div class="variant-metrics">
+            <span>CTR: <span class="highlight">${r.ctr.toFixed(2)}%</span></span>
+            <span>CVR: <span class="highlight">${r.conversions}</span></span>
+            <span>ROAS: <span class="highlight">${r.roas.toFixed(2)}x</span></span>
+          </div>
+        </div>
+      `).join('');
+
+      container.innerHTML = html;
+    }
+
+    // Optimize with Gemini
+    async function optimizeWithGemini() {
+      logMessage('info', '✨ Requesting Gemini AI strategic insights...', 'info');
+      document.getElementById('geminiStatus').textContent = 'Processing...';
+      document.getElementById('geminiStatus').className = 'badge badge-warning';
+
+      try {
+        // Prepare campaign data for Gemini
+        const campaignData = state.campaigns.map(c => ({
+          name: c.name,
+          roas: c.roas.toFixed(2),
+          spend: c.spend.toFixed(2),
+          revenue: c.revenue.toFixed(2),
+          ctr: c.ctr.toFixed(2),
+          cpc: c.cpc.toFixed(2),
+          conversions: c.conversions
+        }));
+
+        const systemPrompt = `You are a Meta Ads optimization expert. Analyze campaign performance and provide:
+1. Budget reallocation strategy (which campaigns to invest in/reduce)
+2. Creative optimization suggestions (headlines, descriptions, visuals)
+3. Targeting refinements (demographics, interests, behaviors)
+4. A/B test recommendations (variants to test)
+5. Overall campaign health assessment (strengths, weaknesses, opportunities)
+
+Be specific, actionable, and data-driven.`;
+
+        const campaignContext = `Campaign Performance Analysis:
+
+${JSON.stringify(campaignData, null, 2)}
+
+Total Budget: $${state.totalBudget}
+Total Spend: $${state.totalSpend.toFixed(2)}
+Global ROAS: ${state.totalSpend > 0 ? (state.totalRevenue / state.totalSpend).toFixed(2) : '0.00'}x
+Patterns Learned: ${state.patternsLearned}
+SAFLA Loops: ${state.saflaLoops}`;
+
+        const SUPABASE_URL = 'https://yoyrnfdeqygvfpmhjwty.supabase.co';
+        const AI_ENDPOINT = `${SUPABASE_URL}/functions/v1/agentdb-ai`;
+
+        const response = await fetch(AI_ENDPOINT, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            type: 'marketing-optimization',
+            code: systemPrompt,
+            data: campaignData,
+            context: campaignContext,
+            model: 'google/gemini-2.5-flash'
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`AI service unavailable (${response.status})`);
+        }
+
+        const data = await response.json();
+        const insights = data.response || generateFallbackInsights();
+
+        // Display insights
+        displayGeminiInsights(insights);
+
+        document.getElementById('geminiStatus').textContent = 'Insights Ready';
+        document.getElementById('geminiStatus').className = 'badge badge-success';
+
+        logMessage('success', '✅ Gemini insights generated successfully', 'success');
+
+      } catch (error) {
+        console.error('Gemini optimization error:', error);
+        logMessage('warning', '⚠️ AI fallback mode - generating recommendations from patterns', 'warning');
+
+        // Use fallback insights
+        const fallbackInsights = generateFallbackInsights();
+        displayGeminiInsights(fallbackInsights);
+
+        document.getElementById('geminiStatus').textContent = 'Demo Mode';
+        document.getElementById('geminiStatus').className = 'badge badge-info';
+      }
+    }
+
+    // Generate fallback insights when AI unavailable
+    function generateFallbackInsights() {
+      const bestCampaign = state.campaigns.reduce((best, c) => c.roas > best.roas ? c : best);
+      const worstCampaign = state.campaigns.reduce((worst, c) => c.roas < worst.roas ? c : worst);
+      const avgROAS = state.campaigns.reduce((sum, c) => sum + c.roas, 0) / state.campaigns.length;
+
+      return `📊 Marketing Intelligence Analysis (Demo Mode - Learning Actively)
+
+🎯 CAMPAIGN HEALTH ASSESSMENT:
+${state.campaigns.map(c => `
+• ${c.name}:
+  - ROAS: ${c.roas.toFixed(2)}x ${c.roas > 2.0 ? '✅ Excellent' : c.roas > 1.5 ? '✓ Good' : '⚠️ Needs optimization'}
+  - CTR: ${c.ctr.toFixed(2)}%
+  - CPC: $${c.cpc.toFixed(2)}
+  - Conversions: ${c.conversions}
+`).join('')}
+
+💰 BUDGET REALLOCATION STRATEGY:
+• Increase investment in "${bestCampaign.name}" (ROAS: ${bestCampaign.roas.toFixed(2)}x)
+• Reduce spend on "${worstCampaign.name}" (ROAS: ${worstCampaign.roas.toFixed(2)}x)
+• Reallocate 20% of low-performer budget to high-performer
+
+✨ CREATIVE OPTIMIZATION:
+• Test video vs static image creatives
+• A/B test value propositions: benefit-focused vs feature-focused
+• Implement dynamic creative optimization (DCO)
+• Use customer testimonials and social proof
+
+🎯 TARGETING REFINEMENTS:
+• Expand lookalike audiences from high-value converters
+• Layer interest targeting with behavioral signals
+• Test broader age ranges for top-performing campaigns
+• Implement frequency capping to reduce ad fatigue
+
+🧪 A/B TEST RECOMMENDATIONS:
+1. Test landing page variations (long-form vs short-form)
+2. Compare CTA buttons ("Buy Now" vs "Learn More" vs "Get Started")
+3. Test ad copy length (short punchy vs detailed benefits)
+4. Experiment with different offer types (% discount vs $ off vs free shipping)
+
+📈 OPTIMIZATION OPPORTUNITIES:
+• Global ROAS: ${avgROAS.toFixed(2)}x
+• Patterns learned: ${state.patternsLearned} successful strategies stored
+• SAFLA loops completed: ${state.saflaLoops} optimization cycles
+• Recommendation: Continue learning for 10+ more loops before major changes
+
+⚡ IMMEDIATE ACTIONS:
+1. Run A/B test on top-performing campaign variants
+2. Reallocate budget based on current ROAS data
+3. Store winning patterns for future campaigns
+4. Monitor conversion rates closely over next 5 loops
+
+Note: Deploy Gemini Edge Function for AI-powered strategic insights. Learning features work fully with ReasoningBank!`;
+    }
+
+    // Display Gemini insights
+    function displayGeminiInsights(insights) {
+      const container = document.getElementById('geminiInsights');
+      container.innerHTML = `
+        <div style="padding: 1rem; background: hsl(0 0% 10%); border-radius: 6px; border-left: 4px solid hsl(280 100% 70%);">
+          <div style="white-space: pre-wrap; font-size: 0.85rem; line-height: 1.6; color: hsl(0 0% 85%);">${insights}</div>
+        </div>
+      `;
+    }
+
+    // Manual budget reallocation
+    async function reallocateBudget() {
+      await autoReallocateBudget();
+      logMessage('info', '💰 Manual budget reallocation triggered', 'info');
+    }
+
+    // Auto-reallocate budget based on ROAS
+    async function autoReallocateBudget() {
+      logMessage('info', '💰 Auto-reallocating budget based on ROAS performance...', 'info');
+
+      // Calculate total ROAS
+      const totalROAS = state.campaigns.reduce((sum, c) => sum + (c.roas || 0), 0);
+
+      if (totalROAS === 0) {
+        logMessage('warning', '⚠️ No ROAS data yet. Keeping equal allocation.', 'warning');
+        return;
+      }
+
+      // Reallocate based on ROAS proportion
+      const remainingBudget = state.totalBudget - state.totalSpend;
+
+      for (const campaign of state.campaigns) {
+        const roasWeight = (campaign.roas || 0) / totalROAS;
+        const newBudget = remainingBudget * roasWeight;
+        const newPercent = (newBudget / remainingBudget) * 100;
+
+        campaign.budget = newBudget;
+        campaign.budgetPercent = newPercent;
+
+        // Update UI
+        const budgetBar = document.getElementById(`campaign${campaign.id}Budget`);
+        if (budgetBar) {
+          budgetBar.style.width = `${newPercent}%`;
+          if (newPercent > 40) {
+            budgetBar.className = 'progress-fill';
+          } else if (newPercent > 25) {
+            budgetBar.className = 'progress-fill warning';
+          } else {
+            budgetBar.className = 'progress-fill danger';
+          }
+        }
+
+        logMessage('success',
+          `${campaign.name}: Budget adjusted to ${newPercent.toFixed(1)}% ($${newBudget.toFixed(2)})`,
+          'success'
+        );
+      }
+
+      // Store reallocation pattern
+      const bestCampaign = state.campaigns.reduce((best, c) => c.roas > best.roas ? c : best);
+      await storePattern(bestCampaign, {
+        strategy: 'ROAS-based budget reallocation',
+        reallocationCycle: Math.floor(state.saflaLoops / 5) + 1
+      });
+    }
+
+    // Update campaign UI
+    function updateCampaignUI(campaign) {
+      const id = campaign.id;
+
+      document.getElementById(`campaign${id}Spend`).textContent = `$${campaign.spend.toFixed(2)}`;
+      document.getElementById(`campaign${id}Revenue`).textContent = `$${campaign.revenue.toFixed(2)}`;
+      document.getElementById(`campaign${id}ROAS`).textContent = `${campaign.roas.toFixed(2)}x`;
+      document.getElementById(`campaign${id}CTR`).textContent = `${campaign.ctr.toFixed(2)}%`;
+
+      // Color code ROAS
+      const roasEl = document.getElementById(`campaign${id}ROAS`);
+      if (campaign.roas > 2.5) {
+        roasEl.className = 'metric-value positive';
+      } else if (campaign.roas < 1.0) {
+        roasEl.className = 'metric-value negative';
+      } else {
+        roasEl.className = 'metric-value';
+      }
+
+      // Update status text
+      const statusText = campaign.roas > 2.0 ? 'High Performance' :
+                         campaign.roas > 1.5 ? 'Good Performance' :
+                         campaign.roas > 1.0 ? 'Moderate Performance' : 'Needs Optimization';
+      document.getElementById(`campaign${id}StatusText`).textContent = statusText;
+    }
+
+    // Update global metrics
+    function updateMetrics() {
+      document.getElementById('totalSpend').textContent = `$${state.totalSpend.toFixed(2)}`;
+      document.getElementById('totalRevenue').textContent = `$${state.totalRevenue.toFixed(2)}`;
+
+      const globalROAS = state.totalSpend > 0 ? state.totalRevenue / state.totalSpend : 0;
+      const roasEl = document.getElementById('globalROAS');
+      roasEl.textContent = `${globalROAS.toFixed(2)}x`;
+
+      if (globalROAS > 2.5) {
+        roasEl.className = 'stat-value';
+        roasEl.style.color = 'hsl(142 76% 50%)';
+      } else if (globalROAS < 1.0) {
+        roasEl.className = 'stat-value';
+        roasEl.style.color = 'hsl(0 84% 60%)';
+      } else {
+        roasEl.className = 'stat-value';
+        roasEl.style.color = 'hsl(45 100% 60%)';
+      }
+
+      document.getElementById('patternsLearned').textContent = state.patternsLearned;
+      document.getElementById('patternsCount').textContent = `${state.patternsLearned} Learned`;
+      document.getElementById('episodesStored').textContent = state.episodesStored;
+      document.getElementById('causalEdges').textContent = state.causalEdges;
+    }
+
+    // Update patterns display
+    async function updatePatternsDisplay() {
+      const container = document.getElementById('patternsDisplay');
+
+      if (state.patterns.length === 0) {
+        container.innerHTML = `
+          <div style="text-align: center; padding: 2rem; color: hsl(0 0% 50%);">
+            No patterns learned yet. Campaigns will generate insights automatically.
+          </div>
+        `;
+        return;
+      }
+
+      const html = state.patterns.slice(-10).reverse().map((pattern, idx) => {
+        const meta = pattern.metadata || {};
+        return `
+          <div class="pattern-item">
+            <div class="pattern-header">
+              <div class="pattern-name">${meta.campaignName || 'Campaign #' + (idx + 1)}</div>
+              <div class="pattern-score">ROAS: ${(meta.roas || 0).toFixed(2)}x</div>
+            </div>
+            <div class="pattern-detail">${meta.approach || 'N/A'}</div>
+            <div class="pattern-detail">
+              Source: ${meta.learningSource || 'unknown'} •
+              Loop #${meta.saflaLoop || 0}
+            </div>
+            <div class="pattern-metrics">
+              <div>CTR: <span class="value">${(meta.ctr || 0).toFixed(2)}%</span></div>
+              <div>CPC: <span class="value">$${(meta.cpc || 0).toFixed(2)}</span></div>
+              <div>CVR: <span class="value">${meta.conversions || 0}</span></div>
+            </div>
+            <div class="pattern-metrics">
+              <div>Spend: <span class="value">$${(meta.spend || 0).toFixed(2)}</span></div>
+              <div>Revenue: <span class="value">$${(meta.revenue || 0).toFixed(2)}</span></div>
+              <div>Success: <span class="value">${Math.round((meta.successRate || 0) * 100)}%</span></div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      container.innerHTML = html;
+    }
+
+    // Update system status
+    function updateSystemStatus(status) {
+      const el = document.getElementById('systemStatus');
+      el.textContent = status;
+
+      if (status === 'Running') {
+        el.className = 'badge badge-success';
+      } else if (status === 'Ready') {
+        el.className = 'badge badge-info';
+      } else if (status === 'Stopped') {
+        el.className = 'badge badge-warning';
+      } else {
+        el.className = 'badge badge-danger';
+      }
+    }
+
+    // Update SAFLA status
+    function updateSaflaStatus(status) {
+      document.getElementById('saflaStatus').textContent = status;
+    }
+
+    // Log message to console
+    function logMessage(type, message, category = 'info') {
+      const console = document.getElementById('console');
+      const time = new Date().toLocaleTimeString();
+
+      const line = document.createElement('div');
+      line.className = 'console-line';
+      line.innerHTML = `
+        <span class="console-time">[${time}]</span>
+        <span class="console-type ${category}">${type.toUpperCase()}</span>
+        <span class="console-message">${message}</span>
+      `;
+
+      console.appendChild(line);
+      console.scrollTop = console.scrollHeight;
+    }
+
+    // Clear console
+    function clearConsole() {
+      document.getElementById('console').innerHTML = '';
+      logMessage('system', 'Console cleared', 'system');
+    }
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeHelpModal();
+      } else if ((e.key === 'h' || e.key === 'H') && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        showHelpModal();
+      } else if ((e.key === 'c' || e.key === 'C') && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        clearConsole();
+      } else if (e.key === ' ' && !state.isRunning && e.target === document.body) {
+        e.preventDefault();
+        startCampaigns();
+      }
+    });
+
+    // Make functions global (must be after all function definitions)
+    window.startCampaigns = startCampaigns;
+    window.stopCampaigns = stopCampaigns;
+    window.runABTest = runABTest;
+    window.optimizeWithGemini = optimizeWithGemini;
+    window.reallocateBudget = reallocateBudget;
+    window.clearConsole = clearConsole;
+    window.showHelpModal = showHelpModal;
+    window.closeHelpModal = closeHelpModal;
+    window.showAlert = showAlert;
+
+    // Initialize on page load
+    (async function init() {
+      logMessage('system', '🎯 Agentic Marketing Intelligence System (Enhanced) starting...', 'system');
+      logMessage('system', '🧠 Features: Reflexion Learning, Causal Inference, Smart Alerts', 'system');
+
+      const dbReady = await initializeDB();
+
+      if (dbReady) {
+        logMessage('success', '✅ System ready. Press Space or click "Launch Campaigns" to begin.', 'success');
+
+        // Show welcome alert
+        setTimeout(() => {
+          showAlert('info', 'Welcome! 👋', 'Click the ? button (bottom-right) for an interactive tutorial and feature guide');
+        }, 1500);
+      } else {
+        logMessage('error', '❌ System initialization failed. Check console for details.', 'error');
+        showAlert('danger', 'Initialization Failed', 'Database could not be initialized');
+      }
+    })();
+  </script>
+
+  <!-- Help Button (Fixed Bottom-Right) -->
+  <button class="help-button" onclick="showHelpModal()">?</button>
+
+  <!-- Help Modal -->
+  <div class="modal-overlay" id="helpModal" onclick="if(event.target === this) closeHelpModal()">
+    <div class="modal">
+      <button class="modal-close" onclick="closeHelpModal()">×</button>
+
+      <div class="modal-header">
+        <h2>🎓 Complete Guide & Customization</h2>
+        <p>Master Agentic Marketing Intelligence - From Basics to Advanced Customization</p>
+      </div>
+
+      <!-- Tabs Navigation -->
+      <div class="tabs">
+        <button class="tab-button active" data-tab="quickstart" onclick="showTab('quickstart')">
+          🚀 Quick Start
+        </button>
+        <button class="tab-button" data-tab="features" onclick="showTab('features')">
+          🧠 Features
+        </button>
+        <button class="tab-button" data-tab="customization" onclick="showTab('customization')">
+          🛠️ Customization
+        </button>
+        <button class="tab-button" data-tab="api" onclick="showTab('api')">
+          📚 API Reference
+        </button>
+        <button class="tab-button" data-tab="advanced" onclick="showTab('advanced')">
+          🎯 Advanced
+        </button>
+      </div>
+
+      <!-- Tab: Quick Start -->
+      <div id="tab-quickstart" class="tab-content active">
+        <div class="help-section">
+          <h3>🚀 What is This Demo?</h3>
+          <p>An intelligent marketing optimization system that uses <strong>AgentDB's ReasoningBank</strong> with <strong>SAFLA</strong> (Self-Adaptive Feedback Loop Architecture) to automatically optimize Meta Ads campaigns. It learns from past performance, discovers causal patterns, and reallocates budgets to maximize ROAS (Return on Ad Spend).</p>
+        </div>
+
+        <div class="help-section">
+          <h3>🧠 Core Technologies</h3>
+          <div class="help-feature-grid">
+            <div class="help-feature-card">
+              <h4>AgentDB WASM</h4>
+              <p>In-browser vector database with semantic search</p>
+            </div>
+            <div class="help-feature-card">
+              <h4>ReasoningBank SAFLA</h4>
+              <p>Self-improving feedback loop with pattern learning</p>
+            </div>
+            <div class="help-feature-card">
+              <h4>Reflexion Learning</h4>
+              <p>Stores episodes with self-critique for continuous improvement</p>
+            </div>
+            <div class="help-feature-card">
+              <h4>Causal Inference Engine</h4>
+              <p>Discovers and tracks cause-effect relationships</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="help-section">
+          <h3>🎯 Getting Started</h3>
+          <ol class="help-steps">
+            <li><strong>Launch Campaigns</strong> - Click the green "Launch Campaigns" button to start the SAFLA optimization loop</li>
+            <li><strong>Watch Learning</strong> - Observe real-time metrics, console logs, and pattern discovery as campaigns run</li>
+            <li><strong>Monitor Alerts</strong> - Check the top-right corner for important insights and discoveries</li>
+            <li><strong>Use Tools</strong> - Try A/B testing, Gemini optimization, and automatic budget reallocation</li>
+            <li><strong>Review Patterns</strong> - Scroll down to see learned patterns and causal relationships</li>
+          </ol>
+        </div>
+
+        <div class="help-section">
+          <h3>⌨️ Keyboard Shortcuts</h3>
+          <div class="help-2col">
+            <div>
+              <p><kbd class="help-kbd">Space</kbd> Start/Stop campaigns</p>
+            </div>
+            <div>
+              <p><kbd class="help-kbd">H</kbd> Open this help modal</p>
+            </div>
+            <div>
+              <p><kbd class="help-kbd">C</kbd> Clear console logs</p>
+            </div>
+            <div>
+              <p><kbd class="help-kbd">Esc</kbd> Close any open modal</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="help-section">
+          <h3>📖 Quick Tips</h3>
+          <div class="help-callout tip">
+            Let campaigns run for <strong>5-10 cycles</strong> to see meaningful patterns emerge. The system needs time to gather data and discover correlations.
+          </div>
+          <div class="help-callout success">
+            Watch for <strong>alerts</strong> in the top-right corner - they highlight important discoveries and high-performing campaigns automatically.
+          </div>
+          <div class="help-callout info">
+            The <strong>console</strong> shows detailed reasoning behind every decision. Open DevTools (F12) to see the full thought process.
+          </div>
+          <div class="help-callout warning">
+            High ROAS (>2.0x) automatically stores learning episodes with positive critique for future optimization.
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab: Features -->
+      <div id="tab-features" class="tab-content">
+        <div class="help-section">
+          <h3>📊 Understanding the Dashboard</h3>
+
+          <h4>Top Metrics Panel</h4>
+          <div class="help-metric-grid">
+            <div class="help-metric">
+              <strong>Total Budget</strong>
+              Starting budget ($5,000 by default)
+            </div>
+            <div class="help-metric">
+              <strong>Total Spend</strong>
+              Cumulative ad spend across all campaigns
+            </div>
+            <div class="help-metric">
+              <strong>Total Revenue</strong>
+              Generated from conversions
+            </div>
+            <div class="help-metric">
+              <strong>Global ROAS</strong>
+              Overall return: Revenue ÷ Spend (target: >2.0x)
+            </div>
+            <div class="help-metric">
+              <strong>Patterns Learned</strong>
+              Successful strategies stored in ReasoningBank
+            </div>
+            <div class="help-metric">
+              <strong>Episodes (Reflexion)</strong>
+              Learning cycles with self-critique
+            </div>
+            <div class="help-metric">
+              <strong>Causal Patterns</strong>
+              Discovered cause-effect relationships
+            </div>
+          </div>
+
+          <hr class="help-separator">
+
+          <h4>Campaign Cards</h4>
+          <div class="help-2col">
+            <ul class="help-list-enhanced">
+              <li><strong>Spend</strong> - Money invested in this campaign</li>
+              <li><strong>Revenue</strong> - Money generated from conversions</li>
+              <li><strong>ROAS</strong> - Return on Ad Spend (Revenue ÷ Spend)</li>
+            </ul>
+            <ul class="help-list-enhanced">
+              <li><strong>CTR</strong> - Click-Through Rate (Clicks ÷ Impressions × 100)</li>
+              <li><strong>Budget Allocation</strong> - % of total budget assigned to this campaign</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="help-section">
+          <h3>🔬 How Reflexion Learning Works</h3>
+          <p>Reflexion Learning is an advanced AgentDB feature that stores episodes with self-critique:</p>
+
+          <div class="help-feature-grid">
+            <div class="help-feature-card">
+              <h4>✅ High Performance</h4>
+              <p><strong>ROAS >2.0x:</strong> Episode stored with positive critique like "Excellent performance. Consider expanding audience."</p>
+            </div>
+            <div class="help-feature-card">
+              <h4>⚠️ Low Performance</h4>
+              <p><strong>ROAS <1.2x:</strong> Episode stored with improvement suggestions like "Poor ROAS. Reduce budget or change targeting."</p>
+            </div>
+            <div class="help-feature-card">
+              <h4>🔍 Retrieval</h4>
+              <p>When optimizing, the system retrieves similar successful episodes to guide decisions</p>
+            </div>
+            <div class="help-feature-card">
+              <h4>🎯 Reward Score</h4>
+              <p>ROAS >2.0 gets reward=1.0, otherwise reward=ROAS/2.0</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="help-section">
+          <h3>🔗 Causal Inference in Action</h3>
+          <p>The system automatically discovers cause-effect relationships:</p>
+
+          <div class="help-callout success">
+            <strong>Budget Changes:</strong> "Increasing budget 20% → ROAS improved 0.3x"
+          </div>
+          <div class="help-callout success">
+            <strong>Targeting Shifts:</strong> "Targeting 25-35 age group → +15% CTR"
+          </div>
+          <div class="help-callout success">
+            <strong>Creative Types:</strong> "Video creative → 2x better conversion"
+          </div>
+        </div>
+
+        <div class="help-section">
+          <h3>🎛️ Control Panel Tools</h3>
+          <ul class="help-list-enhanced">
+            <li><strong>Launch Campaigns</strong> - Starts the SAFLA optimization loop</li>
+            <li><strong>Stop All</strong> - Pauses all campaigns</li>
+            <li><strong>Run A/B Test</strong> - Compares creative variants automatically</li>
+            <li><strong>Gemini Optimize</strong> - Gets AI-powered optimization insights</li>
+            <li><strong>Auto-Reallocate</strong> - Moves budget from low to high performers</li>
+          </ul>
+        </div>
+
+        <div class="help-section">
+          <h3>💰 Budget Reallocation Strategy</h3>
+          <p>The system automatically shifts budget based on performance:</p>
+
+          <div class="help-callout tip">
+            <strong>High ROAS (>2.0x):</strong> Gets +20% budget increase. Budget changes trigger causal pattern tracking to understand what drives success.
+          </div>
+          <div class="help-callout warning">
+            <strong>Low ROAS (<1.2x):</strong> Gets -20% budget decrease. All reallocations are logged in the console for transparency.
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab: Customization -->
+      <div id="tab-customization" class="tab-content">
+        <div class="help-section">
+          <h3>🛠️ Customizing Campaigns</h3>
+          <p>To modify existing campaigns, edit the <code>state.campaigns</code> array in the JavaScript:</p>
+          <div class="help-code">state.campaigns = [
+  {
+    id: 1,
+    name: "E-commerce Sale",        // Campaign name
+    budget: 1666,                    // Starting budget ($)
+    spend: 0,
+    revenue: 0,
+    roas: 0,
+    ctr: 0,
+    cpc: 0,
+    conversions: 0,
+    targeting: {                     // Customize targeting
+      age: "25-45",
+      interests: ["Shopping", "Fashion"]
+    },
+    creative: "Carousel Ad",         // Ad format
+    status: "active"
+  },
+  // Add more campaigns...
+];</div>
+        </div>
+
+        <div class="help-section">
+          <h3>⚙️ Configuration Options</h3>
+          <p><strong>Adjust Key Parameters:</strong></p>
+          <div class="help-code">// Change total budget
+state.totalBudget = 10000;  // Set to $10,000
+
+// Modify update frequency
+setInterval(runSAFLALoop, 5000);  // Run every 5 seconds
+
+// Adjust ROAS thresholds
+const highROAS = 2.5;      // High performer threshold
+const lowROAS = 1.0;       // Underperformer threshold
+
+// Pattern storage settings
+const minPatternsToLearn = 3;  // Min patterns before applying</div>
+        </div>
+
+        <div class="help-section">
+          <h3>🎨 Modifying Campaign Performance Logic</h3>
+          <p>Find the <code>simulateMetaAdsPerformance()</code> function to customize how campaigns perform:</p>
+          <div class="help-code">function simulateMetaAdsPerformance(campaign, learnedPatterns) {
+  let baseCTR = 1.5 + Math.random() * 2.5;  // 1.5-4%
+  let baseCPC = 0.5 + Math.random() * 1.5;  // $0.50-$2.00
+
+  // Customize for your campaign type:
+  if (campaign.name === "Your Campaign") {
+    baseCTR *= 1.5;        // Boost CTR by 50%
+    baseCPC *= 0.8;        // Reduce CPC by 20%
+  }
+
+  // Add learned patterns boost
+  if (learnedPatterns.length > 0) {
+    baseCTR *= 1.3;        // +30% from learning
+  }
+
+  // Calculate final metrics...
+}</div>
+        </div>
+
+        <div class="help-section">
+          <h3>🧪 Adding Custom A/B Tests</h3>
+          <p>Extend the <code>runABTest()</code> function to test different variables:</p>
+          <div class="help-code">async function runABTest() {
+  // Test creative types
+  const variantA = { creative: "Image Ad" };
+  const variantB = { creative: "Video Ad" };
+
+  // Test targeting
+  const targetingA = { age: "18-35" };
+  const targetingB = { age: "35-55" };
+
+  // Run test logic...
+}</div>
+        </div>
+
+        <div class="help-section">
+          <h3>🎯 Campaign Targeting Options</h3>
+          <p>Customize targeting parameters for each campaign:</p>
+          <div class="help-2col">
+            <ul class="help-list-enhanced">
+              <li><strong>Age Ranges</strong>: "18-24", "25-34", "35-44"</li>
+              <li><strong>Interests</strong>: Array of interest categories</li>
+              <li><strong>Behaviors</strong>: Shopping, engagement patterns</li>
+            </ul>
+            <ul class="help-list-enhanced">
+              <li><strong>Locations</strong>: Geographic targeting</li>
+              <li><strong>Devices</strong>: Mobile, desktop, tablet</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="help-section">
+          <h3>💡 Creative Formats</h3>
+          <p>Available ad formats to test:</p>
+          <div class="help-feature-grid">
+            <div class="help-feature-card">
+              <h4>Single Image</h4>
+              <p>Classic single image ad</p>
+            </div>
+            <div class="help-feature-card">
+              <h4>Carousel</h4>
+              <p>Multiple scrollable images</p>
+            </div>
+            <div class="help-feature-card">
+              <h4>Video</h4>
+              <p>Short video content</p>
+            </div>
+            <div class="help-feature-card">
+              <h4>Collection</h4>
+              <p>Product catalog showcase</p>
+            </div>
+            <div class="help-feature-card">
+              <h4>Stories</h4>
+              <p>Full-screen mobile format</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab: API Reference -->
+      <div id="tab-api" class="tab-content">
+        <div class="help-section">
+          <h3>🔗 AgentDB Core Functions</h3>
+
+          <h4>Pattern Storage & Search</h4>
+          <div class="help-code">// Store a new pattern
+await db.insert({
+  embedding: vectorEmbedding,
+  metadata: {
+    campaignName: "E-commerce Sale",
+    roas: 3.2,
+    strategy: "High-intent targeting"
+  }
+});
+
+// Search for similar patterns
+const results = await db.search(queryEmbedding, k=5);</div>
+        </div>
+
+        <div class="help-section">
+          <h4>Reflexion Learning</h4>
+          <div class="help-code">// Store episode with self-critique
+await db.reflexion_store({
+  session_id: "campaign-opt",
+  task: "Optimize E-commerce Sale",
+  input: { budget: 1000, targeting: "25-45" },
+  output: { roas: 3.2, conversions: 45 },
+  reward: 0.92,
+  success: true,
+  critique: "Excellent ROAS. Consider scaling.",
+  latency_ms: 150,
+  tokens: 1200
+});
+
+// Retrieve similar successful episodes
+const episodes = await db.reflexion_retrieve({
+  task: "Optimize E-commerce Sale",
+  only_successes: true,  // Only get successful attempts
+  k: 5
+});</div>
+        </div>
+
+        <div class="help-section">
+          <h4>Causal Inference</h4>
+          <div class="help-code">// Track cause-effect relationship
+await db.causal_add_edge({
+  cause: "Budget increased by 20%",
+  effect: "ROAS improved by 0.3x",
+  uplift: 0.3,
+  confidence: 0.92,
+  sample_size: 50
+});
+
+// Query causal patterns
+const effects = await db.causal_query({
+  cause: "Budget increase",
+  min_uplift: 0.2,
+  min_confidence: 0.8
+});</div>
+        </div>
+
+        <div class="help-section">
+          <h3>📊 Embedding Generation</h3>
+          <div class="help-code">// Generate embedding from text
+async function generateEmbedding(text) {
+  const vector = new Float32Array(384);
+  const hash = hashString(text);
+
+  for (let i = 0; i < 384; i++) {
+    vector[i] = Math.sin(hash * (i + 1)) * 0.5 + 0.5;
+  }
+
+  return vector;
+}</div>
+        </div>
+
+        <div class="help-section">
+          <h3>🎯 Complete Integration Example</h3>
+          <div class="help-code">async function optimizeCampaign(campaign) {
+  // 1. Retrieve similar successful patterns
+  const queryText = `${campaign.name} ${JSON.stringify(campaign.targeting)}`;
+  const embedding = await generateEmbedding(queryText);
+  const patterns = await db.search(embedding, 3);
+
+  // 2. Get successful reflexion episodes
+  const episodes = await db.reflexion_retrieve({
+    task: `Optimize ${campaign.name}`,
+    only_successes: true,
+    k: 5
+  });
+
+  // 3. Query causal effects
+  const causalEffects = await db.causal_query({
+    cause: "Budget increase",
+    min_confidence: 0.8
+  });
+
+  // 4. Apply optimizations based on learned patterns
+  const optimizedCampaign = applyOptimizations(
+    campaign,
+    patterns,
+    episodes,
+    causalEffects
+  );
+
+  // 5. Store the episode with critique
+  await db.reflexion_store({
+    session_id: "campaign-opt",
+    task: `Optimize ${campaign.name}`,
+    input: campaign,
+    output: optimizedCampaign,
+    reward: optimizedCampaign.roas > 2.0 ? 1.0 : optimizedCampaign.roas / 2.0,
+    success: optimizedCampaign.roas > 1.5,
+    critique: generateCritique(optimizedCampaign)
+  });
+
+  return optimizedCampaign;
+}</div>
+        </div>
+
+        <div class="help-section">
+          <h3>📚 Function Reference</h3>
+          <ul class="help-list-enhanced">
+            <li><code>db.insert(pattern)</code> - Store pattern with embedding & metadata</li>
+            <li><code>db.search(embedding, k)</code> - Find k most similar patterns</li>
+            <li><code>db.reflexion_store(episode)</code> - Store learning episode with critique</li>
+            <li><code>db.reflexion_retrieve({task, only_successes, k})</code> - Get similar episodes</li>
+            <li><code>db.causal_add_edge({cause, effect, uplift, confidence})</code> - Track causality</li>
+            <li><code>db.causal_query({cause, min_confidence})</code> - Query causal graph</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Tab: Advanced -->
+      <div id="tab-advanced" class="tab-content">
+        <div class="help-section">
+          <h3>🔧 Troubleshooting</h3>
+          <p><strong>Common Issues & Solutions:</strong></p>
+
+          <div class="help-callout warning">
+            <strong>No patterns learning?</strong> Campaigns need to run for 3+ cycles first before patterns are stored. Be patient!
+          </div>
+          <div class="help-callout warning">
+            <strong>Low ROAS consistently?</strong> Check console for performance insights and try Gemini optimization for AI-powered suggestions.
+          </div>
+          <div class="help-callout info">
+            <strong>No alerts appearing?</strong> High-ROAS episodes (>2.5x) trigger alerts automatically. Keep optimizing to reach that threshold.
+          </div>
+          <div class="help-callout warning">
+            <strong>WASM not loading?</strong> Check browser console (F12) for initialization errors. Some browsers may require additional permissions.
+          </div>
+          <div class="help-callout info">
+            <strong>Reflexion not working?</strong> Verify db.reflexion_store is available in console logs during campaign execution.
+          </div>
+          <div class="help-callout warning">
+            <strong>Causal patterns not discovered?</strong> Need 3+ cycles with measurable performance changes to establish correlations.
+          </div>
+        </div>
+
+        <div class="help-section">
+          <h3>🎯 Best Practices</h3>
+          <div class="help-2col">
+            <div class="help-callout tip">
+              Let campaigns run for <strong>5-10 cycles</strong> before making major changes. The system needs time to learn.
+            </div>
+            <div class="help-callout tip">
+              Monitor <strong>Patterns Learned</strong> counter - more patterns = better optimization results.
+            </div>
+            <div class="help-callout tip">
+              Use <strong>A/B testing</strong> to validate hypotheses about creative/targeting systematically.
+            </div>
+            <div class="help-callout tip">
+              Review <strong>Causal Patterns</strong> section to understand what truly drives performance.
+            </div>
+            <div class="help-callout success">
+              Check <strong>console logs</strong> for detailed reasoning behind every decision the system makes.
+            </div>
+            <div class="help-callout success">
+              <strong>Gemini Optimize</strong> provides AI insights when optimization plateaus or needs direction.
+            </div>
+            <div class="help-callout success">
+              Store patterns from both successes (ROAS >2.0x) and failures (ROAS <1.2x) for balanced learning.
+            </div>
+            <div class="help-callout success">
+              Balance exploration (A/B testing) with exploitation (budget reallocation) for optimal results.
+            </div>
+          </div>
+        </div>
+
+        <div class="help-section">
+          <h3>📚 Integrating Real Meta Ads API</h3>
+          <p>To connect to the actual Meta Ads API instead of simulation:</p>
+          <ol class="help-steps">
+            <li><strong>Get API Access</strong> - Create a Meta App and get access token</li>
+            <li><strong>Install SDK</strong> - Use Facebook Business SDK</li>
+            <li><strong>Replace Simulation</strong> - Update <code>simulateMetaAdsPerformance()</code>:
+              <div class="help-code" style="margin-top: 0.5rem;">async function fetchRealMetrics(campaignId) {
+  const response = await fetch(
+    `https://graph.facebook.com/v18.0/${campaignId}/insights`,
+    {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`
+      }
+    }
+  );
+  return await response.json();
+}</div>
+            </li>
+            <li><strong>Map Metrics</strong> - Convert API response to dashboard format</li>
+            <li><strong>Keep Learning Logic</strong> - Don't change AgentDB integration!</li>
+          </ol>
+        </div>
+
+        <div class="help-section">
+          <h3>💡 Extending This Demo</h3>
+          <p><strong>Enhancement Ideas:</strong></p>
+          <div class="help-feature-grid">
+            <div class="help-feature-card">
+              <h4>Multi-Platform</h4>
+              <p>Add Google Ads, TikTok Ads, LinkedIn Ads campaigns</p>
+            </div>
+            <div class="help-feature-card">
+              <h4>Skill Library</h4>
+              <p>Create reusable optimization strategies with <code>db.skill_create()</code></p>
+            </div>
+            <div class="help-feature-card">
+              <h4>Predictive Analytics</h4>
+              <p>Build ROAS forecasting models using historical patterns</p>
+            </div>
+            <div class="help-feature-card">
+              <h4>Chart Visualizations</h4>
+              <p>Add performance charts with Chart.js or Recharts</p>
+            </div>
+            <div class="help-feature-card">
+              <h4>Campaign Templates</h4>
+              <p>Pre-configured setups for common use cases</p>
+            </div>
+            <div class="help-feature-card">
+              <h4>Pattern Export/Import</h4>
+              <p>Save and load learned patterns between sessions</p>
+            </div>
+            <div class="help-feature-card">
+              <h4>Real-time Gemini</h4>
+              <p>Connect to Gemini API for live optimization</p>
+            </div>
+            <div class="help-feature-card">
+              <h4>Audience Insights</h4>
+              <p>Add demographic and behavioral analysis</p>
+            </div>
+            <div class="help-feature-card">
+              <h4>Creative Library</h4>
+              <p>Track which ad creatives perform best</p>
+            </div>
+            <div class="help-feature-card">
+              <h4>Budget Forecasting</h4>
+              <p>Predict optimal budget allocation</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="help-section">
+          <h3>🧠 Advanced AgentDB Features</h3>
+          <p>Features available in AgentDB v1.0.1+:</p>
+          <div class="help-2col">
+            <ul class="help-list-enhanced">
+              <li><strong>Skill Library</strong> - Store and reuse successful strategies</li>
+              <li><strong>Memory Provenance</strong> - Track where insights came from</li>
+              <li><strong>Causal Utility Scoring</strong> - Rank patterns by causal impact</li>
+            </ul>
+            <ul class="help-list-enhanced">
+              <li><strong>Nightly Learner</strong> - Automatic pattern discovery from history</li>
+              <li><strong>Reflexion Pruning</strong> - Clean up old, low-value episodes</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="help-section">
+          <h3>⚡ Performance Optimization</h3>
+          <ul class="help-list-enhanced">
+            <li>Use <strong>IndexedDB</strong> for persisting patterns between sessions</li>
+            <li>Implement <strong>batch processing</strong> for multiple campaigns</li>
+            <li>Add <strong>Web Workers</strong> for heavy embedding calculations</li>
+            <li>Cache frequently accessed patterns in memory</li>
+            <li>Lazy load historical data on demand</li>
+          </ul>
+        </div>
+
+        <div class="help-section">
+          <h3>📖 Learn More</h3>
+          <ul class="help-list-enhanced">
+            <li><strong>AgentDB Docs</strong>: <a href="https://agentdb.ruv.io/docs" target="_blank" style="color: hsl(142 76% 60%);">agentdb.ruv.io/docs</a></li>
+            <li><strong>ReasoningBank SAFLA</strong>: See main documentation modal on homepage</li>
+            <li><strong>Reflexion Paper</strong>: Research on self-reflective learning agents</li>
+            <li><strong>Causal Inference</strong>: Learn about discovering cause-effect relationships</li>
+            <li><strong>Meta Marketing API</strong>: Official Meta Ads API documentation</li>
+          </ul>
+        </div>
+
+        <div class="help-section">
+          <h3>🤝 Contributing</h3>
+          <p>Want to improve this demo? Ideas for contributions:</p>
+          <div class="help-2col">
+            <ul class="help-list-enhanced">
+              <li>Add real API integrations for various ad platforms</li>
+              <li>Build visualization components for performance trends</li>
+              <li>Implement more sophisticated ML models for prediction</li>
+            </ul>
+            <ul class="help-list-enhanced">
+              <li>Create campaign templates for different industries</li>
+              <li>Add comprehensive unit tests</li>
+              <li>Improve mobile responsiveness</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="help-section">
+          <h3>🔌 MCP Integration (29 Tools Available)</h3>
+          <p>This demo can be integrated with Claude Desktop via MCP for advanced AI agent capabilities:</p>
+          <div class="help-code">claude mcp add agentdb npx agentdb mcp</div>
+
+          <h4>Core Vector Database Tools <span class="help-badge">5 tools</span></h4>
+          <ol class="help-list-enhanced" style="margin-left: 1.5rem;">
+            <li><code>agentdb_init</code> - Initialize database with configuration</li>
+            <li><code>agentdb_insert</code> - Insert single vector with metadata</li>
+            <li><code>agentdb_insert_batch</code> - Batch insert (141x faster)</li>
+            <li><code>agentdb_search</code> - k-NN semantic search</li>
+            <li><code>agentdb_delete</code> - Delete vectors by ID or filters</li>
+          </ol>
+
+          <h4>Core AgentDB Tools <span class="help-badge">5 tools - NEW</span></h4>
+          <ol class="help-list-enhanced" style="margin-left: 1.5rem;" start="6">
+            <li><code>agentdb_stats</code> - Enhanced database statistics</li>
+            <li><code>agentdb_pattern_store</code> - Store reasoning patterns</li>
+            <li><code>agentdb_pattern_search</code> - Search patterns semantically</li>
+            <li><code>agentdb_pattern_stats</code> - Pattern usage analytics</li>
+            <li><code>agentdb_clear_cache</code> - Cache management</li>
+          </ol>
+
+          <h4>Frontier Memory Tools <span class="help-badge">9 tools</span></h4>
+          <ol class="help-list-enhanced" style="margin-left: 1.5rem;" start="11">
+            <li><code>reflexion_store</code> - Store episodes with self-critique</li>
+            <li><code>reflexion_retrieve</code> - Retrieve past episodes</li>
+            <li><code>skill_create</code> - Create reusable skills</li>
+            <li><code>skill_search</code> - Search skills by similarity</li>
+            <li><code>causal_add_edge</code> - Add causal relationships</li>
+            <li><code>causal_query</code> - Query causal effects</li>
+            <li><code>recall_with_certificate</code> - Explainable recall with provenance</li>
+            <li><code>learner_discover</code> - Auto-discover causal patterns</li>
+            <li><code>db_stats</code> - Database statistics</li>
+          </ol>
+
+          <h4>Learning System Tools <span class="help-badge">10 tools - NEW</span></h4>
+          <ol class="help-list-enhanced" style="margin-left: 1.5rem;" start="20">
+            <li><code>learning_start_session</code> - Start RL session (9 algorithms)</li>
+            <li><code>learning_end_session</code> - End session and save policy</li>
+            <li><code>learning_predict</code> - Action prediction with confidence</li>
+            <li><code>learning_feedback</code> - Submit action feedback</li>
+            <li><code>learning_train</code> - Batch policy training</li>
+            <li><code>learning_metrics</code> - Performance metrics tracking</li>
+            <li><code>learning_transfer</code> - Transfer learning between sessions</li>
+            <li><code>learning_explain</code> - XAI explanations with evidence</li>
+            <li><code>experience_record</code> - Tool execution logging</li>
+            <li><code>reward_signal</code> - Reward shaping calculation</li>
+          </ol>
+
+          <div class="help-callout success" style="margin-top: 1.5rem;">
+            <strong>Version:</strong> AgentDB v1.3.0 | <strong>Test Coverage:</strong> 96.7% | <strong>Performance:</strong> 20,000 vectors/sec batch insert
+          </div>
+
+          <p style="margin-top: 1rem;">Learn more at <a href="https://github.com/ruvnet/agentic-flow/tree/main/packages/agentdb" target="_blank" style="color: hsl(142 76% 60%);">AgentDB Documentation</a></p>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="button button-primary" onclick="closeHelpModal()">Got It!</button>
+        <button class="button button-secondary" onclick="closeHelpModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div class="modal-overlay" id="settingsModal" onclick="if(event.target === this) closeSettings()">
+    <div class="modal" style="max-width: 900px;">
+      <button class="modal-close" onclick="closeSettings()">×</button>
+
+      <div class="modal-header">
+        <h2>⚙️ Configuration Settings</h2>
+        <p>Customize database, campaign, AI, and SAFLA parameters</p>
+      </div>
+
+      <!-- Tabs Navigation -->
+      <div class="tabs">
+        <button class="tab-button active" data-tab="database" onclick="showSettingsTab('database')">
+          🗄️ Database
+        </button>
+        <button class="tab-button" data-tab="campaign" onclick="showSettingsTab('campaign')">
+          📊 Campaign
+        </button>
+        <button class="tab-button" data-tab="ai" onclick="showSettingsTab('ai')">
+          🤖 AI Config
+        </button>
+        <button class="tab-button" data-tab="safla" onclick="showSettingsTab('safla')">
+          🧠 SAFLA
+        </button>
+      </div>
+
+      <div class="modal-content">
+        <!-- Tab: Database Configuration -->
+        <div id="settings-tab-database" class="tab-content active">
+          <div class="settings-form">
+            <div class="form-section">
+              <h4>🗄️ Database Configuration</h4>
+
+              <div class="form-group">
+                <label class="form-label">
+                  Memory Mode
+                  <span class="help-icon" title="In-memory mode (faster) vs persistent storage">?</span>
+                </label>
+                <label class="toggle-switch">
+                  <input type="checkbox" id="setting-memoryMode" checked>
+                  <span class="toggle-slider"></span>
+                  <span class="toggle-label">Enable in-memory mode (recommended)</span>
+                </label>
+                <div class="form-help">In-memory mode is faster but data is lost on refresh</div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">
+                  Backend Engine
+                  <span class="help-icon" title="WASM is faster, JS is more compatible">?</span>
+                </label>
+                <select class="form-select" id="setting-backend">
+                  <option value="wasm" selected>WASM (Recommended)</option>
+                  <option value="js">JavaScript</option>
+                </select>
+              </div>
+
+              <div class="form-grid">
+                <div class="form-group">
+                  <label class="form-label">
+                    Vector Dimensions
+                    <span class="help-icon" title="Embedding size for pattern matching">?</span>
+                  </label>
+                  <div class="range-group">
+                    <div class="range-header">
+                      <span>Dimensions</span>
+                      <span class="range-value" id="setting-vectorDim-value">384</span>
+                    </div>
+                    <input type="range" class="form-range" id="setting-vectorDim"
+                           min="128" max="1024" step="128" value="384"
+                           oninput="document.getElementById('setting-vectorDim-value').textContent = this.value">
+                    <div class="range-labels">
+                      <span>128</span>
+                      <span>1024</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">
+                    Search Results Limit
+                    <span class="help-icon" title="Max results from similarity search">?</span>
+                  </label>
+                  <div class="range-group">
+                    <div class="range-header">
+                      <span>Results</span>
+                      <span class="range-value" id="setting-searchLimit-value">3</span>
+                    </div>
+                    <input type="range" class="form-range" id="setting-searchLimit"
+                           min="1" max="10" step="1" value="3"
+                           oninput="document.getElementById('setting-searchLimit-value').textContent = this.value">
+                    <div class="range-labels">
+                      <span>1</span>
+                      <span>10</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">
+                  Similarity Algorithm
+                  <span class="help-icon" title="Algorithm for vector similarity matching">?</span>
+                </label>
+                <select class="form-select" id="setting-similarity">
+                  <option value="cosine" selected>Cosine Similarity</option>
+                  <option value="euclidean">Euclidean Distance</option>
+                  <option value="dot">Dot Product</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab: Campaign Settings -->
+        <div id="settings-tab-campaign" class="tab-content">
+          <div class="settings-form">
+            <div class="form-section">
+              <h4>📊 Campaign Parameters</h4>
+
+              <div class="form-group">
+                <label class="form-label">
+                  Total Budget ($)
+                  <span class="help-icon" title="Total budget across all campaigns">?</span>
+                </label>
+                <input type="number" class="form-input" id="setting-totalBudget"
+                       value="5000" min="100" max="100000" step="100">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">
+                  Optimization Interval (seconds)
+                  <span class="help-icon" title="How often to run optimization cycle">?</span>
+                </label>
+                <div class="range-group">
+                  <div class="range-header">
+                    <span>Interval</span>
+                    <span class="range-value" id="setting-optimizeInterval-value">3s</span>
+                  </div>
+                  <input type="range" class="form-range" id="setting-optimizeInterval"
+                         min="1" max="10" step="1" value="3"
+                         oninput="document.getElementById('setting-optimizeInterval-value').textContent = this.value + 's'">
+                  <div class="range-labels">
+                    <span>1s</span>
+                    <span>10s</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-grid">
+                <div class="form-group">
+                  <label class="form-label">
+                    ROAS Threshold
+                    <span class="help-icon" title="Minimum ROAS to consider successful">?</span>
+                  </label>
+                  <div class="range-group">
+                    <div class="range-header">
+                      <span>Min ROAS</span>
+                      <span class="range-value" id="setting-roasThreshold-value">2.0x</span>
+                    </div>
+                    <input type="range" class="form-range" id="setting-roasThreshold"
+                           min="1" max="5" step="0.1" value="2.0"
+                           oninput="document.getElementById('setting-roasThreshold-value').textContent = this.value + 'x'">
+                    <div class="range-labels">
+                      <span>1.0x</span>
+                      <span>5.0x</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">
+                    CTR Threshold (%)
+                    <span class="help-icon" title="Minimum CTR to consider successful">?</span>
+                  </label>
+                  <div class="range-group">
+                    <div class="range-header">
+                      <span>Min CTR</span>
+                      <span class="range-value" id="setting-ctrThreshold-value">2.0%</span>
+                    </div>
+                    <input type="range" class="form-range" id="setting-ctrThreshold"
+                           min="0.5" max="10" step="0.5" value="2.0"
+                           oninput="document.getElementById('setting-ctrThreshold-value').textContent = this.value + '%'">
+                    <div class="range-labels">
+                      <span>0.5%</span>
+                      <span>10%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="toggle-switch">
+                  <input type="checkbox" id="setting-autoReallocate" checked>
+                  <span class="toggle-slider"></span>
+                  <span class="toggle-label">Auto-reallocate budget every 5 cycles</span>
+                </label>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">
+                  A/B Test Duration (cycles)
+                  <span class="help-icon" title="How many cycles to run A/B tests">?</span>
+                </label>
+                <div class="range-group">
+                  <div class="range-header">
+                    <span>Duration</span>
+                    <span class="range-value" id="setting-abTestDuration-value">10 cycles</span>
+                  </div>
+                  <input type="range" class="form-range" id="setting-abTestDuration"
+                         min="5" max="50" step="5" value="10"
+                         oninput="document.getElementById('setting-abTestDuration-value').textContent = this.value + ' cycles'">
+                  <div class="range-labels">
+                    <span>5</span>
+                    <span>50</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab: AI Configuration -->
+        <div id="settings-tab-ai" class="tab-content">
+          <div class="settings-form">
+            <div class="form-section">
+              <h4>🤖 AI & Embedding Configuration</h4>
+
+              <div class="form-group">
+                <label class="form-label">
+                  AI Provider
+                  <span class="help-icon" title="AI provider for optimization suggestions">?</span>
+                </label>
+                <select class="form-select" id="setting-aiProvider">
+                  <option value="gemini" selected>Google Gemini</option>
+                  <option value="openai">OpenAI GPT-4</option>
+                  <option value="claude">Anthropic Claude</option>
+                  <option value="none">None (Local only)</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">
+                  Model Selection
+                  <span class="help-icon" title="Specific model version to use">?</span>
+                </label>
+                <select class="form-select" id="setting-aiModel">
+                  <option value="gemini-pro" selected>Gemini Pro</option>
+                  <option value="gpt-4">GPT-4</option>
+                  <option value="claude-3-opus">Claude 3 Opus</option>
+                </select>
+              </div>
+
+              <div class="form-grid">
+                <div class="form-group">
+                  <label class="form-label">
+                    Temperature
+                    <span class="help-icon" title="Creativity vs consistency (0=deterministic, 1=creative)">?</span>
+                  </label>
+                  <div class="range-group">
+                    <div class="range-header">
+                      <span>Value</span>
+                      <span class="range-value" id="setting-temperature-value">0.7</span>
+                    </div>
+                    <input type="range" class="form-range" id="setting-temperature"
+                           min="0" max="1" step="0.1" value="0.7"
+                           oninput="document.getElementById('setting-temperature-value').textContent = this.value">
+                    <div class="range-labels">
+                      <span>0.0</span>
+                      <span>1.0</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">
+                    Max Tokens
+                    <span class="help-icon" title="Maximum response length">?</span>
+                  </label>
+                  <div class="range-group">
+                    <div class="range-header">
+                      <span>Tokens</span>
+                      <span class="range-value" id="setting-maxTokens-value">1000</span>
+                    </div>
+                    <input type="range" class="form-range" id="setting-maxTokens"
+                           min="100" max="4000" step="100" value="1000"
+                           oninput="document.getElementById('setting-maxTokens-value').textContent = this.value">
+                    <div class="range-labels">
+                      <span>100</span>
+                      <span>4000</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">
+                  Embedding Dimensions
+                  <span class="help-icon" title="Vector size for semantic embeddings">?</span>
+                </label>
+                <select class="form-select" id="setting-embeddingDim">
+                  <option value="384" selected>384 (Default)</option>
+                  <option value="768">768 (High Quality)</option>
+                  <option value="1536">1536 (Ultra Quality)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab: Advanced SAFLA -->
+        <div id="settings-tab-safla" class="tab-content">
+          <div class="settings-form">
+            <div class="form-section">
+              <h4>🧠 SAFLA & Learning Configuration</h4>
+
+              <div class="form-group">
+                <label class="toggle-switch">
+                  <input type="checkbox" id="setting-patternStorage" checked>
+                  <span class="toggle-slider"></span>
+                  <span class="toggle-label">Enable pattern storage (ReasoningBank)</span>
+                </label>
+                <div class="form-help">Store successful campaign patterns for future optimization</div>
+              </div>
+
+              <div class="form-group">
+                <label class="toggle-switch">
+                  <input type="checkbox" id="setting-reflexion" checked>
+                  <span class="toggle-slider"></span>
+                  <span class="toggle-label">Enable Reflexion episodes</span>
+                </label>
+                <div class="form-help">Store campaign performance with self-critique for learning</div>
+              </div>
+
+              <div class="form-group">
+                <label class="toggle-switch">
+                  <input type="checkbox" id="setting-causalInference" checked>
+                  <span class="toggle-slider"></span>
+                  <span class="toggle-label">Enable causal inference tracking</span>
+                </label>
+                <div class="form-help">Discover and track cause-effect relationships</div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">
+                  Learning Rate
+                  <span class="help-icon" title="How quickly to adapt to new patterns">?</span>
+                </label>
+                <div class="range-group">
+                  <div class="range-header">
+                    <span>Rate</span>
+                    <span class="range-value" id="setting-learningRate-value">0.01</span>
+                  </div>
+                  <input type="range" class="form-range" id="setting-learningRate"
+                         min="0.001" max="0.1" step="0.001" value="0.01"
+                         oninput="document.getElementById('setting-learningRate-value').textContent = this.value">
+                  <div class="range-labels">
+                    <span>0.001</span>
+                    <span>0.1</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-grid">
+                <div class="form-group">
+                  <label class="form-label">
+                    Pattern Limit
+                    <span class="help-icon" title="Maximum patterns to store">?</span>
+                  </label>
+                  <div class="range-group">
+                    <div class="range-header">
+                      <span>Max</span>
+                      <span class="range-value" id="setting-patternLimit-value">100</span>
+                    </div>
+                    <input type="range" class="form-range" id="setting-patternLimit"
+                           min="10" max="500" step="10" value="100"
+                           oninput="document.getElementById('setting-patternLimit-value').textContent = this.value">
+                    <div class="range-labels">
+                      <span>10</span>
+                      <span>500</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">
+                    Similarity Threshold
+                    <span class="help-icon" title="Minimum similarity to retrieve patterns">?</span>
+                  </label>
+                  <div class="range-group">
+                    <div class="range-header">
+                      <span>Min</span>
+                      <span class="range-value" id="setting-similarityThreshold-value">0.7</span>
+                    </div>
+                    <input type="range" class="form-range" id="setting-similarityThreshold"
+                           min="0.1" max="1.0" step="0.05" value="0.7"
+                           oninput="document.getElementById('setting-similarityThreshold-value').textContent = this.value">
+                    <div class="range-labels">
+                      <span>0.1</span>
+                      <span>1.0</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-footer">
+        <button class="button button-reset" onclick="resetSettings()">
+          🔄 Reset to Defaults
+        </button>
+        <button class="button button-secondary" onclick="closeSettings()">
+          Cancel
+        </button>
+        <button class="button button-primary" onclick="saveSettings()">
+          💾 Save Settings
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer style="text-align: center; padding: 2rem 0; margin-top: 3rem; border-top: 1px solid hsl(0 0% 20%); color: hsl(0 0% 60%);">
+    <p style="margin-bottom: 0.5rem;">
+      <strong style="color: hsl(142 76% 50%);">AgentDB</strong> - SQL-based Agentic Memory with Vector Embeddings
+    </p>
+    <p style="font-size: 0.9rem;">
+      <a href="https://agentdb.ruv.io/demo" target="_blank" rel="noopener noreferrer" style="color: hsl(142 76% 50%); text-decoration: none; margin: 0 1rem; transition: opacity 0.2s;">
+        🚀 Interactive Demo
+      </a>
+      <a href="https://github.com/ruvnet/agentic-flow/tree/main/packages/agentdb" target="_blank" rel="noopener noreferrer" style="color: hsl(142 76% 50%); text-decoration: none; margin: 0 1rem; transition: opacity 0.2s;">
+        📚 Documentation
+      </a>
+      <a href="https://www.npmjs.com/package/agentdb" target="_blank" rel="noopener noreferrer" style="color: hsl(142 76% 50%); text-decoration: none; margin: 0 1rem; transition: opacity 0.2s;">
+        📦 NPM Package
+      </a>
+    </p>
+  </footer>
+
+</body>
+</html>

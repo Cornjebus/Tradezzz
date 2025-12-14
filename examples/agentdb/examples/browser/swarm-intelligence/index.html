@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Swarm Intelligence - AgentDB WASM</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+            background: hsl(0 0% 12%);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            color: hsl(0 0% 95%);
+            margin-bottom: 2rem;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .subtitle {
+            color: hsl(0 0% 85%);
+            font-size: 1rem;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .card {
+            background: hsl(0 0% 15%);
+            border: 1px solid hsl(0 0% 25%);
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: 0 6px 24px hsl(222 20% 0% / 0.24);
+        }
+
+        .card h2 {
+            color: hsl(0 0% 95%);
+            margin-bottom: 1rem;
+            font-size: 1.3rem;
+        }
+
+        #canvas {
+            width: 100%;
+            height: 500px;
+            border: 1px solid hsl(0 0% 25%);
+            border-radius: 8px;
+            background: #0a0a0a;
+            cursor: crosshair;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        label {
+            font-size: 0.9rem;
+            color: hsl(0 0% 85%);
+            font-weight: 500;
+        }
+
+        input[type="range"] {
+            width: 100%;
+        }
+
+        input[type="number"] {
+            padding: 0.5rem;
+            background: hsl(0 0% 18%);
+            border: 1px solid hsl(0 0% 25%);
+            border-radius: 8px;
+            font-size: 0.9rem;
+            color: hsl(0 0% 95%);
+            font-family: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            background: hsl(195 100% 60%);
+            color: hsl(0 0% 12%);
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+        }
+
+        .btn:hover {
+            background: hsl(195 100% 70%);
+            transform: translateY(-1px);
+        }
+
+        .btn.danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn.danger:hover {
+            background: #c82333;
+        }
+
+        .btn.success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn.success:hover {
+            background: #218838;
+        }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .stat-item {
+            background: hsl(0 0% 18%);
+            border: 1px solid hsl(0 0% 25%);
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: hsl(0 0% 85%);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: hsl(195 100% 60%);
+        }
+
+        .behavior-select {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .behavior-btn {
+            flex: 1;
+            padding: 0.5rem;
+            background: hsl(0 0% 18%);
+            border: 1px solid hsl(0 0% 25%);
+            color: hsl(0 0% 85%);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+        }
+
+        .behavior-btn.active {
+            background: hsl(195 100% 60%);
+            color: hsl(0 0% 12%);
+            border-color: hsl(195 100% 60%);
+        }
+
+        #log {
+            max-height: 200px;
+            overflow-y: auto;
+            background: hsl(0 0% 18%);
+            border: 1px solid hsl(0 0% 25%);
+            padding: 1rem;
+            border-radius: 8px;
+            font-family: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+            font-size: 0.85rem;
+            line-height: 1.6;
+        }
+
+        .log-entry {
+            margin-bottom: 0.5rem;
+            color: hsl(0 0% 85%);
+        }
+
+        .log-entry.success {
+            color: #28a745;
+        }
+
+        .log-entry.info {
+            color: hsl(195 100% 60%);
+        }
+
+        .description {
+            background: hsl(0 0% 18%);
+            border: 1px solid hsl(0 0% 25%);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            line-height: 1.6;
+            color: hsl(0 0% 85%);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🐝 Swarm Intelligence with Emergent Behavior</h1>
+            <p class="subtitle">Particle Swarm Optimization + Stigmergy + Vector Memory</p>
+        </header>
+
+        <div class="main-grid">
+            <div class="card">
+                <h2>Swarm Visualization</h2>
+                <canvas id="canvas"></canvas>
+                <div class="controls">
+                    <button class="btn" onclick="addTarget()">Add Target 🎯</button>
+                    <button class="btn" onclick="addObstacle()">Add Obstacle 🚧</button>
+                    <button class="btn success" onclick="startSwarm()">Start Swarm 🚀</button>
+                    <button class="btn danger" onclick="resetSwarm()">Reset ⟲</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Swarm Parameters</h2>
+                <div class="description">
+                    Watch agents exhibit emergent collective intelligence through pheromone trails, local interactions, and vector-based memory.
+                </div>
+
+                <div class="control-group">
+                    <label>Agents: <span id="agentCount">50</span></label>
+                    <input type="range" id="agentSlider" min="10" max="200" value="50" oninput="updateAgentCount()">
+                </div>
+
+                <div class="control-group">
+                    <label>Exploration Rate: <span id="exploreRate">0.3</span></label>
+                    <input type="range" id="exploreSlider" min="0" max="1" step="0.1" value="0.3" oninput="updateExploreRate()">
+                </div>
+
+                <div class="control-group">
+                    <label>Pheromone Decay: <span id="decayRate">0.95</span></label>
+                    <input type="range" id="decaySlider" min="0.8" max="0.99" step="0.01" value="0.95" oninput="updateDecayRate()">
+                </div>
+
+                <div class="behavior-select">
+                    <button class="behavior-btn active" onclick="setBehavior('foraging')">🍃 Foraging</button>
+                    <button class="behavior-btn" onclick="setBehavior('flocking')">🐦 Flocking</button>
+                    <button class="behavior-btn" onclick="setBehavior('exploration')">🗺️ Exploration</button>
+                </div>
+
+                <div class="stat-grid">
+                    <div class="stat-item">
+                        <div class="stat-label">Targets Found</div>
+                        <div class="stat-value" id="targetsFound">0</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Emergent Paths</div>
+                        <div class="stat-value" id="pathsDiscovered">0</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Collective IQ</div>
+                        <div class="stat-value" id="collectiveIQ">0</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Pheromone Trails</div>
+                        <div class="stat-value" id="trailCount">0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>📊 Swarm Intelligence Log</h2>
+            <div id="log"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { SQLiteVectorDB } from "https://unpkg.com/agentdb@1.0.7/dist/agentdb.min.js";
+
+        let agentDB = null;
+
+        async function initAgentDB() {
+            console.log('Initializing AgentDB v1.0.7 from CDN...');
+            agentDB = new SQLiteVectorDB({ memoryMode: true, backend: "wasm" });
+            await agentDB.initializeAsync();
+            console.log('✅ AgentDB WASM v1.0.7 initialized');
+        }
+
+        // Initialize on page load
+        initAgentDB();
+
+        // Helper functions for AgentDB integration
+        const dbHelpers = {
+            pheromoneCache: [],
+            pathCache: [],
+
+            generatePositionEmbedding(pos) {
+                const embedding = new Array(64).fill(0);
+                const scale = 0.01;
+                for (let i = 0; i < 64; i++) {
+                    embedding[i] = Math.sin(pos.x * scale * i) + Math.cos(pos.y * scale * i);
+                }
+                return this.normalize(embedding);
+            },
+
+            generatePathEmbedding(path) {
+                const embedding = new Array(128).fill(0);
+                path.forEach((pos, idx) => {
+                    const weight = 1 / (idx + 1);
+                    for (let i = 0; i < 64; i++) {
+                        embedding[i] += Math.sin(pos.x * 0.01 * i) * weight;
+                        embedding[i + 64] += Math.cos(pos.y * 0.01 * i) * weight;
+                    }
+                });
+                return this.normalize(embedding);
+            },
+
+            normalize(vec) {
+                const mag = Math.sqrt(vec.reduce((sum, val) => sum + val * val, 0));
+                return vec.map(v => v / (mag || 1));
+            },
+
+            async storePheromone(position, strength, type) {
+                if (!agentDB) return;
+
+                const embedding = this.generatePositionEmbedding(position);
+                const metadata = {
+                    type: 'pheromone',
+                    x: position.x,
+                    y: position.y,
+                    strength: strength,
+                    pheromoneType: type,
+                    timestamp: Date.now()
+                };
+
+                // Store in AgentDB
+                await agentDB.insert({ embedding, metadata });
+
+                // Cache for quick access
+                this.pheromoneCache.push({
+                    position,
+                    embedding,
+                    strength,
+                    type,
+                    timestamp: Date.now()
+                });
+
+                // Clean old pheromones from cache
+                this.pheromoneCache = this.pheromoneCache.filter(p => p.strength > 0.01);
+            },
+
+            async findNearbyPheromones(position, radius = 50) {
+                // Use cache for quick filtering
+                return this.pheromoneCache
+                    .map(p => ({
+                        ...p,
+                        distance: Math.hypot(p.position.x - position.x, p.position.y - position.y)
+                    }))
+                    .filter(p => p.distance < radius)
+                    .sort((a, b) => b.strength - a.strength);
+            },
+
+            async storePath(path, success) {
+                if (!agentDB) return;
+
+                const embedding = this.generatePathEmbedding(path);
+                const metadata = {
+                    type: 'path',
+                    pathLength: path.length,
+                    success: success,
+                    fitness: success ? 1.0 : 0.1,
+                    timestamp: Date.now()
+                };
+
+                // Store in AgentDB
+                await agentDB.insert({ embedding, metadata });
+
+                // Cache for quick access
+                this.pathCache.push({
+                    path,
+                    embedding,
+                    success,
+                    fitness: success ? 1.0 : 0.1,
+                    timestamp: Date.now()
+                });
+            },
+
+            getBestPaths(count = 5) {
+                return this.pathCache
+                    .sort((a, b) => b.fitness - a.fitness)
+                    .slice(0, count);
+            },
+
+            decayPheromones(rate = 0.95) {
+                this.pheromoneCache.forEach(p => {
+                    p.strength *= rate;
+                });
+                this.pheromoneCache = this.pheromoneCache.filter(p => p.strength > 0.01);
+            }
+        };
+
+        class Agent {
+            constructor(x, y, id) {
+                this.id = id;
+                this.x = x;
+                this.y = y;
+                this.vx = (Math.random() - 0.5) * 2;
+                this.vy = (Math.random() - 0.5) * 2;
+                this.path = [{x, y}];
+                this.targetReached = false;
+                this.color = `hsl(${Math.random() * 360}, 70%, 60%)`;
+                this.energy = 100;
+            }
+
+            update(agents, targets, obstacles, pheromones, behavior) {
+                if (this.targetReached || this.energy <= 0) return;
+
+                // Behavior-specific movement
+                switch(behavior) {
+                    case 'foraging':
+                        this.foragingBehavior(targets, pheromones);
+                        break;
+                    case 'flocking':
+                        this.flockingBehavior(agents);
+                        break;
+                    case 'exploration':
+                        this.explorationBehavior(pheromones);
+                        break;
+                }
+
+                // Avoid obstacles
+                obstacles.forEach(obs => {
+                    const dx = this.x - obs.x;
+                    const dy = this.y - obs.y;
+                    const dist = Math.hypot(dx, dy);
+                    if (dist < obs.radius + 20) {
+                        this.vx += dx / dist * 0.5;
+                        this.vy += dy / dist * 0.5;
+                    }
+                });
+
+                // Apply velocity
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // Boundary wrapping
+                if (this.x < 0) this.x = canvas.width;
+                if (this.x > canvas.width) this.x = 0;
+                if (this.y < 0) this.y = canvas.height;
+                if (this.y > canvas.height) this.y = 0;
+
+                // Damping
+                this.vx *= 0.98;
+                this.vy *= 0.98;
+
+                // Max speed
+                const speed = Math.hypot(this.vx, this.vy);
+                if (speed > 3) {
+                    this.vx = (this.vx / speed) * 3;
+                    this.vy = (this.vy / speed) * 3;
+                }
+
+                // Energy consumption
+                this.energy -= 0.1;
+
+                // Track path
+                if (this.path.length < 100) {
+                    this.path.push({x: this.x, y: this.y});
+                }
+
+                // Check target collision
+                targets.forEach(target => {
+                    const dist = Math.hypot(this.x - target.x, this.y - target.y);
+                    if (dist < target.radius + 5) {
+                        this.targetReached = true;
+                        target.found = true;
+                        dbHelpers.storePath(this.path, true);
+                        logMessage(`Agent ${this.id} found target! Path efficiency: ${(100/this.path.length).toFixed(2)}`, 'success');
+                    }
+                });
+            }
+
+            foragingBehavior(targets, pheromones) {
+                // Follow pheromone trails
+                const nearby = pheromones.filter(p => {
+                    const dist = Math.hypot(p.position.x - this.x, p.position.y - this.y);
+                    return dist < 60;
+                });
+
+                if (nearby.length > 0 && Math.random() > params.exploration) {
+                    const strongest = nearby.reduce((a, b) => a.strength > b.strength ? a : b);
+                    const dx = strongest.position.x - this.x;
+                    const dy = strongest.position.y - this.y;
+                    const dist = Math.hypot(dx, dy);
+                    this.vx += (dx / dist) * 0.3;
+                    this.vy += (dy / dist) * 0.3;
+                } else {
+                    // Move toward nearest target
+                    const nearest = targets.reduce((a, b) => {
+                        const distA = Math.hypot(a.x - this.x, a.y - this.y);
+                        const distB = Math.hypot(b.x - this.x, b.y - this.y);
+                        return distA < distB ? a : b;
+                    });
+
+                    if (nearest) {
+                        const dx = nearest.x - this.x;
+                        const dy = nearest.y - this.y;
+                        const dist = Math.hypot(dx, dy);
+                        this.vx += (dx / dist) * 0.2;
+                        this.vy += (dy / dist) * 0.2;
+                    }
+                }
+            }
+
+            flockingBehavior(agents) {
+                // Separation, alignment, cohesion
+                let sepX = 0, sepY = 0, alignX = 0, alignY = 0, cohX = 0, cohY = 0;
+                let neighbors = 0;
+
+                agents.forEach(other => {
+                    if (other === this) return;
+                    const dist = Math.hypot(other.x - this.x, other.y - this.y);
+
+                    if (dist < 100) {
+                        neighbors++;
+
+                        // Separation
+                        if (dist < 30) {
+                            sepX += this.x - other.x;
+                            sepY += this.y - other.y;
+                        }
+
+                        // Alignment
+                        alignX += other.vx;
+                        alignY += other.vy;
+
+                        // Cohesion
+                        cohX += other.x;
+                        cohY += other.y;
+                    }
+                });
+
+                if (neighbors > 0) {
+                    this.vx += sepX * 0.05 + (alignX / neighbors) * 0.02;
+                    this.vy += sepY * 0.05 + (alignY / neighbors) * 0.02;
+
+                    const avgX = cohX / neighbors;
+                    const avgY = cohY / neighbors;
+                    this.vx += (avgX - this.x) * 0.01;
+                    this.vy += (avgY - this.y) * 0.01;
+                }
+            }
+
+            explorationBehavior(pheromones) {
+                // Avoid visited areas (anti-pheromone)
+                const visited = pheromones.filter(p => p.type === 'exploration');
+                let avoidX = 0, avoidY = 0;
+
+                visited.forEach(p => {
+                    const dist = Math.hypot(p.position.x - this.x, p.position.y - this.y);
+                    if (dist < 50) {
+                        avoidX += (this.x - p.position.x) / dist;
+                        avoidY += (this.y - p.position.y) / dist;
+                    }
+                });
+
+                this.vx += avoidX * 0.1 + (Math.random() - 0.5) * 0.5;
+                this.vy += avoidY * 0.1 + (Math.random() - 0.5) * 0.5;
+            }
+        }
+
+        // Global state
+        let agents = [];
+        let targets = [];
+        let obstacles = [];
+        let running = false;
+        let animationId = null;
+        let params = {
+            agentCount: 50,
+            exploration: 0.3,
+            pheromoneDecay: 0.95,
+            behavior: 'foraging'
+        };
+
+        let stats = {
+            targetsFound: 0,
+            pathsDiscovered: 0,
+            collectiveIQ: 0,
+            generation: 0
+        };
+
+        // Canvas setup
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = canvas.offsetWidth;
+        canvas.height = canvas.offsetHeight;
+
+        // Initialize
+        function initSwarm() {
+            agents = [];
+            for (let i = 0; i < params.agentCount; i++) {
+                agents.push(new Agent(
+                    Math.random() * canvas.width,
+                    Math.random() * canvas.height,
+                    i
+                ));
+            }
+        }
+
+        function addTarget() {
+            targets.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                radius: 15,
+                found: false
+            });
+            logMessage('Target added to environment', 'info');
+        }
+
+        function addObstacle() {
+            obstacles.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                radius: 30
+            });
+            logMessage('Obstacle added to environment', 'info');
+        }
+
+        function startSwarm() {
+            if (!running) {
+                initSwarm();
+                running = true;
+                animate();
+                logMessage('Swarm activated! Watch emergent behavior unfold...', 'success');
+            }
+        }
+
+        function resetSwarm() {
+            running = false;
+            if (animationId) cancelAnimationFrame(animationId);
+            agents = [];
+            targets = [];
+            obstacles = [];
+            dbHelpers.pheromoneCache = [];
+            dbHelpers.pathCache = [];
+            stats = { targetsFound: 0, pathsDiscovered: 0, collectiveIQ: 0, generation: 0 };
+            updateStats();
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            logMessage('Swarm reset', 'info');
+        }
+
+        function animate() {
+            if (!running) return;
+
+            ctx.fillStyle = 'rgba(10, 10, 10, 0.1)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Decay pheromones
+            dbHelpers.decayPheromones(params.pheromoneDecay);
+
+            // Draw pheromone trails
+            dbHelpers.pheromoneCache.forEach(p => {
+                ctx.fillStyle = `rgba(100, 200, 255, ${p.strength * 0.3})`;
+                ctx.beginPath();
+                ctx.arc(p.position.x, p.position.y, 8, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // Draw obstacles
+            obstacles.forEach(obs => {
+                ctx.fillStyle = '#c62828';
+                ctx.beginPath();
+                ctx.arc(obs.x, obs.y, obs.radius, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // Draw targets
+            targets.forEach(target => {
+                ctx.fillStyle = target.found ? '#2e7d32' : '#ffd600';
+                ctx.beginPath();
+                ctx.arc(target.x, target.y, target.radius, 0, Math.PI * 2);
+                ctx.fill();
+
+                if (!target.found) {
+                    ctx.strokeStyle = '#ffd600';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(target.x, target.y, target.radius + 5, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+            });
+
+            // Update and draw agents
+            agents.forEach(agent => {
+                agent.update(agents, targets, obstacles, dbHelpers.pheromoneCache, params.behavior);
+
+                // Leave pheromone trail
+                if (Math.random() < 0.1) {
+                    dbHelpers.storePheromone(
+                        {x: agent.x, y: agent.y},
+                        agent.targetReached ? 1.0 : 0.5,
+                        params.behavior
+                    );
+                }
+
+                // Draw agent
+                ctx.fillStyle = agent.targetReached ? '#00ff00' : agent.color;
+                ctx.globalAlpha = agent.energy / 100;
+                ctx.beginPath();
+                ctx.arc(agent.x, agent.y, 4, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalAlpha = 1;
+
+                // Draw path for successful agents
+                if (agent.targetReached && agent.path.length > 1) {
+                    ctx.strokeStyle = agent.color;
+                    ctx.lineWidth = 1;
+                    ctx.globalAlpha = 0.3;
+                    ctx.beginPath();
+                    ctx.moveTo(agent.path[0].x, agent.path[0].y);
+                    agent.path.forEach(p => ctx.lineTo(p.x, p.y));
+                    ctx.stroke();
+                    ctx.globalAlpha = 1;
+                }
+            });
+
+            // Update stats
+            stats.targetsFound = targets.filter(t => t.found).length;
+            stats.pathsDiscovered = dbHelpers.pathCache.length;
+            stats.collectiveIQ = Math.floor(
+                (stats.pathsDiscovered * 10 + dbHelpers.pheromoneCache.length * 2) / (stats.generation + 1)
+            );
+            stats.generation++;
+
+            updateStats();
+
+            animationId = requestAnimationFrame(animate);
+        }
+
+        function updateStats() {
+            document.getElementById('targetsFound').textContent = stats.targetsFound;
+            document.getElementById('pathsDiscovered').textContent = stats.pathsDiscovered;
+            document.getElementById('collectiveIQ').textContent = stats.collectiveIQ;
+            document.getElementById('trailCount').textContent = dbHelpers.pheromoneCache.length;
+        }
+
+        function updateAgentCount() {
+            params.agentCount = parseInt(document.getElementById('agentSlider').value);
+            document.getElementById('agentCount').textContent = params.agentCount;
+        }
+
+        function updateExploreRate() {
+            params.exploration = parseFloat(document.getElementById('exploreSlider').value);
+            document.getElementById('exploreRate').textContent = params.exploration.toFixed(1);
+        }
+
+        function updateDecayRate() {
+            params.pheromoneDecay = parseFloat(document.getElementById('decaySlider').value);
+            document.getElementById('decayRate').textContent = params.pheromoneDecay.toFixed(2);
+        }
+
+        function setBehavior(behavior) {
+            params.behavior = behavior;
+            document.querySelectorAll('.behavior-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            logMessage(`Swarm behavior changed to: ${behavior}`, 'info');
+        }
+
+        function logMessage(message, type = '') {
+            const log = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            const timestamp = new Date().toLocaleTimeString();
+            entry.textContent = `[${timestamp}] ${message}`;
+            log.insertBefore(entry, log.firstChild);
+
+            // Keep only last 20 messages
+            while (log.children.length > 20) {
+                log.removeChild(log.lastChild);
+            }
+        }
+
+        // Canvas click handler
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            if (e.shiftKey) {
+                obstacles.push({x, y, radius: 30});
+                logMessage('Obstacle placed', 'info');
+            } else {
+                targets.push({x, y, radius: 15, found: false});
+                logMessage('Target placed', 'info');
+            }
+        });
+
+        // Expose functions to window for onclick handlers
+        window.addTarget = addTarget;
+        window.addObstacle = addObstacle;
+        window.startSwarm = startSwarm;
+        window.resetSwarm = resetSwarm;
+        window.setBehavior = setBehavior;
+
+        // Initialize with some targets
+        addTarget();
+        addTarget();
+        addTarget();
+
+        logMessage('🐝 Swarm Intelligence initialized', 'success');
+        logMessage('Click to add targets, Shift+Click for obstacles', 'info');
+    </script>
+</body>
+</html>

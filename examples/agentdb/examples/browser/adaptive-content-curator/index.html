@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Adaptive Content Curator - AgentDB</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+      background: hsl(0 0% 12%);
+      color: hsl(0 0% 95%);
+      min-height: 100vh;
+      padding: 2rem;
+    }
+
+    .container {
+      max-width: 1600px;
+      margin: 0 auto;
+    }
+
+    header {
+      background: hsl(0 0% 15%);
+      border: 1px solid hsl(0 0% 25%);
+      border-radius: 16px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 6px 24px hsl(222 20% 0% / 0.24);
+    }
+
+    h1 {
+      color: hsl(195 100% 60%);
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+      letter-spacing: -0.005em;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .subtitle {
+      color: hsl(0 0% 85%);
+      font-size: 1.1rem;
+    }
+
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 400px;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .content-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+      gap: 20px;
+    }
+
+    .card {
+      background: hsl(0 0% 15%);
+      border: 1px solid hsl(0 0% 25%);
+      border-radius: 16px;
+      padding: 2rem;
+      box-shadow: 0 6px 24px hsl(222 20% 0% / 0.24);
+    }
+
+    .card h2 {
+      color: hsl(0 0% 95%);
+      margin-bottom: 1rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .status-indicator {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    .status-active { background: #10b981; }
+    .status-learning { background: #f59e0b; }
+    .status-curating { background: #8b5cf6; }
+    .status-idle { background: #6b7280; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .content-card {
+      background: hsl(0 0% 18%);
+      border: 1px solid hsl(0 0% 25%);
+      border-radius: 12px;
+      padding: 1.5rem;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+
+    .content-card:hover {
+      border-color: hsl(195 100% 60%);
+      transform: translateY(-2px);
+    }
+
+    .content-card.recommended {
+      border-color: hsl(120 60% 50%);
+      background: hsl(120 60% 50% / 0.05);
+    }
+
+    .content-title {
+      color: hsl(195 100% 60%);
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+      font-size: 1.1rem;
+    }
+
+    .content-description {
+      color: hsl(0 0% 85%);
+      line-height: 1.6;
+      margin-bottom: 1rem;
+      font-size: 0.95rem;
+    }
+
+    .content-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid hsl(0 0% 25%);
+    }
+
+    .content-tags {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .tag {
+      background: hsl(195 100% 60% / 0.2);
+      color: hsl(195 100% 60%);
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+
+    .tag.recommended {
+      background: hsl(120 60% 50% / 0.2);
+      color: hsl(120 60% 50%);
+    }
+
+    .relevance-score {
+      background: hsl(270 100% 60% / 0.2);
+      color: hsl(270 100% 60%);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-bottom: 1rem;
+    }
+
+    .stat-box {
+      background: hsl(0 0% 18%);
+      border: 1px solid hsl(0 0% 25%);
+      padding: 1rem;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 1.8rem;
+      font-weight: bold;
+      color: hsl(195 100% 60%);
+    }
+
+    .stat-label {
+      font-size: 0.85rem;
+      color: hsl(0 0% 75%);
+      margin-top: 0.25rem;
+    }
+
+    .preference-item {
+      background: hsl(0 0% 18%);
+      border: 1px solid hsl(0 0% 25%);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      margin-bottom: 0.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .preference-name {
+      color: hsl(0 0% 95%);
+      font-weight: 500;
+    }
+
+    .preference-bar {
+      flex-grow: 1;
+      height: 6px;
+      background: hsl(0 0% 25%);
+      border-radius: 3px;
+      margin: 0 1rem;
+      overflow: hidden;
+    }
+
+    .preference-fill {
+      height: 100%;
+      background: linear-gradient(90deg, hsl(195 100% 60%), hsl(270 100% 60%));
+      transition: width 0.3s ease;
+    }
+
+    .preference-value {
+      color: hsl(195 100% 60%);
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    .btn {
+      padding: 0.75rem 1.5rem;
+      background: hsl(195 100% 60%);
+      color: hsl(0 0% 10%);
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: all 0.2s ease;
+      width: 100%;
+      margin-bottom: 0.75rem;
+    }
+
+    .btn:hover:not(:disabled) {
+      opacity: 0.85;
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: hsl(0 0% 18%);
+      color: hsl(195 100% 60%);
+      border: 1px solid hsl(0 0% 25%);
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .log-container {
+      background: hsl(0 0% 18%);
+      border: 1px solid hsl(0 0% 25%);
+      border-radius: 8px;
+      padding: 1rem;
+      max-height: 200px;
+      overflow-y: auto;
+      font-size: 0.85rem;
+      margin-top: 1rem;
+    }
+
+    .log-entry {
+      padding: 4px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .log-timestamp {
+      color: hsl(0 0% 60%);
+      margin-right: 8px;
+    }
+
+    .log-info { color: hsl(195 100% 60%); }
+    .log-success { color: hsl(120 60% 50%); }
+    .log-warning { color: hsl(40 90% 60%); }
+
+    .spinner {
+      border: 3px solid hsl(0 0% 25%);
+      border-top: 3px solid hsl(195 100% 60%);
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      animation: spin 1s linear infinite;
+      display: inline-block;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 1200px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>
+        <span>📚</span>
+        Adaptive Content Curator
+      </h1>
+      <p class="subtitle">AI-Powered Personalized Content Discovery</p>
+    </header>
+
+    <div class="main-grid">
+      <div>
+        <div style="display: flex; gap: 12px; margin-bottom: 20px;">
+          <button id="curateBtn" class="btn" style="width: auto; flex: 1;">
+            <span id="curateIcon">🎯</span> Curate Content
+          </button>
+          <button id="refreshBtn" class="btn-secondary" style="width: auto;">
+            🔄 Refresh
+          </button>
+        </div>
+
+        <div class="content-grid" id="contentGrid"></div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 20px;">
+        <div class="card">
+          <h2>
+            <span class="status-indicator status-idle" id="systemStatus"></span>
+            Learning Status
+          </h2>
+          <div class="stats-grid">
+            <div class="stat-box">
+              <div class="stat-value" id="contentViewed">0</div>
+              <div class="stat-label">Viewed</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-value" id="preferencesLearned">0</div>
+              <div class="stat-label">Preferences</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>🎯 Your Preferences</h2>
+          <div id="preferencesContainer"></div>
+        </div>
+
+        <div class="card">
+          <h2>📊 Activity</h2>
+          <div class="log-container" id="logContainer"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { SQLiteVectorDB } from 'https://unpkg.com/agentdb@1.0.7/dist/agentdb.min.js';
+
+    const sampleContent = [
+      { id: 1, title: 'Quantum Computing Breakthrough', description: 'Scientists achieve quantum supremacy with 100-qubit processor, opening new possibilities for cryptography and drug discovery.', tags: ['technology', 'science', 'quantum'], category: 'tech' },
+      { id: 2, title: 'AI in Healthcare Revolution', description: 'Machine learning models now detect diseases with 95% accuracy, transforming medical diagnostics worldwide.', tags: ['ai', 'healthcare', 'innovation'], category: 'tech' },
+      { id: 3, title: 'Sustainable Energy Innovations', description: 'New solar panel technology achieves 40% efficiency, making renewable energy more accessible than ever.', tags: ['energy', 'environment', 'innovation'], category: 'science' },
+      { id: 4, title: 'Web3 and Decentralization', description: 'Blockchain technology reshapes internet infrastructure, giving users control over their data and digital identity.', tags: ['blockchain', 'web3', 'technology'], category: 'tech' },
+      { id: 5, title: 'Space Exploration Milestones', description: 'Private companies achieve successful Mars landing, marking new era in commercial space travel.', tags: ['space', 'exploration', 'science'], category: 'science' },
+      { id: 6, title: 'Neuroscience Discoveries', description: 'Brain-computer interfaces enable direct neural communication, offering hope for paralysis patients.', tags: ['neuroscience', 'healthcare', 'innovation'], category: 'science' },
+      { id: 7, title: 'Climate Change Solutions', description: 'Carbon capture technology removes CO2 at scale, providing practical climate change mitigation strategy.', tags: ['climate', 'environment', 'technology'], category: 'science' },
+      { id: 8, title: 'Programming Language Trends', description: 'Rust and Go gain popularity for system programming, offering memory safety and concurrency.', tags: ['programming', 'development', 'technology'], category: 'tech' }
+    ];
+
+    const state = {
+      db: null,
+      contentViewed: 0,
+      preferences: new Map(),
+      viewHistory: [],
+      isProcessing: false
+    };
+
+    const SUPABASE_URL = 'https://yoyrnfdeqygvfpmhjwty.supabase.co';
+    const AI_ENDPOINT = `${SUPABASE_URL}/functions/v1/agentdb-ai`;
+
+    // Note: This demo works fully without AI - it uses local learning only
+
+    async function initializeDB() {
+      try {
+        logMessage('info', '🔧 Initializing AgentDB...');
+        state.db = new SQLiteVectorDB({ memoryMode: true, backend: 'wasm' });
+        await state.db.initializeAsync();
+        logMessage('success', '✅ AgentDB initialized');
+        return true;
+      } catch (error) {
+        logMessage('warning', `⚠️ AgentDB init failed: ${error.message}`);
+        return false;
+      }
+    }
+
+    async function generateEmbedding(text) {
+      const words = text.toLowerCase().split(/\s+/);
+      const embedding = new Array(384).fill(0);
+      words.forEach((word, idx) => {
+        for (let i = 0; i < word.length; i++) {
+          const pos = (word.charCodeAt(i) + idx) % 384;
+          embedding[pos] += 0.1;
+        }
+      });
+      const mag = Math.sqrt(embedding.reduce((s, v) => s + v * v, 0));
+      return embedding.map(v => v / (mag || 1));
+    }
+
+    async function learnFromView(content) {
+      try {
+        // Update preferences
+        content.tags.forEach(tag => {
+          const count = state.preferences.get(tag) || 0;
+          state.preferences.set(tag, count + 1);
+        });
+
+        // Store in vector DB
+        const text = `${content.title} ${content.description}`;
+        const embedding = await generateEmbedding(text);
+        await state.db.insert({
+          embedding,
+          metadata: {
+            id: content.id,
+            category: content.category,
+            tags: content.tags,
+            timestamp: Date.now()
+          }
+        });
+
+        state.viewHistory.push(content.id);
+        updatePreferences();
+        logMessage('success', `📚 Learned preferences from: ${content.title.substring(0, 30)}...`);
+      } catch (error) {
+        console.error('Learning error:', error);
+      }
+    }
+
+    async function curateContent() {
+      if (state.isProcessing) return;
+      state.isProcessing = true;
+      updateStatus('curating');
+      updateButton(true);
+
+      try {
+        if (!state.db) await initializeDB();
+
+        logMessage('info', '🎯 Curating personalized content...');
+
+        // Calculate relevance scores
+        let scoredContent = sampleContent.map(content => ({
+          ...content,
+          relevance: calculateRelevance(content)
+        }));
+
+        // Sort by relevance
+        scoredContent.sort((a, b) => b.relevance - a.relevance);
+
+        // Display content
+        displayContent(scoredContent);
+
+        logMessage('success', '✅ Content curated based on your preferences');
+        updateStatus('active');
+      } catch (error) {
+        logMessage('warning', `Error: ${error.message}`);
+        updateStatus('idle');
+      } finally {
+        state.isProcessing = false;
+        updateButton(false);
+      }
+    }
+
+    function calculateRelevance(content) {
+      let score = 0;
+
+      // Tag matching
+      content.tags.forEach(tag => {
+        const pref = state.preferences.get(tag) || 0;
+        score += pref * 10;
+      });
+
+      // Novelty bonus (prefer unseen content)
+      if (!state.viewHistory.includes(content.id)) {
+        score += 5;
+      }
+
+      // Random exploration factor
+      score += Math.random() * 3;
+
+      return Math.round(score);
+    }
+
+    function displayContent(scoredContent) {
+      const container = document.getElementById('contentGrid');
+      container.innerHTML = scoredContent.map(content => {
+        const isRecommended = content.relevance > 10;
+        return `
+          <div class="content-card ${isRecommended ? 'recommended' : ''}"
+               onclick="handleContentClick(${content.id})">
+            <div class="content-title">${content.title}</div>
+            <div class="content-description">${content.description}</div>
+            <div class="content-tags">
+              ${content.tags.map(tag =>
+                `<span class="tag">${tag}</span>`
+              ).join('')}
+              ${isRecommended ? '<span class="tag recommended">⭐ Recommended</span>' : ''}
+            </div>
+            <div class="content-meta">
+              <div class="relevance-score">Relevance: ${content.relevance}%</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    window.handleContentClick = async function(contentId) {
+      const content = sampleContent.find(c => c.id === contentId);
+      if (!content) return;
+
+      state.contentViewed++;
+      updateStats();
+
+      await learnFromView(content);
+      logMessage('info', `👁️ Viewed: ${content.title}`);
+      updateStatus('learning');
+
+      setTimeout(() => updateStatus('active'), 1000);
+    };
+
+    function updatePreferences() {
+      const container = document.getElementById('preferencesContainer');
+      const prefs = Array.from(state.preferences.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 8);
+
+      if (prefs.length === 0) {
+        container.innerHTML = '<div style="color: hsl(0 0% 70%); font-style: italic;">View content to learn your preferences...</div>';
+        return;
+      }
+
+      const maxCount = Math.max(...prefs.map(p => p[1]));
+      container.innerHTML = prefs.map(([tag, count]) => `
+        <div class="preference-item">
+          <div class="preference-name">${tag}</div>
+          <div class="preference-bar">
+            <div class="preference-fill" style="width: ${(count / maxCount) * 100}%"></div>
+          </div>
+          <div class="preference-value">${count}</div>
+        </div>
+      `).join('');
+    }
+
+    function updateStats() {
+      document.getElementById('contentViewed').textContent = state.contentViewed;
+      document.getElementById('preferencesLearned').textContent = state.preferences.size;
+    }
+
+    function updateStatus(status) {
+      document.getElementById('systemStatus').className = 'status-indicator status-' + status;
+    }
+
+    function updateButton(loading) {
+      const btn = document.getElementById('curateBtn');
+      const icon = document.getElementById('curateIcon');
+      if (loading) {
+        icon.innerHTML = '<div class="spinner"></div>';
+        btn.disabled = true;
+      } else {
+        icon.textContent = '🎯';
+        btn.disabled = false;
+      }
+    }
+
+    function logMessage(type, message) {
+      const container = document.getElementById('logContainer');
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+      entry.innerHTML = `
+        <span class="log-timestamp">[${new Date().toLocaleTimeString()}]</span>
+        <span class="log-${type}">${message}</span>
+      `;
+      container.insertBefore(entry, container.firstChild);
+      while (container.children.length > 30) container.removeChild(container.lastChild);
+    }
+
+    // Event listeners
+    document.getElementById('curateBtn').addEventListener('click', curateContent);
+    document.getElementById('refreshBtn').addEventListener('click', () => {
+      displayContent(sampleContent.map(c => ({ ...c, relevance: 0 })));
+      logMessage('info', '🔄 Content refreshed');
+    });
+
+    // Initialize
+    updateStats();
+    updatePreferences();
+    displayContent(sampleContent.map(c => ({ ...c, relevance: 0 })));
+    logMessage('info', '🎯 Adaptive Content Curator Ready');
+    logMessage('info', '📚 Click on content to teach me your preferences');
+  </script>
+</body>
+</html>

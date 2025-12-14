@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Collaborative Filtering - AgentDB</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+            background: hsl(0 0% 12%);
+            min-height: 100vh;
+            padding: 2rem;
+            color: hsl(0 0% 95%);
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        header {
+            background: hsl(0 0% 15%);
+            border: 1px solid hsl(0 0% 25%);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 6px 24px hsl(222 20% 0% / 0.24);
+        }
+        h1 { color: hsl(0 0% 95%); margin-bottom: 0.5rem; }
+        .subtitle { color: hsl(0 0% 85%); }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+        .card {
+            background: hsl(0 0% 15%);
+            border: 1px solid hsl(0 0% 25%);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 6px 24px hsl(222 20% 0% / 0.24);
+        }
+        .card h2 { color: hsl(0 0% 95%); margin-bottom: 1rem; }
+        .item-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        .item-card {
+            background: hsl(0 0% 18%);
+            border: 2px solid hsl(0 0% 25%);
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .item-card:hover {
+            transform: translateY(-2px);
+            border-color: hsl(195 100% 60%);
+            background: hsl(0 0% 22%);
+        }
+        .item-card.rated {
+            border-color: hsl(142 70% 45%);
+            background: hsl(142 70% 45% / 0.15);
+        }
+        .item-icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
+        .item-title { font-weight: 600; color: hsl(0 0% 95%); font-size: 0.9rem; }
+        .rating-stars {
+            margin-top: 0.5rem;
+            display: flex;
+            justify-content: center;
+            gap: 0.25rem;
+        }
+        .star {
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: color 0.2s ease;
+        }
+        .star.filled { color: hsl(45 100% 51%); }
+        .star.empty { color: hsl(0 0% 30%); }
+        .recommendation-card {
+            background: hsl(195 100% 60% / 0.1);
+            border: 2px solid hsl(195 100% 60%);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+        .rec-icon { font-size: 3rem; }
+        .rec-details { flex: 1; }
+        .rec-title { font-weight: 600; color: hsl(0 0% 95%); margin-bottom: 0.25rem; }
+        .rec-reason { color: hsl(0 0% 85%); font-size: 0.9rem; }
+        .rec-score {
+            background: hsl(195 100% 60%);
+            color: hsl(0 0% 12%);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+        .stat-box {
+            background: hsl(0 0% 18%);
+            border: 1px solid hsl(0 0% 25%);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+        }
+        .stat-label { color: hsl(0 0% 85%); font-size: 0.9rem; }
+        .stat-value {
+            color: hsl(195 100% 60%);
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-top: 0.25rem;
+        }
+        .btn {
+            padding: 0.75rem 1.5rem;
+            background: hsl(195 100% 60%);
+            color: hsl(0 0% 12%);
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 1rem;
+            font-family: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+            transition: all 0.2s ease;
+        }
+        .btn:hover {
+            background: hsl(195 100% 70%);
+            transform: translateY(-1px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🤝 Collaborative Filtering System</h1>
+            <p class="subtitle">Learn preferences from similar users and discover new items</p>
+        </header>
+
+        <div class="grid">
+            <div>
+                <div class="card" style="margin-bottom: 1rem;">
+                    <h2>Rate Items</h2>
+                    <p style="color: #666; margin-bottom: 1rem;">Rate items you like to get personalized recommendations</p>
+                    <div class="item-grid" id="itemGrid"></div>
+                </div>
+
+                <div class="card">
+                    <h2>System Statistics</h2>
+                    <div class="stat-box">
+                        <div class="stat-label">Items Rated</div>
+                        <div class="stat-value" id="ratedCount">0</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Similar Users Found</div>
+                        <div class="stat-value" id="similarUsers">0</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Preference Accuracy</div>
+                        <div class="stat-value" id="accuracy">-</div>
+                    </div>
+                    <button class="btn" id="resetBtn">Reset Ratings</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>🎯 Recommended For You</h2>
+                <div id="recommendations">
+                    <p style="color: #666; text-align: center; padding: 2rem;">Rate some items to get recommendations!</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { SQLiteVectorDB } from "https://unpkg.com/agentdb@1.0.7/dist/agentdb.min.js";
+
+        let db = null;
+
+        async function initAgentDB() {
+            console.log('Initializing AgentDB v1.0.7 from CDN...');
+            db = new SQLiteVectorDB({ memoryMode: true, backend: "wasm" });
+            await db.initializeAsync();
+            console.log('✅ AgentDB WASM v1.0.7 initialized');
+        }
+
+        // Initialize on page load
+        initAgentDB();
+
+        const ITEMS = [
+            { id: 1, name: 'Action Movie', icon: '🎬', category: 'movies' },
+            { id: 2, name: 'Comedy Show', icon: '😂', category: 'movies' },
+            { id: 3, name: 'Sci-Fi Series', icon: '🚀', category: 'movies' },
+            { id: 4, name: 'Rock Music', icon: '🎸', category: 'music' },
+            { id: 5, name: 'Classical', icon: '🎻', category: 'music' },
+            { id: 6, name: 'Jazz', icon: '🎷', category: 'music' },
+            { id: 7, name: 'Pizza', icon: '🍕', category: 'food' },
+            { id: 8, name: 'Sushi', icon: '🍣', category: 'food' },
+            { id: 9, name: 'Burger', icon: '🍔', category: 'food' },
+            { id: 10, name: 'Adventure Game', icon: '🎮', category: 'games' },
+            { id: 11, name: 'Puzzle Game', icon: '🧩', category: 'games' },
+            { id: 12, name: 'Sports Game', icon: '⚽', category: 'games' },
+        ];
+
+        let userRatings = {};
+        let similarUsersData = [];
+
+        // Simulated other users' ratings for collaborative filtering
+        const otherUsers = [
+            { id: 1, ratings: { 1: 5, 2: 2, 4: 5, 7: 4, 10: 5 } },
+            { id: 2, ratings: { 2: 5, 3: 5, 5: 5, 8: 5, 11: 4 } },
+            { id: 3, ratings: { 1: 4, 4: 5, 7: 5, 9: 4, 10: 4 } },
+            { id: 4, ratings: { 3: 5, 5: 4, 6: 5, 8: 5, 11: 5 } },
+        ];
+
+        function initItemGrid() {
+            const grid = document.getElementById('itemGrid');
+            grid.innerHTML = ITEMS.map(item => {
+                const rated = userRatings[item.id];
+                return `
+                    <div class="item-card ${rated ? 'rated' : ''}" data-id="${item.id}">
+                        <div class="item-icon">${item.icon}</div>
+                        <div class="item-title">${item.name}</div>
+                        <div class="rating-stars" data-id="${item.id}">
+                            ${[1,2,3,4,5].map(star => `
+                                <span class="star ${rated >= star ? 'filled' : 'empty'}" data-star="${star}">★</span>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // Add click handlers
+            document.querySelectorAll('.star').forEach(star => {
+                star.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const itemId = parseInt(star.closest('.rating-stars').dataset.id);
+                    const rating = parseInt(star.dataset.star);
+                    rateItem(itemId, rating);
+                });
+            });
+        }
+
+        function rateItem(itemId, rating) {
+            userRatings[itemId] = rating;
+            initItemGrid();
+            updateRecommendations();
+            updateStats();
+        }
+
+        function calculateUserSimilarity(user1Ratings, user2Ratings) {
+            const commonItems = Object.keys(user1Ratings).filter(id => user2Ratings[id]);
+
+            if (commonItems.length === 0) return 0;
+
+            let sum = 0;
+            commonItems.forEach(id => {
+                sum += (user1Ratings[id] - user2Ratings[id]) ** 2;
+            });
+
+            return 1 / (1 + Math.sqrt(sum / commonItems.length));
+        }
+
+        function updateRecommendations() {
+            if (Object.keys(userRatings).length === 0) {
+                document.getElementById('recommendations').innerHTML = 
+                    '<p style="color: #666; text-align: center; padding: 2rem;">Rate some items to get recommendations!</p>';
+                return;
+            }
+
+            // Find similar users
+            similarUsersData = otherUsers.map(user => ({
+                ...user,
+                similarity: calculateUserSimilarity(userRatings, user.ratings)
+            })).filter(u => u.similarity > 0.3).sort((a, b) => b.similarity - a.similarity);
+
+            // Generate recommendations
+            const scores = {};
+
+            similarUsersData.forEach(user => {
+                Object.entries(user.ratings).forEach(([itemId, rating]) => {
+                    if (!userRatings[itemId]) {
+                        if (!scores[itemId]) scores[itemId] = 0;
+                        scores[itemId] += rating * user.similarity;
+                    }
+                });
+            });
+
+            const recommendations = Object.entries(scores)
+                .map(([itemId, score]) => ({
+                    item: ITEMS.find(i => i.id === parseInt(itemId)),
+                    score: score / similarUsersData.length,
+                    similarUsers: similarUsersData.length
+                }))
+                .sort((a, b) => b.score - a.score)
+                .slice(0, 5);
+
+            if (recommendations.length === 0) {
+                document.getElementById('recommendations').innerHTML = 
+                    '<p style="color: #666; text-align: center; padding: 2rem;">No recommendations yet. Rate more items!</p>';
+                return;
+            }
+
+            document.getElementById('recommendations').innerHTML = recommendations.map(rec => `
+                <div class="recommendation-card">
+                    <div class="rec-icon">${rec.item.icon}</div>
+                    <div class="rec-details">
+                        <div class="rec-title">${rec.item.name}</div>
+                        <div class="rec-reason">Based on ${rec.similarUsers} similar users</div>
+                    </div>
+                    <div class="rec-score">${rec.score.toFixed(1)}⭐</div>
+                </div>
+            `).join('');
+        }
+
+        function updateStats() {
+            document.getElementById('ratedCount').textContent = Object.keys(userRatings).length;
+            document.getElementById('similarUsers').textContent = similarUsersData.length;
+
+            if (Object.keys(userRatings).length > 3) {
+                const accuracy = Math.min(similarUsersData.length * 20, 100);
+                document.getElementById('accuracy').textContent = `${accuracy}%`;
+            }
+        }
+
+        function reset() {
+            if (confirm('Reset all ratings?')) {
+                userRatings = {};
+                similarUsersData = [];
+                initItemGrid();
+                updateRecommendations();
+                updateStats();
+            }
+        }
+
+        document.getElementById('resetBtn').addEventListener('click', reset);
+
+        initItemGrid();
+    </script>
+</body>
+</html>

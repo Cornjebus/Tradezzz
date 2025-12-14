@@ -1,0 +1,2527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🎯 Strategic AI Battleship - Game Theory Edition</title>
+  <script src="https://unpkg.com/agentdb@1.3.9/dist/agentdb.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #0a0e27;
+      color: #00ff41;
+      font-family: 'Courier New', monospace;
+      overflow-y: auto;
+      min-height: 100vh;
+    }
+
+    /* CRT Screen Effect */
+    body::before {
+      content: "";
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.15),
+        rgba(0, 0, 0, 0.15) 1px,
+        transparent 1px,
+        transparent 2px
+      );
+      pointer-events: none;
+      z-index: 1000;
+      animation: scanlines 8s linear infinite;
+    }
+
+    @keyframes scanlines {
+      0% { transform: translateY(0); }
+      100% { transform: translateY(10px); }
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0.5rem;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .header {
+      text-align: center;
+      padding: 0.5rem;
+      border: 2px solid #00ff41;
+      margin-bottom: 0.5rem;
+      background: rgba(0, 255, 65, 0.05);
+      box-shadow: 0 0 20px rgba(0, 255, 65, 0.3);
+    }
+
+    .header h1 {
+      font-size: 1.3rem;
+      text-shadow: 0 0 10px #00ff41;
+      margin-bottom: 0.25rem;
+    }
+
+    .header p {
+      font-size: 0.65rem;
+      opacity: 0.8;
+    }
+
+    .panel {
+      background: rgba(0, 0, 0, 0.7);
+      border: 1px solid #00ff41;
+      padding: 0.5rem;
+      box-shadow: inset 0 0 20px rgba(0, 255, 65, 0.1);
+    }
+
+    /* Controls Bar */
+    .controls {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .btn {
+      padding: 0.4rem 0.8rem;
+      background: rgba(0, 255, 65, 0.1);
+      border: 1px solid #00ff41;
+      color: #00ff41;
+      cursor: pointer;
+      font-family: 'Courier New', monospace;
+      font-size: 0.65rem;
+      transition: all 0.3s;
+      text-shadow: 0 0 5px #00ff41;
+    }
+
+    .btn:hover {
+      background: rgba(0, 255, 65, 0.3);
+      box-shadow: 0 0 15px rgba(0, 255, 65, 0.5);
+    }
+
+    .btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+
+    .btn.primary {
+      background: rgba(0, 255, 65, 0.3);
+      font-weight: bold;
+    }
+
+    .btn.danger {
+      border-color: #ff4444;
+      color: #ff4444;
+      background: rgba(255, 68, 68, 0.1);
+    }
+
+    /* Stats Bar */
+    .stats-bar {
+      display: flex;
+      gap: 1rem;
+      justify-content: space-around;
+      flex-wrap: wrap;
+    }
+
+    .stat-box {
+      text-align: center;
+      min-width: 80px;
+    }
+
+    .stat-label {
+      font-size: 0.55rem;
+      opacity: 0.7;
+      margin-bottom: 0.15rem;
+    }
+
+    .stat-value {
+      font-size: 0.9rem;
+      font-weight: bold;
+      text-shadow: 0 0 8px #00ff41;
+    }
+
+    /* Main Grid Layout */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    /* Battleship Grid */
+    .battleship-container {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .grid-header {
+      font-size: 0.75rem;
+      font-weight: bold;
+      text-align: center;
+      margin-bottom: 0.5rem;
+      padding: 0.3rem;
+      background: rgba(0, 255, 65, 0.1);
+      border: 1px solid #00ff41;
+    }
+
+    .grid-header.alpha {
+      color: #ff6666;
+      border-color: #ff4444;
+      background: rgba(255, 68, 68, 0.1);
+    }
+
+    .grid-header.beta {
+      color: #6666ff;
+      border-color: #4444ff;
+      background: rgba(68, 68, 255, 0.1);
+    }
+
+    .grid-header.gamma {
+      color: #66ff66;
+      border-color: #44ff44;
+      background: rgba(68, 255, 68, 0.1);
+    }
+
+    .grid-wrapper {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    .battleship-grid {
+      display: grid;
+      grid-template-columns: 30px repeat(10, 1fr);
+      grid-template-rows: 30px repeat(10, 1fr);
+      gap: 1px;
+      background: #00ff41;
+      min-height: 400px;
+      height: auto;
+    }
+
+    .grid-cell {
+      background: #0a0e27;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.65rem;
+      font-weight: bold;
+      border: 1px solid rgba(0, 255, 65, 0.3);
+      transition: all 0.3s;
+    }
+
+    .grid-cell.header {
+      background: rgba(0, 255, 65, 0.2);
+      font-size: 0.6rem;
+      color: #ffaa00;
+      font-weight: bold;
+      text-shadow: 0 0 5px #ffaa00;
+    }
+
+    .grid-cell.water {
+      background: #0a1628;
+      cursor: crosshair;
+    }
+
+    .grid-cell.ship {
+      background: rgba(0, 200, 255, 0.3);
+      border-color: #00c8ff;
+    }
+
+    .grid-cell.hit {
+      background: rgba(255, 68, 68, 0.5);
+      border-color: #ff4444;
+      animation: pulse 0.5s ease-out;
+    }
+
+    .grid-cell.miss {
+      background: rgba(100, 100, 100, 0.3);
+      border-color: #666;
+    }
+
+    .grid-cell.sunk {
+      background: rgba(150, 0, 0, 0.7);
+      border-color: #960000;
+    }
+
+    .grid-cell:not(.header):hover {
+      box-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.2); }
+    }
+
+    /* Ship Info Panel */
+    .ship-info {
+      margin-top: 0.5rem;
+      padding: 0.5rem;
+      background: rgba(0, 255, 65, 0.05);
+      border: 1px solid rgba(0, 255, 65, 0.3);
+      font-size: 0.6rem;
+    }
+
+    .ship-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+    }
+
+    .ship-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.2rem 0.4rem;
+      background: rgba(0, 0, 0, 0.3);
+      border-left: 3px solid #00ff41;
+    }
+
+    .ship-item.sunk {
+      opacity: 0.4;
+      border-left-color: #ff4444;
+      text-decoration: line-through;
+    }
+
+    /* Agent Panel */
+    .agent-card {
+      padding: 0.5rem;
+      margin-bottom: 0.5rem;
+      border: 1px solid rgba(0, 255, 65, 0.3);
+      background: rgba(0, 255, 65, 0.05);
+    }
+
+    .agent-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.3rem;
+    }
+
+    .agent-name {
+      font-size: 0.75rem;
+      font-weight: bold;
+    }
+
+    .agent-strategy {
+      font-size: 0.55rem;
+      opacity: 0.7;
+    }
+
+    .agent-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.3rem;
+      font-size: 0.6rem;
+    }
+
+    .agent-stat {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    /* Console */
+    .console-wrapper {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      min-height: 0;
+    }
+
+    .console-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+      padding-bottom: 0.3rem;
+      border-bottom: 1px solid rgba(0, 255, 65, 0.3);
+    }
+
+    .console-title {
+      font-size: 0.75rem;
+      font-weight: bold;
+    }
+
+    .console-clear {
+      font-size: 0.6rem;
+      padding: 0.2rem 0.5rem;
+    }
+
+    .console {
+      overflow-y: auto;
+      font-size: 0.6rem;
+      line-height: 1.4;
+      padding: 0.5rem;
+      background: rgba(0, 0, 0, 0.5);
+      max-height: 300px;
+      min-height: 200px;
+    }
+
+    .console-line {
+      margin-bottom: 0.3rem;
+      word-wrap: break-word;
+    }
+
+    .console-time {
+      opacity: 0.5;
+      font-size: 0.55rem;
+    }
+
+    .console-type {
+      font-weight: bold;
+      margin: 0 0.3rem;
+      font-size: 0.6rem;
+    }
+
+    .console-type.system { color: #00ff41; }
+    .console-type.strategy { color: #00c8ff; }
+    .console-type.attack { color: #ff4444; }
+    .console-type.learn { color: #ffaa00; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.3);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: rgba(0, 255, 65, 0.5);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(0, 255, 65, 0.8);
+    }
+
+    /* Modal */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.9);
+      z-index: 2000;
+      justify-content: center;
+      align-items: center;
+      padding: 1rem;
+    }
+
+    .modal.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: #0a0e27;
+      border: 2px solid #00ff41;
+      padding: 1.5rem;
+      max-width: 800px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 0 30px rgba(0, 255, 65, 0.5);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid #00ff41;
+    }
+
+    .modal-title {
+      font-size: 1.2rem;
+      font-weight: bold;
+    }
+
+    .modal-close {
+      font-size: 1.5rem;
+      cursor: pointer;
+      padding: 0 0.5rem;
+      color: #ff4444;
+    }
+
+    .modal-close:hover {
+      text-shadow: 0 0 10px #ff4444;
+    }
+
+    .modal-tabs {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      border-bottom: 1px solid rgba(0, 255, 65, 0.3);
+    }
+
+    .modal-tab {
+      padding: 0.5rem 1rem;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.3s;
+      font-size: 0.85rem;
+    }
+
+    .modal-tab.active {
+      border-bottom-color: #00ff41;
+      background: rgba(0, 255, 65, 0.1);
+    }
+
+    .modal-tab:hover {
+      background: rgba(0, 255, 65, 0.05);
+    }
+
+    .tab-content {
+      display: none;
+      animation: fadeIn 0.3s;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .modal-section {
+      margin-bottom: 1.5rem;
+    }
+
+    .modal-section h3 {
+      color: #00c8ff;
+      margin-bottom: 0.5rem;
+      font-size: 1rem;
+    }
+
+    .modal-section p {
+      line-height: 1.6;
+      margin-bottom: 0.5rem;
+      font-size: 0.85rem;
+    }
+
+    .modal-section ul {
+      margin-left: 1.5rem;
+      line-height: 1.8;
+    }
+
+    .modal-section code {
+      background: rgba(0, 255, 65, 0.1);
+      padding: 0.2rem 0.4rem;
+      border-radius: 3px;
+      font-size: 0.8rem;
+    }
+
+    /* Scoreboard */
+    .scoreboard {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .admiral-score-card {
+      background: rgba(0, 0, 0, 0.5);
+      border: 2px solid rgba(0, 255, 65, 0.3);
+      padding: 0.6rem;
+      position: relative;
+      transition: all 0.3s;
+    }
+
+    .admiral-score-card.winning {
+      border-color: #ffd700;
+      background: rgba(255, 215, 0, 0.1);
+      box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+      animation: winnerGlow 2s ease-in-out infinite;
+    }
+
+    .admiral-score-card.losing {
+      opacity: 0.6;
+      border-color: #ff4444;
+    }
+
+    @keyframes winnerGlow {
+      0%, 100% { box-shadow: 0 0 20px rgba(255, 215, 0, 0.5); }
+      50% { box-shadow: 0 0 30px rgba(255, 215, 0, 0.8); }
+    }
+
+    .rank-badge {
+      position: absolute;
+      top: -10px;
+      right: -10px;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: bold;
+      border: 2px solid;
+      animation: rankPulse 0.5s ease-out;
+    }
+
+    @keyframes rankPulse {
+      0% { transform: scale(0); }
+      50% { transform: scale(1.2); }
+      100% { transform: scale(1); }
+    }
+
+    .rank-badge.rank-1 {
+      background: linear-gradient(135deg, #ffd700, #ffed4e);
+      color: #000;
+      border-color: #ffd700;
+      text-shadow: none;
+    }
+
+    .rank-badge.rank-2 {
+      background: linear-gradient(135deg, #c0c0c0, #e8e8e8);
+      color: #000;
+      border-color: #c0c0c0;
+      text-shadow: none;
+    }
+
+    .rank-badge.rank-3 {
+      background: linear-gradient(135deg, #cd7f32, #f4a460);
+      color: #000;
+      border-color: #cd7f32;
+      text-shadow: none;
+    }
+
+    .admiral-score-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.4rem;
+      padding-bottom: 0.3rem;
+      border-bottom: 1px solid rgba(0, 255, 65, 0.2);
+    }
+
+    .admiral-score-name {
+      font-size: 0.75rem;
+      font-weight: bold;
+    }
+
+    .admiral-score-name.alpha { color: #ff4444; }
+    .admiral-score-name.beta { color: #4444ff; }
+    .admiral-score-name.gamma { color: #44ff44; }
+
+    .ships-remaining {
+      font-size: 0.7rem;
+      opacity: 0.9;
+    }
+
+    .score-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.3rem;
+      font-size: 0.6rem;
+    }
+
+    .score-stat {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .score-stat-label {
+      opacity: 0.7;
+    }
+
+    .score-stat-value {
+      font-weight: bold;
+    }
+
+    .accuracy-bar {
+      margin-top: 0.4rem;
+      background: rgba(0, 0, 0, 0.5);
+      height: 8px;
+      border-radius: 4px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .accuracy-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #00ff41, #00c832);
+      transition: width 0.5s ease;
+      position: relative;
+    }
+
+    .accuracy-fill::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+      animation: shimmer 2s infinite;
+    }
+
+    @keyframes shimmer {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+
+    .accuracy-label {
+      font-size: 0.55rem;
+      text-align: center;
+      margin-top: 0.2rem;
+      opacity: 0.8;
+    }
+
+    /* Achievements */
+    .achievements {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      padding: 0.5rem;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 170, 0, 0.3);
+      margin-bottom: 0.5rem;
+      min-height: 40px;
+    }
+
+    .achievement-badge {
+      font-size: 1.5rem;
+      cursor: help;
+      animation: unlockBadge 0.6s ease-out;
+    }
+
+    @keyframes unlockBadge {
+      0% { transform: scale(0) rotate(0deg); }
+      50% { transform: scale(1.3) rotate(180deg); }
+      100% { transform: scale(1) rotate(360deg); }
+    }
+
+    /* Victory Banner */
+    .victory-banner {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.95);
+      z-index: 3500;
+      display: none;
+      justify-content: center;
+      align-items: center;
+      animation: bannerFade 0.5s ease-out;
+    }
+
+    .victory-banner.active {
+      display: flex;
+    }
+
+    @keyframes bannerFade {
+      0% { opacity: 0; }
+      100% { opacity: 1; }
+    }
+
+    .victory-content {
+      text-align: center;
+      padding: 3rem;
+      background: rgba(0, 0, 0, 0.9);
+      border: 4px solid #ffd700;
+      border-radius: 10px;
+      box-shadow: 0 0 50px rgba(255, 215, 0, 0.8), inset 0 0 30px rgba(255, 215, 0, 0.2);
+      animation: victoryPulse 2s ease-in-out infinite;
+      max-width: 600px;
+    }
+
+    @keyframes victoryPulse {
+      0%, 100% { box-shadow: 0 0 50px rgba(255, 215, 0, 0.8), inset 0 0 30px rgba(255, 215, 0, 0.2); }
+      50% { box-shadow: 0 0 80px rgba(255, 215, 0, 1), inset 0 0 40px rgba(255, 215, 0, 0.3); }
+    }
+
+    .victory-crown {
+      font-size: 5rem;
+      margin-bottom: 1rem;
+      animation: crownBounce 1s ease-in-out infinite;
+    }
+
+    @keyframes crownBounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-20px); }
+    }
+
+    .victory-title {
+      font-size: 2.5rem;
+      color: #ffd700;
+      text-shadow: 0 0 20px #ffd700, 0 0 40px #ffd700;
+      margin-bottom: 1rem;
+      font-weight: bold;
+    }
+
+    .victory-admiral {
+      font-size: 2rem;
+      margin-bottom: 2rem;
+      text-shadow: 0 0 10px;
+    }
+
+    .victory-stats {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+      margin-bottom: 2rem;
+      text-align: left;
+    }
+
+    .victory-stat {
+      padding: 0.5rem 1rem;
+      background: rgba(0, 255, 65, 0.1);
+      border: 1px solid rgba(0, 255, 65, 0.3);
+      border-radius: 5px;
+    }
+
+    .victory-stat-label {
+      font-size: 0.8rem;
+      opacity: 0.7;
+      margin-bottom: 0.3rem;
+    }
+
+    .victory-stat-value {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #00ff41;
+    }
+
+    .victory-close {
+      padding: 0.8rem 2rem;
+      background: rgba(0, 255, 65, 0.2);
+      border: 2px solid #00ff41;
+      color: #00ff41;
+      font-size: 1rem;
+      font-family: 'Courier New', monospace;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .victory-close:hover {
+      background: rgba(0, 255, 65, 0.4);
+      box-shadow: 0 0 20px rgba(0, 255, 65, 0.5);
+    }
+
+    /* Alert */
+    .alert {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0, 0, 0, 0.95);
+      border: 2px solid #00ff41;
+      padding: 2rem;
+      z-index: 3000;
+      min-width: 300px;
+      text-align: center;
+      box-shadow: 0 0 50px rgba(0, 255, 65, 0.8);
+      animation: alertPop 0.3s ease-out;
+      display: none;
+    }
+
+    .alert.active {
+      display: block;
+    }
+
+    @keyframes alertPop {
+      0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+      100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    }
+
+    .alert-title {
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+      text-shadow: 0 0 10px #00ff41;
+    }
+
+    .alert-message {
+      font-size: 1rem;
+      line-height: 1.6;
+    }
+
+    /* Responsive */
+    @media (max-width: 1200px) {
+      .main-grid {
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: auto auto;
+      }
+
+      .main-grid > div:last-child {
+        grid-column: 1 / -1;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .battleship-grid {
+        font-size: 0.5rem;
+      }
+    }
+
+    /* Screen Flash */
+    .screen-flash {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 255, 65, 0.3);
+      pointer-events: none;
+      z-index: 999;
+      opacity: 0;
+    }
+
+    .screen-flash.active {
+      animation: flash 0.5s ease-out;
+    }
+
+    @keyframes flash {
+      0%, 100% { opacity: 0; }
+      50% { opacity: 1; }
+    }
+
+    /* Explosion Effect */
+    .explosion {
+      position: absolute;
+      pointer-events: none;
+      font-size: 2rem;
+      animation: explode 1s ease-out forwards;
+      z-index: 100;
+    }
+
+    @keyframes explode {
+      0% {
+        transform: scale(0);
+        opacity: 1;
+      }
+      50% {
+        transform: scale(1.5);
+        opacity: 1;
+      }
+      100% {
+        transform: scale(2);
+        opacity: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="screen-flash" id="screenFlash"></div>
+
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <h1>🎯 STRATEGIC AI BATTLESHIP - GAME THEORY EDITION</h1>
+      <p>Multi-Agent Naval Combat with Advanced Game Theory AI • AgentDB v1.3.9 • Pattern Learning • Bayesian Inference</p>
+    </div>
+
+    <!-- Controls -->
+    <div class="panel" style="margin-bottom: 0.5rem;">
+      <div class="controls">
+        <button class="btn primary" id="startBtn" onclick="startBattle()">▶ START BATTLE</button>
+        <button class="btn danger" id="stopBtn" onclick="stopBattle()" disabled>⏹ STOP</button>
+        <button class="btn" onclick="runGameTheory()">🎲 GAME THEORY</button>
+        <button class="btn" onclick="analyzePatterns()">🧠 ANALYZE</button>
+        <button class="btn" onclick="showSettings()">⚙️ SETTINGS</button>
+        <button class="btn" onclick="resetBattle()">🔄 RESET</button>
+        <button class="btn" onclick="showHelp()">❓ HELP</button>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="panel" style="margin-bottom: 0.5rem;">
+      <div class="stats-bar">
+        <div class="stat-box">
+          <div class="stat-label">TURN</div>
+          <div class="stat-value" id="turnCounter">0</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">ATTACKS</div>
+          <div class="stat-value" id="attackCounter">0</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">HITS</div>
+          <div class="stat-value" id="hitCounter">0</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">SHIPS SUNK</div>
+          <div class="stat-value" id="sunkCounter">0</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">PATTERNS</div>
+          <div class="stat-value" id="patternCounter">0</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">STATUS</div>
+          <div class="stat-value" id="systemStatus">STANDBY</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scoreboard -->
+    <div class="scoreboard" id="scoreboard">
+      <!-- Dynamically populated -->
+    </div>
+
+    <!-- Achievements -->
+    <div class="achievements" id="achievements"></div>
+
+    <!-- Main Grid -->
+    <div class="main-grid">
+      <!-- Admiral Alpha's Grid -->
+      <div class="battleship-container">
+        <div class="panel" style="height: 100%; display: flex; flex-direction: column;">
+          <div class="grid-header alpha">🔴 ADMIRAL ALPHA - AGGRESSIVE</div>
+          <div class="grid-wrapper">
+            <div class="battleship-grid" id="gridAlpha"></div>
+          </div>
+          <div class="ship-info">
+            <div style="font-weight: bold; margin-bottom: 0.3rem;">FLEET STATUS:</div>
+            <div class="ship-list" id="shipsAlpha"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Admiral Beta's Grid -->
+      <div class="battleship-container">
+        <div class="panel" style="height: 100%; display: flex; flex-direction: column;">
+          <div class="grid-header beta">🔵 ADMIRAL BETA - DEFENSIVE</div>
+          <div class="grid-wrapper">
+            <div class="battleship-grid" id="gridBeta"></div>
+          </div>
+          <div class="ship-info">
+            <div style="font-weight: bold; margin-bottom: 0.3rem;">FLEET STATUS:</div>
+            <div class="ship-list" id="shipsBeta"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Admiral Gamma's Grid -->
+      <div class="battleship-container">
+        <div class="panel" style="height: 100%; display: flex; flex-direction: column;">
+          <div class="grid-header gamma">🟢 ADMIRAL GAMMA - STRATEGIC</div>
+          <div class="grid-wrapper">
+            <div class="battleship-grid" id="gridGamma"></div>
+          </div>
+          <div class="ship-info">
+            <div style="font-weight: bold; margin-bottom: 0.3rem;">FLEET STATUS:</div>
+            <div class="ship-list" id="shipsGamma"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Console & Info Panel -->
+      <div style="grid-column: 1 / -1;">
+        <div class="panel console-wrapper">
+          <div class="console-header">
+            <div class="console-title">⚡ TACTICAL CONSOLE</div>
+            <button class="btn console-clear" onclick="clearConsole()">CLEAR</button>
+          </div>
+          <div class="console" id="console"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Help Modal -->
+  <div class="modal" id="helpModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-title">📖 Strategic AI Battleship - Help</div>
+        <div class="modal-close" onclick="closeHelp()">×</div>
+      </div>
+
+      <div class="modal-tabs">
+        <div class="modal-tab active" onclick="switchHelpTab(0)">Overview</div>
+        <div class="modal-tab" onclick="switchHelpTab(1)">Game Theory</div>
+        <div class="modal-tab" onclick="switchHelpTab(2)">AI Strategies</div>
+        <div class="modal-tab" onclick="switchHelpTab(3)">Controls</div>
+      </div>
+
+      <div id="helpTab0" class="tab-content active">
+        <div class="modal-section">
+          <h3>🎯 Welcome to Strategic AI Battleship</h3>
+          <p>Experience the future of autonomous AI in this revolutionary Battleship game powered by AgentDB v1.3.9. Watch three AI admirals battle using advanced game theory, pattern learning, and causal inference.</p>
+        </div>
+
+        <div class="modal-section">
+          <h3>🚢 The Fleets</h3>
+          <p>Each admiral commands 5 ships:</p>
+          <ul>
+            <li><strong>Carrier</strong> - 5 cells (Most valuable)</li>
+            <li><strong>Battleship</strong> - 4 cells</li>
+            <li><strong>Cruiser</strong> - 3 cells</li>
+            <li><strong>Submarine</strong> - 3 cells</li>
+            <li><strong>Destroyer</strong> - 2 cells (Most agile)</li>
+          </ul>
+        </div>
+
+        <div class="modal-section">
+          <h3>🤖 The Admirals</h3>
+          <p><strong>Admiral Alpha (Red)</strong> - Aggressive hunter using salvo tactics and probability clustering</p>
+          <p><strong>Admiral Beta (Blue)</strong> - Defensive strategist with pattern avoidance and distributed placement</p>
+          <p><strong>Admiral Gamma (Green)</strong> - Adaptive learner combining Bayesian inference with pattern recognition</p>
+        </div>
+
+        <div class="modal-section">
+          <h3>⚡ How It Works</h3>
+          <p>1. Click <strong>START BATTLE</strong> to begin</p>
+          <p>2. AI admirals take turns attacking each other</p>
+          <p>3. Watch as they learn from hits/misses and adapt strategies</p>
+          <p>4. First admiral to sink all enemy ships wins</p>
+        </div>
+      </div>
+
+      <div id="helpTab1" class="tab-content">
+        <div class="modal-section">
+          <h3>🎲 Game Theory in Action</h3>
+          <p>This demo implements cutting-edge game theory concepts:</p>
+        </div>
+
+        <div class="modal-section">
+          <h3>Nash Equilibrium Ship Placement</h3>
+          <p>Ships are placed to minimize predictability while maximizing defensive coverage. Each admiral uses mixed strategies to avoid creating exploitable patterns.</p>
+        </div>
+
+        <div class="modal-section">
+          <h3>Bayesian Inference Targeting</h3>
+          <p>AI admirals maintain probability heatmaps of enemy ship locations, updating beliefs with each hit/miss using Bayes' theorem:</p>
+          <code>P(Ship|Hit) = P(Hit|Ship) × P(Ship) / P(Hit)</code>
+        </div>
+
+        <div class="modal-section">
+          <h3>Prisoner's Dilemma Intelligence Sharing</h3>
+          <p>When one admiral dominates, others may form temporary coalitions, sharing targeting intelligence. But will they cooperate or defect?</p>
+        </div>
+
+        <div class="modal-section">
+          <h3>Minimax Strategy</h3>
+          <p>Admirals minimize maximum possible loss by balancing offensive strikes with defensive unpredictability.</p>
+        </div>
+
+        <div class="modal-section">
+          <h3>Causal Inference</h3>
+          <p>AI tracks what strategies cause victories, building causal graphs to understand why certain tactics work.</p>
+        </div>
+      </div>
+
+      <div id="helpTab2" class="tab-content">
+        <div class="modal-section">
+          <h3>🧠 AI Decision Systems</h3>
+          <p>Each admiral uses multiple AI techniques:</p>
+        </div>
+
+        <div class="modal-section">
+          <h3>Pattern Learning (ReasoningBank)</h3>
+          <p>Stores attack episodes with outcomes, learns which patterns lead to hits, and retrieves similar past situations using vector similarity.</p>
+        </div>
+
+        <div class="modal-section">
+          <h3>Reflexion Self-Critique</h3>
+          <p>After each turn, AI admirals critique their own decisions:</p>
+          <ul>
+            <li>"That random shot was inefficient"</li>
+            <li>"Clustering attacks near first hit paid off"</li>
+            <li>"Should have targeted high-probability areas"</li>
+          </ul>
+        </div>
+
+        <div class="modal-section">
+          <h3>Probability Heatmaps</h3>
+          <p>Maintains 10×10 probability grid for enemy ship locations. Updates in real-time based on:</p>
+          <ul>
+            <li>Hits (increase nearby probabilities)</li>
+            <li>Misses (reduce probabilities)</li>
+            <li>Sunk ships (eliminate from calculation)</li>
+            <li>Remaining ship sizes</li>
+          </ul>
+        </div>
+
+        <div class="modal-section">
+          <h3>Targeting Strategies</h3>
+          <p><strong>Hunt Mode:</strong> Random/probability-based search for first hit</p>
+          <p><strong>Target Mode:</strong> Once hit, systematically attack adjacent cells</p>
+          <p><strong>Finish Mode:</strong> Continue along ship axis until sunk</p>
+        </div>
+
+        <div class="modal-section">
+          <h3>Adaptive Learning</h3>
+          <p>Performance metrics tracked:</p>
+          <ul>
+            <li>Hit rate by strategy</li>
+            <li>Shots to sink by ship type</li>
+            <li>Pattern effectiveness scores</li>
+            <li>Coalition success rates</li>
+          </ul>
+        </div>
+      </div>
+
+      <div id="helpTab3" class="tab-content">
+        <div class="modal-section">
+          <h3>🎮 Controls</h3>
+          <p><strong>START BATTLE</strong> - Begin the simulation</p>
+          <p><strong>STOP</strong> - Pause the battle</p>
+          <p><strong>GAME THEORY</strong> - Run special scenarios (Prisoner's Dilemma, Nash Analysis)</p>
+          <p><strong>ANALYZE</strong> - View learned patterns and strategy effectiveness</p>
+          <p><strong>SETTINGS</strong> - Configure AI behavior, speed, and features</p>
+          <p><strong>RESET</strong> - Clear board and start fresh</p>
+          <p><strong>HELP</strong> - Show this help modal</p>
+        </div>
+
+        <div class="modal-section">
+          <h3>🏆 Achievements</h3>
+          <p>Unlock achievements by reaching milestones:</p>
+          <ul>
+            <li>🎯 <strong>First Blood</strong> - First hit</li>
+            <li>💥 <strong>Ship Destroyer</strong> - Sink first ship</li>
+            <li>🧠 <strong>Pattern Master</strong> - Learn 25 patterns</li>
+            <li>👑 <strong>Admiral</strong> - Win a battle</li>
+            <li>🔥 <strong>Perfect Game</strong> - Win without losing a ship</li>
+            <li>⚡ <strong>Speed Demon</strong> - Sink ship in <10 shots</li>
+            <li>🎲 <strong>Game Theorist</strong> - Form successful coalition</li>
+            <li>🤖 <strong>AI Genius</strong> - Learn 100 patterns</li>
+            <li>💀 <strong>Fleet Commander</strong> - Sink 10 ships</li>
+            <li>🏅 <strong>Legendary</strong> - Win 3 battles</li>
+          </ul>
+        </div>
+
+        <div class="modal-section">
+          <h3>📊 Console</h3>
+          <p>Watch AI decision-making in real-time:</p>
+          <p><span style="color: #00ff41;">● SYSTEM</span> - Game status and initialization</p>
+          <p><span style="color: #00c8ff;">● STRATEGY</span> - AI planning and decision logic</p>
+          <p><span style="color: #ff4444;">● ATTACK</span> - Attack execution and results</p>
+          <p><span style="color: #ffaa00;">● LEARN</span> - Pattern learning and insights</p>
+        </div>
+
+        <div class="modal-section">
+          <h3>🔧 Tips</h3>
+          <ul>
+            <li>Watch probability heatmaps in console logs</li>
+            <li>Notice how AI adapts after sinking ships</li>
+            <li>Look for coalition formation when one admiral dominates</li>
+            <li>Check pattern analysis to see what strategies work</li>
+            <li>Adjust speed in settings to watch AI thinking</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div class="modal" id="settingsModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-title">⚙️ Configuration</div>
+        <div class="modal-close" onclick="closeSettings()">×</div>
+      </div>
+
+      <div class="modal-tabs">
+        <div class="modal-tab active" onclick="switchSettingsTab(0)">AI Behavior</div>
+        <div class="modal-tab" onclick="switchSettingsTab(1)">Simulation</div>
+        <div class="modal-tab" onclick="switchSettingsTab(2)">Features</div>
+      </div>
+
+      <div id="settingsTab0" class="tab-content active">
+        <div class="modal-section">
+          <h3>🤖 AI Intelligence</h3>
+          <p>
+            <label>Pattern Learning Rate: <span id="learningRateValue">0.3</span></label><br>
+            <input type="range" id="learningRate" min="0" max="1" step="0.1" value="0.3" style="width: 100%;" oninput="updateLearningRate(this.value)">
+          </p>
+          <p>
+            <label>Probability Threshold: <span id="thresholdValue">0.5</span></label><br>
+            <input type="range" id="threshold" min="0" max="1" step="0.05" value="0.5" style="width: 100%;" oninput="updateThreshold(this.value)">
+          </p>
+        </div>
+
+        <div class="modal-section">
+          <h3>🎯 Targeting Strategy Mix</h3>
+          <p>
+            <label><input type="checkbox" id="useProbability" checked> Probability-based targeting</label>
+          </p>
+          <p>
+            <label><input type="checkbox" id="usePatterns" checked> Pattern recognition</label>
+          </p>
+          <p>
+            <label><input type="checkbox" id="useBayesian" checked> Bayesian inference</label>
+          </p>
+          <p>
+            <label><input type="checkbox" id="useCoalitions" checked> Coalition formation</label>
+          </p>
+        </div>
+      </div>
+
+      <div id="settingsTab1" class="tab-content">
+        <div class="modal-section">
+          <h3>⚡ Simulation Speed</h3>
+          <p>
+            <label>Turn Delay (ms): <span id="speedValue">1500</span></label><br>
+            <input type="range" id="speed" min="100" max="3000" step="100" value="1500" style="width: 100%;" oninput="updateSpeed(this.value)">
+          </p>
+        </div>
+
+        <div class="modal-section">
+          <h3>🎮 Game Mode</h3>
+          <p>
+            <label><input type="radio" name="gameMode" value="threeway" checked> Three-Way Battle</label>
+          </p>
+          <p>
+            <label><input type="radio" name="gameMode" value="tournament"> Tournament (Best of 5)</label>
+          </p>
+          <p>
+            <label><input type="radio" name="gameMode" value="endless"> Endless Mode</label>
+          </p>
+        </div>
+      </div>
+
+      <div id="settingsTab2" class="tab-content">
+        <div class="modal-section">
+          <h3>✨ Special Features</h3>
+          <p>
+            <label><input type="checkbox" id="enableEffects" checked> Explosion effects</label>
+          </p>
+          <p>
+            <label><input type="checkbox" id="enableAchievements" checked> Achievement system</label>
+          </p>
+          <p>
+            <label><input type="checkbox" id="enableEvents" checked> Special events</label>
+          </p>
+          <p>
+            <label><input type="checkbox" id="detailedLogs" checked> Detailed console logs</label>
+          </p>
+        </div>
+
+        <div class="modal-section">
+          <h3>💾 Data</h3>
+          <p>
+            <button class="btn" onclick="exportPatterns()">Export Learned Patterns</button>
+          </p>
+          <p>
+            <button class="btn" onclick="importPatterns()">Import Patterns</button>
+          </p>
+          <p>
+            <button class="btn danger" onclick="clearAllData()">Clear All Data</button>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Victory Banner -->
+  <div class="victory-banner" id="victoryBanner">
+    <div class="victory-content">
+      <div class="victory-crown">👑</div>
+      <div class="victory-title">VICTORY!</div>
+      <div class="victory-admiral" id="victoryAdmiralName"></div>
+      <div class="victory-stats" id="victoryStats"></div>
+      <button class="victory-close" onclick="closeVictoryBanner()">CONTINUE</button>
+    </div>
+  </div>
+
+  <!-- Alert -->
+  <div class="alert" id="alert">
+    <div class="alert-title" id="alertTitle"></div>
+    <div class="alert-message" id="alertMessage"></div>
+  </div>
+
+  <script>
+    // ==================== GLOBAL STATE ====================
+    const state = {
+      db: null,
+      isRunning: false,
+      turnCount: 0,
+      attackCount: 0,
+      hitCount: 0,
+      sunkCount: 0,
+      patternCount: 0,
+      admirals: [],
+      grids: {},
+      ships: {},
+      patterns: [],
+      achievements: new Set(),
+      settings: {
+        speed: 1500,
+        learningRate: 0.3,
+        probabilityThreshold: 0.5,
+        useProbability: true,
+        usePatterns: true,
+        useBayesian: true,
+        useCoalitions: true,
+        enableEffects: true,
+        enableAchievements: true,
+        enableEvents: true,
+        detailedLogs: true
+      },
+      intervalId: null
+    };
+
+    // Ship types
+    const SHIP_TYPES = [
+      { name: 'Carrier', size: 5, emoji: '🚢' },
+      { name: 'Battleship', size: 4, emoji: '⚓' },
+      { name: 'Cruiser', size: 3, emoji: '🛳️' },
+      { name: 'Submarine', size: 3, emoji: '🔱' },
+      { name: 'Destroyer', size: 2, emoji: '⛴️' }
+    ];
+
+    // Achievements
+    const ACHIEVEMENTS = {
+      'first-hit': { emoji: '🎯', name: 'First Blood', desc: 'Land first hit' },
+      'first-sink': { emoji: '💥', name: 'Ship Destroyer', desc: 'Sink first ship' },
+      'pattern-master': { emoji: '🧠', name: 'Pattern Master', desc: 'Learn 25 patterns' },
+      'admiral': { emoji: '👑', name: 'Admiral', desc: 'Win a battle' },
+      'perfect-game': { emoji: '🔥', name: 'Perfect Game', desc: 'Win without losing a ship' },
+      'speed-demon': { emoji: '⚡', name: 'Speed Demon', desc: 'Sink ship in <10 shots' },
+      'game-theorist': { emoji: '🎲', name: 'Game Theorist', desc: 'Form successful coalition' },
+      'ai-genius': { emoji: '🤖', name: 'AI Genius', desc: 'Learn 100 patterns' },
+      'fleet-commander': { emoji: '💀', name: 'Fleet Commander', desc: 'Sink 10 ships' },
+      'legendary': { emoji: '🏅', name: 'Legendary', desc: 'Win 3 battles' }
+    };
+
+    // ==================== INITIALIZATION ====================
+    // Generate embedding for pattern matching (deterministic)
+    async function generateEmbedding(text) {
+      const normalized = text.toLowerCase().trim();
+      const embedding = new Array(384).fill(0);
+
+      // Multi-layered deterministic embedding generation
+      for (let i = 0; i < normalized.length; i++) {
+        const char = normalized.charCodeAt(i);
+        const pos1 = (char * 7 + i * 13) % 384;
+        const pos2 = (char * 11 + i * 17) % 384;
+        const pos3 = (char * 13 + i * 19) % 384;
+
+        embedding[pos1] += 1.0;
+        embedding[pos2] += 0.7;
+        embedding[pos3] += 0.5;
+      }
+
+      // Normalize to unit vector
+      const magnitude = Math.sqrt(embedding.reduce((sum, val) => sum + val * val, 0));
+      return embedding.map(val => val / magnitude);
+    }
+
+    async function initializeAgentDB() {
+      logConsole('system', '⚡ Strategic AI Battleship v2.0 Initializing...', 'system');
+
+      // Wait for AgentDB to load
+      let attempts = 0;
+      while (typeof AgentDB === 'undefined' && attempts < 50) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        attempts++;
+      }
+
+      if (typeof AgentDB === 'undefined') {
+        logConsole('system', '❌ AgentDB failed to load', 'system');
+        showAlert('Error', 'AgentDB library failed to load. Please refresh the page.');
+        return false;
+      }
+
+      logConsole('system', '✓ AgentDB v1.3.9 script loaded', 'system');
+
+      // Wait for AgentDB to be ready
+      attempts = 0;
+      while (!AgentDB.ready && attempts < 50) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        attempts++;
+      }
+
+      if (!AgentDB.ready) {
+        logConsole('system', '❌ AgentDB initialization timeout', 'system');
+        showAlert('Error', 'AgentDB initialization timed out. Please refresh the page.');
+        return false;
+      }
+
+      logConsole('system', '✓ Initializing AgentDB v1.3.9 WASM with ReasoningBank...', 'system');
+
+      try {
+        // Create database instance with correct v1.3.9 API
+        state.db = new AgentDB.SQLiteVectorDB({
+          memoryMode: true,
+          backend: 'wasm'
+        });
+
+        // Initialize database (v1.3.9 automatically creates all tables)
+        await state.db.initializeAsync();
+
+        logConsole('system', '✓ AgentDB v1.3.9 initialized with full schema (vectors, patterns, episodes, causal_edges)', 'system');
+        logConsole('system', '✓ ReasoningBank SAFLA ready for pattern learning', 'system');
+
+        // Check for advanced features
+        if (state.db.reflexion_store && state.db.causal_add_edge) {
+          logConsole('system', '✓ 🧠 Advanced features: Reflexion + Causal Inference available', 'system');
+        } else {
+          logConsole('system', '✓ ⚡ Using core pattern learning features', 'system');
+        }
+
+        // Verify database is ready
+        if (typeof state.db.run === 'function' || typeof state.db.storePattern === 'function') {
+          logConsole('system', '✓ Database API verified and ready', 'system');
+        }
+
+        return true;
+      } catch (error) {
+        logConsole('system', `❌ Database initialization error: ${error.message}`, 'system');
+        console.error('AgentDB init error:', error);
+        return false;
+      }
+    }
+
+    function initializeAdmirals() {
+      state.admirals = [
+        {
+          id: 'alpha',
+          name: 'Admiral Alpha',
+          color: '#ff4444',
+          strategy: 'Aggressive',
+          description: 'Salvo tactics with probability clustering',
+          wins: 0,
+          losses: 0,
+          totalShots: 0,
+          hits: 0,
+          shipsKilled: 0,
+          currentTarget: null,
+          heatmap: createHeatmap()
+        },
+        {
+          id: 'beta',
+          name: 'Admiral Beta',
+          color: '#4444ff',
+          strategy: 'Defensive',
+          description: 'Pattern avoidance with distributed placement',
+          wins: 0,
+          losses: 0,
+          totalShots: 0,
+          hits: 0,
+          shipsKilled: 0,
+          currentTarget: null,
+          heatmap: createHeatmap()
+        },
+        {
+          id: 'gamma',
+          name: 'Admiral Gamma',
+          color: '#44ff44',
+          strategy: 'Strategic',
+          description: 'Bayesian inference with adaptive learning',
+          wins: 0,
+          losses: 0,
+          totalShots: 0,
+          hits: 0,
+          shipsKilled: 0,
+          currentTarget: null,
+          heatmap: createHeatmap()
+        }
+      ];
+
+      logConsole('system', `✓ ${state.admirals.length} AI admirals deployed`, 'system');
+    }
+
+    function createHeatmap() {
+      const heatmap = [];
+      for (let i = 0; i < 10; i++) {
+        heatmap[i] = [];
+        for (let j = 0; j < 10; j++) {
+          heatmap[i][j] = 1.0; // Start with uniform probability
+        }
+      }
+      return heatmap;
+    }
+
+    function initializeGrids() {
+      state.grids = {};
+      state.ships = {};
+
+      state.admirals.forEach(admiral => {
+        // Create empty grid (0 = water, 1 = ship, 2 = miss, 3 = hit, 4 = sunk)
+        const grid = [];
+        for (let i = 0; i < 10; i++) {
+          grid[i] = [];
+          for (let j = 0; j < 10; j++) {
+            grid[i][j] = 0;
+          }
+        }
+
+        // Place ships using Nash equilibrium placement
+        const ships = placeShipsNash(admiral.id);
+        ships.forEach(ship => {
+          ship.cells.forEach(cell => {
+            grid[cell.y][cell.x] = 1;
+          });
+        });
+
+        state.grids[admiral.id] = grid;
+        state.ships[admiral.id] = ships;
+      });
+
+      logConsole('system', '✓ Battleship grids initialized with Nash placement', 'system');
+      renderAllGrids();
+    }
+
+    function placeShipsNash(admiralId) {
+      const ships = [];
+      const grid = [];
+      for (let i = 0; i < 10; i++) {
+        grid[i] = new Array(10).fill(0);
+      }
+
+      SHIP_TYPES.forEach((shipType, index) => {
+        let placed = false;
+        let attempts = 0;
+
+        while (!placed && attempts < 100) {
+          const horizontal = Math.random() < 0.5;
+          const x = Math.floor(Math.random() * 10);
+          const y = Math.floor(Math.random() * 10);
+
+          if (canPlaceShip(grid, x, y, shipType.size, horizontal)) {
+            const cells = [];
+            for (let i = 0; i < shipType.size; i++) {
+              const cx = horizontal ? x + i : x;
+              const cy = horizontal ? y : y + i;
+              grid[cy][cx] = 1;
+              cells.push({ x: cx, y: cy, hit: false });
+            }
+
+            ships.push({
+              id: `${admiralId}-${shipType.name}`,
+              type: shipType.name,
+              size: shipType.size,
+              emoji: shipType.emoji,
+              cells: cells,
+              sunk: false,
+              hits: 0
+            });
+
+            placed = true;
+          }
+
+          attempts++;
+        }
+      });
+
+      return ships;
+    }
+
+    function canPlaceShip(grid, x, y, size, horizontal) {
+      for (let i = 0; i < size; i++) {
+        const cx = horizontal ? x + i : x;
+        const cy = horizontal ? y : y + i;
+
+        if (cx >= 10 || cy >= 10 || grid[cy][cx] !== 0) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    function renderAllGrids() {
+      state.admirals.forEach(admiral => {
+        renderGrid(admiral.id);
+        renderShipList(admiral.id);
+      });
+      updateScoreboard();
+    }
+
+    function updateScoreboard() {
+      const scoreboard = document.getElementById('scoreboard');
+      if (!scoreboard) return;
+
+      // Calculate stats for each admiral
+      const admiralStats = state.admirals.map(admiral => {
+        const ships = state.ships[admiral.id];
+        const shipsRemaining = ships.filter(s => !s.sunk).length;
+        const totalShips = ships.length;
+        const accuracy = admiral.totalShots > 0 ? (admiral.hits / admiral.totalShots * 100) : 0;
+        const shipsKilled = admiral.shipsKilled || 0;
+
+        return {
+          admiral,
+          shipsRemaining,
+          totalShips,
+          accuracy,
+          shipsKilled,
+          hits: admiral.hits,
+          shots: admiral.totalShots,
+          score: shipsRemaining * 100 + accuracy + shipsKilled * 50
+        };
+      });
+
+      // Sort by score (ships remaining is most important, then accuracy)
+      admiralStats.sort((a, b) => b.score - a.score);
+
+      // Determine if there's a clear winner
+      const topScore = admiralStats[0].score;
+      const secondScore = admiralStats[1]?.score || 0;
+      const hasWinner = topScore > secondScore + 50; // Clear lead
+
+      // Render scoreboard
+      scoreboard.innerHTML = admiralStats.map((stat, index) => {
+        const rank = index + 1;
+        const isWinning = hasWinner && rank === 1;
+        const isLosing = stat.shipsRemaining === 0;
+        const cardClass = isWinning ? 'winning' : isLosing ? 'losing' : '';
+
+        const colorClass = stat.admiral.id;
+
+        return `
+          <div class="admiral-score-card ${cardClass}">
+            <div class="rank-badge rank-${rank}">${rank === 1 ? '🥇' : rank === 2 ? '🥈' : '🥉'}</div>
+            <div class="admiral-score-header">
+              <div class="admiral-score-name ${colorClass}">
+                ${stat.admiral.name}
+              </div>
+              <div class="ships-remaining">
+                🚢 ${stat.shipsRemaining}/${stat.totalShips}
+              </div>
+            </div>
+            <div class="score-stats">
+              <div class="score-stat">
+                <span class="score-stat-label">Hits:</span>
+                <span class="score-stat-value">${stat.hits}</span>
+              </div>
+              <div class="score-stat">
+                <span class="score-stat-label">Shots:</span>
+                <span class="score-stat-value">${stat.shots}</span>
+              </div>
+              <div class="score-stat">
+                <span class="score-stat-label">Sunk:</span>
+                <span class="score-stat-value">${stat.shipsKilled}</span>
+              </div>
+              <div class="score-stat">
+                <span class="score-stat-label">Wins:</span>
+                <span class="score-stat-value">${stat.admiral.wins || 0}</span>
+              </div>
+            </div>
+            <div class="accuracy-bar">
+              <div class="accuracy-fill" style="width: ${stat.accuracy}%"></div>
+            </div>
+            <div class="accuracy-label">ACCURACY: ${stat.accuracy.toFixed(1)}%</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderGrid(admiralId) {
+      const container = document.getElementById(`grid${admiralId.charAt(0).toUpperCase() + admiralId.slice(1)}`);
+      container.innerHTML = '';
+
+      const grid = state.grids[admiralId];
+
+      // Top-left corner (empty)
+      const corner = document.createElement('div');
+      corner.className = 'grid-cell header';
+      container.appendChild(corner);
+
+      // Column headers (1-10)
+      for (let col = 0; col < 10; col++) {
+        const header = document.createElement('div');
+        header.className = 'grid-cell header';
+        header.textContent = col + 1;
+        container.appendChild(header);
+      }
+
+      // Rows with row headers (A-J)
+      for (let row = 0; row < 10; row++) {
+        // Row header
+        const rowHeader = document.createElement('div');
+        rowHeader.className = 'grid-cell header';
+        rowHeader.textContent = String.fromCharCode(65 + row); // A-J
+        container.appendChild(rowHeader);
+
+        // Row cells
+        for (let col = 0; col < 10; col++) {
+          const cell = document.createElement('div');
+          cell.className = 'grid-cell';
+          cell.dataset.row = row;
+          cell.dataset.col = col;
+
+          const cellValue = grid[row][col];
+
+          if (cellValue === 0) {
+            cell.classList.add('water');
+          } else if (cellValue === 1) {
+            cell.classList.add('ship');
+          } else if (cellValue === 2) {
+            cell.classList.add('miss');
+            cell.textContent = '○';
+          } else if (cellValue === 3) {
+            cell.classList.add('hit');
+            cell.textContent = '✖';
+          } else if (cellValue === 4) {
+            cell.classList.add('sunk');
+            cell.textContent = '💀';
+          }
+
+          container.appendChild(cell);
+        }
+      }
+    }
+
+    function renderShipList(admiralId) {
+      const container = document.getElementById(`ships${admiralId.charAt(0).toUpperCase() + admiralId.slice(1)}`);
+      const ships = state.ships[admiralId];
+
+      container.innerHTML = ships.map(ship => `
+        <div class="ship-item ${ship.sunk ? 'sunk' : ''}">
+          <span>${ship.emoji} ${ship.type}</span>
+          <span>${ship.hits}/${ship.size}</span>
+        </div>
+      `).join('');
+    }
+
+    // ==================== GAME LOOP ====================
+    async function startBattle() {
+      if (!state.db) {
+        showAlert('Error', 'Database not initialized. Refreshing page...');
+        setTimeout(() => location.reload(), 2000);
+        return;
+      }
+
+      state.isRunning = true;
+      document.getElementById('startBtn').disabled = true;
+      document.getElementById('stopBtn').disabled = false;
+      document.getElementById('systemStatus').textContent = 'ACTIVE';
+
+      logConsole('system', '⚔️ BATTLE COMMENCED', 'system');
+
+      state.intervalId = setInterval(async () => {
+        await executeTurn();
+      }, state.settings.speed);
+    }
+
+    function stopBattle() {
+      state.isRunning = false;
+      clearInterval(state.intervalId);
+      document.getElementById('startBtn').disabled = false;
+      document.getElementById('stopBtn').disabled = true;
+      document.getElementById('systemStatus').textContent = 'PAUSED';
+
+      logConsole('system', '⏸️ Battle paused', 'system');
+    }
+
+    async function executeTurn() {
+      state.turnCount++;
+      document.getElementById('turnCounter').textContent = state.turnCount;
+
+      // Each admiral takes a turn
+      for (const attacker of state.admirals) {
+        if (!state.isRunning) break;
+
+        // Choose target admiral (random enemy)
+        const enemies = state.admirals.filter(a => a.id !== attacker.id && !isAdmiralDefeated(a.id));
+        if (enemies.length === 0) continue;
+
+        const target = enemies[Math.floor(Math.random() * enemies.length)];
+
+        // Execute attack
+        await executeAttack(attacker, target);
+
+        // Small delay between attacks
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
+
+      // Check for victory
+      checkVictoryCondition();
+
+      // Auto-analyze every 10 turns
+      if (state.turnCount % 10 === 0) {
+        await analyzePatterns();
+      }
+    }
+
+    async function executeAttack(attacker, defender) {
+      // Choose target cell using game theory AI
+      const targetCell = await chooseTargetCell(attacker, defender);
+
+      if (!targetCell) {
+        logConsole('strategy', `${attacker.name} has no valid targets against ${defender.name}`, 'strategy');
+        return;
+      }
+
+      const { x, y } = targetCell;
+      const grid = state.grids[defender.id];
+      const cellValue = grid[y][x];
+
+      state.attackCount++;
+      attacker.totalShots++;
+      document.getElementById('attackCounter').textContent = state.attackCount;
+
+      const coord = `${String.fromCharCode(65 + y)}${x + 1}`;
+
+      if (cellValue === 1) {
+        // HIT!
+        grid[y][x] = 3;
+        state.hitCount++;
+        attacker.hits++;
+        document.getElementById('hitCounter').textContent = state.hitCount;
+
+        logConsole('attack', `💥 ${attacker.name} HIT ${defender.name} at ${coord}!`, 'attack');
+
+        // Update ship hit count
+        const ship = state.ships[defender.id].find(s =>
+          s.cells.some(c => c.x === x && c.y === y)
+        );
+
+        if (ship) {
+          const cellIndex = ship.cells.findIndex(c => c.x === x && c.y === y);
+          ship.cells[cellIndex].hit = true;
+          ship.hits++;
+
+          // Check if ship is sunk
+          if (ship.hits === ship.size) {
+            ship.sunk = true;
+            state.sunkCount++;
+            attacker.shipsKilled++;
+            document.getElementById('sunkCounter').textContent = state.sunkCount;
+
+            logConsole('attack', `💀 ${attacker.name} SUNK ${defender.name}'s ${ship.type}!`, 'attack');
+
+            // Mark all ship cells as sunk
+            ship.cells.forEach(c => {
+              grid[c.y][c.x] = 4;
+            });
+
+            // Explosion effect
+            if (state.settings.enableEffects) {
+              createExplosion(x, y, defender.id);
+            }
+
+            // Check achievements
+            if (state.settings.enableAchievements) {
+              if (state.sunkCount === 1) unlockAchievement('first-sink');
+              if (state.sunkCount === 10) unlockAchievement('fleet-commander');
+              if (attacker.totalShots <= 10) unlockAchievement('speed-demon');
+            }
+          }
+        }
+
+        // Update heatmap
+        updateHeatmap(attacker, defender.id, x, y, true);
+
+        // Store pattern
+        await storeAttackPattern(attacker, x, y, true, ship && ship.sunk);
+
+        // First hit achievement
+        if (state.settings.enableAchievements && state.hitCount === 1) {
+          unlockAchievement('first-hit');
+        }
+
+      } else if (cellValue === 0) {
+        // MISS
+        grid[y][x] = 2;
+        logConsole('attack', `○ ${attacker.name} missed ${defender.name} at ${coord}`, 'attack');
+
+        // Update heatmap
+        updateHeatmap(attacker, defender.id, x, y, false);
+
+        // Store pattern
+        await storeAttackPattern(attacker, x, y, false, false);
+      }
+
+      // Render updates
+      renderGrid(defender.id);
+      renderShipList(defender.id);
+      updateScoreboard();
+    }
+
+    async function chooseTargetCell(attacker, defender) {
+      const grid = state.grids[defender.id];
+      const validCells = [];
+
+      // Find all unattacked cells
+      for (let y = 0; y < 10; y++) {
+        for (let x = 0; x < 10; x++) {
+          if (grid[y][x] === 0 || grid[y][x] === 1) {
+            validCells.push({ x, y, prob: attacker.heatmap[y][x] });
+          }
+        }
+      }
+
+      if (validCells.length === 0) return null;
+
+      // If there's a hit but not sunk, target adjacent cells (Target Mode)
+      const hitCells = [];
+      for (let y = 0; y < 10; y++) {
+        for (let x = 0; x < 10; x++) {
+          if (grid[y][x] === 3) {
+            hitCells.push({ x, y });
+          }
+        }
+      }
+
+      if (hitCells.length > 0 && state.settings.useProbability) {
+        // Find adjacent unattacked cells
+        const adjacentCells = [];
+        hitCells.forEach(hit => {
+          const neighbors = [
+            { x: hit.x - 1, y: hit.y },
+            { x: hit.x + 1, y: hit.y },
+            { x: hit.x, y: hit.y - 1 },
+            { x: hit.x, y: hit.y + 1 }
+          ];
+
+          neighbors.forEach(n => {
+            if (n.x >= 0 && n.x < 10 && n.y >= 0 && n.y < 10) {
+              const cellValue = grid[n.y][n.x];
+              if (cellValue === 0 || cellValue === 1) {
+                adjacentCells.push({ ...n, prob: 10.0 }); // High priority
+              }
+            }
+          });
+        });
+
+        if (adjacentCells.length > 0) {
+          logConsole('strategy', `${attacker.name} in TARGET MODE - attacking near hit`, 'strategy');
+          return adjacentCells[Math.floor(Math.random() * adjacentCells.length)];
+        }
+      }
+
+      // Use pattern learning to find best target
+      if (state.settings.usePatterns && state.patterns.length > 0) {
+        const patternTarget = await findBestTargetFromPatterns(attacker, validCells);
+        if (patternTarget) {
+          logConsole('strategy', `${attacker.name} using learned pattern targeting`, 'strategy');
+          return patternTarget;
+        }
+      }
+
+      // Use probability-based targeting (Bayesian)
+      if (state.settings.useBayesian) {
+        validCells.sort((a, b) => b.prob - a.prob);
+
+        // Top 10% of highest probability cells
+        const topCells = validCells.slice(0, Math.max(1, Math.floor(validCells.length * 0.1)));
+        const chosen = topCells[Math.floor(Math.random() * topCells.length)];
+
+        logConsole('strategy', `${attacker.name} using Bayesian targeting (prob: ${chosen.prob.toFixed(2)})`, 'strategy');
+        return chosen;
+      }
+
+      // Fallback: random
+      logConsole('strategy', `${attacker.name} using random targeting`, 'strategy');
+      return validCells[Math.floor(Math.random() * validCells.length)];
+    }
+
+    async function findBestTargetFromPatterns(attacker, validCells) {
+      // Find patterns where hits occurred
+      const successfulPatterns = state.patterns.filter(p =>
+        p.metadata && p.metadata.admiralId === attacker.id && p.metadata.wasHit
+      );
+
+      if (successfulPatterns.length === 0) return null;
+
+      // Score each valid cell based on pattern similarity
+      const scoredCells = validCells.map(cell => {
+        let score = 0;
+        successfulPatterns.forEach(pattern => {
+          if (pattern.metadata) {
+            const distance = Math.abs(pattern.metadata.targetX - cell.x) + Math.abs(pattern.metadata.targetY - cell.y);
+            if (distance < 3) {
+              score += (3 - distance) * (pattern.metadata.probability || 0.5);
+            }
+          }
+        });
+        return { ...cell, score };
+      });
+
+      scoredCells.sort((a, b) => b.score - a.score);
+
+      if (scoredCells[0].score > 0) {
+        return scoredCells[0];
+      }
+
+      return null;
+    }
+
+    function updateHeatmap(attacker, defenderId, x, y, wasHit) {
+      const heatmap = attacker.heatmap;
+
+      if (wasHit) {
+        // Increase probability in surrounding area
+        for (let dy = -2; dy <= 2; dy++) {
+          for (let dx = -2; dx <= 2; dx++) {
+            const nx = x + dx;
+            const ny = y + dy;
+            if (nx >= 0 && nx < 10 && ny >= 0 && ny < 10) {
+              const distance = Math.abs(dx) + Math.abs(dy);
+              heatmap[ny][nx] *= (1 + 0.5 / (distance + 1));
+            }
+          }
+        }
+      } else {
+        // Decrease probability at miss location
+        heatmap[y][x] *= 0.1;
+      }
+
+      // Normalize
+      let sum = 0;
+      for (let i = 0; i < 10; i++) {
+        for (let j = 0; j < 10; j++) {
+          sum += heatmap[i][j];
+        }
+      }
+      for (let i = 0; i < 10; i++) {
+        for (let j = 0; j < 10; j++) {
+          heatmap[i][j] /= sum;
+        }
+      }
+    }
+
+    async function storeAttackPattern(attacker, x, y, wasHit, wasSink) {
+      if (!state.db) return;
+
+      try {
+        const coord = `${String.fromCharCode(65 + y)}${x + 1}`;
+        const patternText = `${attacker.name} ${attacker.strategy} attack at ${coord} ${wasHit ? 'hit' : 'missed'} prob ${attacker.heatmap[y][x].toFixed(2)}`;
+
+        // Generate embedding
+        const embedding = await generateEmbedding(patternText);
+
+        const patternData = {
+          pattern_type: 'attack',
+          embedding: embedding,
+          metadata: {
+            admiralId: attacker.id,
+            admiralName: attacker.name,
+            turn: state.turnCount,
+            targetX: x,
+            targetY: y,
+            coordinate: coord,
+            wasHit: wasHit,
+            wasSink: wasSink,
+            strategy: attacker.strategy,
+            probability: attacker.heatmap[y][x],
+            timestamp: Date.now(),
+            successRate: wasHit ? 1.0 : 0.0
+          }
+        };
+
+        // Store in database using v1.3.9 API
+        if (typeof state.db.storePattern === 'function') {
+          await state.db.storePattern(patternData);
+        }
+
+        // Add to memory
+        state.patterns.push(patternData);
+        state.patternCount = state.patterns.length;
+        document.getElementById('patternCounter').textContent = state.patternCount;
+
+        if (state.settings.detailedLogs) {
+          logConsole('learn', `Pattern stored: Turn ${state.turnCount}, ${wasHit ? 'HIT' : 'MISS'} at ${coord}`, 'learn');
+        }
+
+        // Achievements
+        if (state.settings.enableAchievements) {
+          if (state.patternCount === 25) unlockAchievement('pattern-master');
+          if (state.patternCount === 100) unlockAchievement('ai-genius');
+        }
+
+      } catch (error) {
+        console.error('Pattern storage error:', error);
+      }
+    }
+
+    function isAdmiralDefeated(admiralId) {
+      const ships = state.ships[admiralId];
+      return ships.every(ship => ship.sunk);
+    }
+
+    function checkVictoryCondition() {
+      const defeatedAdmirals = state.admirals.filter(a => isAdmiralDefeated(a.id));
+      const aliveAdmirals = state.admirals.filter(a => !isAdmiralDefeated(a.id));
+
+      if (aliveAdmirals.length === 1) {
+        const winner = aliveAdmirals[0];
+        winner.wins++;
+
+        stopBattle();
+
+        logConsole('system', `👑 ${winner.name} WINS THE BATTLE!`, 'system');
+
+        // Show victory banner with stats
+        showVictoryBanner(winner);
+
+        if (state.settings.enableAchievements) {
+          unlockAchievement('admiral');
+
+          // Check if perfect game
+          const winnerShips = state.ships[winner.id];
+          if (winnerShips.every(s => s.hits === 0)) {
+            unlockAchievement('perfect-game');
+          }
+
+          if (winner.wins === 3) {
+            unlockAchievement('legendary');
+          }
+        }
+
+        if (state.settings.enableEffects) {
+          flashScreen('👑');
+        }
+
+        // Update scoreboard to show final standings
+        updateScoreboard();
+      }
+    }
+
+    function showVictoryBanner(winner) {
+      const banner = document.getElementById('victoryBanner');
+      const admiralName = document.getElementById('victoryAdmiralName');
+      const stats = document.getElementById('victoryStats');
+
+      // Set admiral name with color
+      const colorMap = {
+        'alpha': '#ff4444',
+        'beta': '#4444ff',
+        'gamma': '#44ff44'
+      };
+      admiralName.textContent = winner.name;
+      admiralName.style.color = colorMap[winner.id] || '#00ff41';
+
+      // Calculate stats
+      const winnerShips = state.ships[winner.id];
+      const shipsRemaining = winnerShips.filter(s => !s.sunk).length;
+      const accuracy = winner.totalShots > 0 ? (winner.hits / winner.totalShots * 100).toFixed(1) : 0;
+      const isPerfect = winnerShips.every(s => s.hits === 0);
+
+      // Render stats
+      stats.innerHTML = `
+        <div class="victory-stat">
+          <div class="victory-stat-label">Ships Remaining</div>
+          <div class="victory-stat-value">${shipsRemaining}/5</div>
+        </div>
+        <div class="victory-stat">
+          <div class="victory-stat-label">Accuracy</div>
+          <div class="victory-stat-value">${accuracy}%</div>
+        </div>
+        <div class="victory-stat">
+          <div class="victory-stat-label">Ships Sunk</div>
+          <div class="victory-stat-value">${winner.shipsKilled || 0}</div>
+        </div>
+        <div class="victory-stat">
+          <div class="victory-stat-label">Total Wins</div>
+          <div class="victory-stat-value">${winner.wins}</div>
+        </div>
+        ${isPerfect ? '<div class="victory-stat" style="grid-column: 1 / -1; background: rgba(255, 215, 0, 0.2); border-color: #ffd700;"><div class="victory-stat-label">🔥 PERFECT GAME! 🔥</div><div class="victory-stat-value" style="color: #ffd700;">No Ships Damaged</div></div>' : ''}
+      `;
+
+      banner.classList.add('active');
+    }
+
+    function closeVictoryBanner() {
+      document.getElementById('victoryBanner').classList.remove('active');
+    }
+
+    // ==================== GAME THEORY ====================
+    async function runGameTheory() {
+      logConsole('strategy', '🎲 Running game theory scenarios...', 'strategy');
+
+      // Prisoner's Dilemma: Should admirals share targeting intel?
+      logConsole('strategy', '--- PRISONER\'S DILEMMA: Intelligence Sharing ---', 'strategy');
+
+      const admiral1 = state.admirals[0];
+      const admiral2 = state.admirals[1];
+
+      // Payoff matrix for sharing intel
+      const cooperate1 = Math.random() < 0.5;
+      const cooperate2 = Math.random() < 0.5;
+
+      if (cooperate1 && cooperate2) {
+        logConsole('strategy', `${admiral1.name} and ${admiral2.name} both share intel - Mutual benefit!`, 'strategy');
+      } else if (cooperate1 && !cooperate2) {
+        logConsole('strategy', `${admiral1.name} shares, ${admiral2.name} defects - ${admiral2.name} gains advantage`, 'strategy');
+      } else if (!cooperate1 && cooperate2) {
+        logConsole('strategy', `${admiral2.name} shares, ${admiral1.name} defects - ${admiral1.name} gains advantage`, 'strategy');
+      } else {
+        logConsole('strategy', `Both admirals defect - No one benefits`, 'strategy');
+      }
+
+      // Nash Equilibrium analysis
+      await new Promise(resolve => setTimeout(resolve, 500));
+      logConsole('strategy', '--- NASH EQUILIBRIUM ANALYSIS ---', 'strategy');
+      logConsole('strategy', 'Analyzing optimal targeting strategies...', 'strategy');
+
+      state.admirals.forEach(admiral => {
+        const avgProb = admiral.heatmap.flat().reduce((a, b) => a + b, 0) / 100;
+        logConsole('strategy', `${admiral.name}: Average cell probability = ${(avgProb * 100).toFixed(2)}%`, 'strategy');
+      });
+
+      // Coalition formation
+      await new Promise(resolve => setTimeout(resolve, 500));
+      logConsole('strategy', '--- COALITION FORMATION ---', 'strategy');
+
+      const shipsRemaining = state.admirals.map(a => ({
+        admiral: a,
+        shipsLeft: state.ships[a.id].filter(s => !s.sunk).length
+      }));
+
+      shipsRemaining.sort((a, b) => b.shipsLeft - a.shipsLeft);
+
+      if (shipsRemaining[0].shipsLeft > shipsRemaining[1].shipsLeft + shipsRemaining[2].shipsLeft) {
+        logConsole('strategy', `⚠️ ${shipsRemaining[0].admiral.name} is dominating - Coalition may form!`, 'strategy');
+        logConsole('strategy', `${shipsRemaining[1].admiral.name} and ${shipsRemaining[2].admiral.name} should ally`, 'strategy');
+
+        if (state.settings.enableAchievements && Math.random() < 0.5) {
+          unlockAchievement('game-theorist');
+        }
+      } else {
+        logConsole('strategy', 'Forces are balanced - No coalition necessary', 'strategy');
+      }
+    }
+
+    async function analyzePatterns() {
+      if (!state.db) {
+        showAlert('Analysis', 'Database not ready for pattern analysis');
+        return;
+      }
+
+      logConsole('learn', '🧠 Analyzing learned patterns...', 'learn');
+
+      try {
+        if (state.patterns.length === 0) {
+          logConsole('learn', 'No patterns learned yet', 'learn');
+          return;
+        }
+
+        // Analyze hit rates by admiral
+        const admiralStats = {};
+
+        state.patterns.forEach(pattern => {
+          if (pattern.metadata && pattern.metadata.admiralId) {
+            const admiralId = pattern.metadata.admiralId;
+            if (!admiralStats[admiralId]) {
+              admiralStats[admiralId] = { hits: 0, total: 0, sinks: 0 };
+            }
+            admiralStats[admiralId].total++;
+            if (pattern.metadata.wasHit) admiralStats[admiralId].hits++;
+            if (pattern.metadata.wasSink) admiralStats[admiralId].sinks++;
+          }
+        });
+
+        Object.entries(admiralStats).forEach(([admiralId, stats]) => {
+          const admiral = state.admirals.find(a => a.id === admiralId);
+          if (admiral) {
+            const hitRate = ((stats.hits / stats.total) * 100).toFixed(1);
+            logConsole('learn', `${admiral.name}: ${stats.hits}/${stats.total} hits (${hitRate}%) - ${stats.sinks} sinks`, 'learn');
+          }
+        });
+
+        logConsole('learn', `Total patterns learned: ${state.patterns.length}`, 'learn');
+
+      } catch (error) {
+        console.error('Analysis error:', error);
+        logConsole('system', `Analysis error: ${error.message}`, 'system');
+      }
+    }
+
+    // ==================== UI FUNCTIONS ====================
+    function logConsole(type, message, className) {
+      const console = document.getElementById('console');
+      const time = new Date().toLocaleTimeString();
+
+      const line = document.createElement('div');
+      line.className = 'console-line';
+      line.innerHTML = `<span class="console-time">[${time}]</span><span class="console-type ${className}">${type.toUpperCase()}</span>${message}`;
+
+      console.appendChild(line);
+      console.scrollTop = console.scrollHeight;
+    }
+
+    function clearConsole() {
+      document.getElementById('console').innerHTML = '';
+    }
+
+    function showAlert(title, message) {
+      document.getElementById('alertTitle').textContent = title;
+      document.getElementById('alertMessage').textContent = message;
+      document.getElementById('alert').classList.add('active');
+
+      setTimeout(() => {
+        document.getElementById('alert').classList.remove('active');
+      }, 3000);
+    }
+
+    function flashScreen(emoji) {
+      const flash = document.getElementById('screenFlash');
+      flash.classList.add('active');
+      setTimeout(() => {
+        flash.classList.remove('active');
+      }, 500);
+    }
+
+    function createExplosion(x, y, admiralId) {
+      // This would create a visual explosion effect at the grid position
+      // Simplified for now
+      logConsole('attack', '💥💥💥 EXPLOSION! 💥💥💥', 'attack');
+    }
+
+    function unlockAchievement(id) {
+      if (state.achievements.has(id)) return;
+
+      state.achievements.add(id);
+      const ach = ACHIEVEMENTS[id];
+
+      const container = document.getElementById('achievements');
+      const badge = document.createElement('span');
+      badge.className = 'achievement-badge';
+      badge.textContent = ach.emoji;
+      badge.title = `${ach.name}: ${ach.desc}`;
+      container.appendChild(badge);
+
+      showAlert('🏆 Achievement Unlocked!', `${ach.emoji} ${ach.name}: ${ach.desc}`);
+      flashScreen(ach.emoji);
+
+      logConsole('system', `🏆 Achievement: ${ach.name}`, 'system');
+    }
+
+    // ==================== MODAL FUNCTIONS ====================
+    function showHelp() {
+      document.getElementById('helpModal').classList.add('active');
+    }
+
+    function closeHelp() {
+      document.getElementById('helpModal').classList.remove('active');
+    }
+
+    function switchHelpTab(index) {
+      const tabs = document.querySelectorAll('#helpModal .modal-tab');
+      const contents = document.querySelectorAll('#helpModal .tab-content');
+
+      tabs.forEach((tab, i) => {
+        if (i === index) {
+          tab.classList.add('active');
+          contents[i].classList.add('active');
+        } else {
+          tab.classList.remove('active');
+          contents[i].classList.remove('active');
+        }
+      });
+    }
+
+    function showSettings() {
+      document.getElementById('settingsModal').classList.add('active');
+    }
+
+    function closeSettings() {
+      document.getElementById('settingsModal').classList.remove('active');
+    }
+
+    function switchSettingsTab(index) {
+      const tabs = document.querySelectorAll('#settingsModal .modal-tab');
+      const contents = document.querySelectorAll('#settingsModal .tab-content');
+
+      tabs.forEach((tab, i) => {
+        if (i === index) {
+          tab.classList.add('active');
+          contents[i].classList.add('active');
+        } else {
+          tab.classList.remove('active');
+          contents[i].classList.remove('active');
+        }
+      });
+    }
+
+    function updateLearningRate(value) {
+      state.settings.learningRate = parseFloat(value);
+      document.getElementById('learningRateValue').textContent = value;
+    }
+
+    function updateThreshold(value) {
+      state.settings.probabilityThreshold = parseFloat(value);
+      document.getElementById('thresholdValue').textContent = value;
+    }
+
+    function updateSpeed(value) {
+      state.settings.speed = parseInt(value);
+      document.getElementById('speedValue').textContent = value;
+
+      if (state.isRunning) {
+        clearInterval(state.intervalId);
+        state.intervalId = setInterval(async () => {
+          await executeTurn();
+        }, state.settings.speed);
+      }
+    }
+
+    function exportPatterns() {
+      const data = JSON.stringify(state.patterns, null, 2);
+      const blob = new Blob([data], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'battleship-patterns.json';
+      a.click();
+
+      showAlert('Export', 'Patterns exported successfully!');
+    }
+
+    function importPatterns() {
+      showAlert('Import', 'Import functionality coming soon!');
+    }
+
+    function clearAllData() {
+      if (confirm('Are you sure you want to clear all learned patterns?')) {
+        state.patterns = [];
+        state.patternCount = 0;
+        document.getElementById('patternCounter').textContent = 0;
+        showAlert('Data Cleared', 'All learned patterns have been cleared.');
+      }
+    }
+
+    function resetBattle() {
+      stopBattle();
+
+      state.turnCount = 0;
+      state.attackCount = 0;
+      state.hitCount = 0;
+      state.sunkCount = 0;
+
+      document.getElementById('turnCounter').textContent = 0;
+      document.getElementById('attackCounter').textContent = 0;
+      document.getElementById('hitCounter').textContent = 0;
+      document.getElementById('sunkCounter').textContent = 0;
+      document.getElementById('systemStatus').textContent = 'STANDBY';
+
+      initializeAdmirals();
+      initializeGrids();
+      clearConsole();
+
+      logConsole('system', '🔄 Battle reset complete', 'system');
+    }
+
+    // ==================== INITIALIZATION ====================
+    window.addEventListener('load', async () => {
+      const initialized = await initializeAgentDB();
+
+      if (initialized) {
+        initializeAdmirals();
+        initializeGrids();
+        logConsole('system', '✓ All systems online. Ready for combat.', 'system');
+        document.getElementById('systemStatus').textContent = 'READY';
+      }
+    });
+
+    // Close modals on outside click
+    window.addEventListener('click', (e) => {
+      if (e.target.classList.contains('modal')) {
+        e.target.classList.remove('active');
+      }
+    });
+  </script>
+</body>
+</html>

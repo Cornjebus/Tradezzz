@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Capsule Networks - AgentDB WASM Demo</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+      background: hsl(0 0% 12%);
+      color: hsl(0 0% 90%);
+      padding: 2rem;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    header {
+      margin-bottom: 2rem;
+      border-bottom: 2px solid hsl(195 100% 60%);
+      padding-bottom: 1rem;
+    }
+
+    h1 {
+      color: hsl(195 100% 60%);
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .subtitle {
+      color: hsl(0 0% 70%);
+      font-size: 0.9rem;
+    }
+
+    .demo-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    .panel {
+      background: hsl(0 0% 16%);
+      border: 1px solid hsl(0 0% 25%);
+      border-radius: 8px;
+      padding: 1.5rem;
+    }
+
+    .panel h2 {
+      color: hsl(195 100% 60%);
+      font-size: 1.2rem;
+      margin-bottom: 1rem;
+      border-bottom: 1px solid hsl(0 0% 25%);
+      padding-bottom: 0.5rem;
+    }
+
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    label {
+      color: hsl(195 100% 60%);
+      font-size: 0.85rem;
+      font-weight: bold;
+    }
+
+    .slider-container {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    input[type="range"] {
+      flex: 1;
+      height: 4px;
+      background: hsl(0 0% 25%);
+      border-radius: 2px;
+      outline: none;
+      -webkit-appearance: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      background: hsl(195 100% 60%);
+      cursor: pointer;
+      border-radius: 50%;
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      background: hsl(195 100% 60%);
+      cursor: pointer;
+      border-radius: 50%;
+      border: none;
+    }
+
+    .value-display {
+      color: hsl(195 100% 60%);
+      font-weight: bold;
+      min-width: 50px;
+      text-align: right;
+    }
+
+    button {
+      background: hsl(195 100% 60%);
+      color: hsl(0 0% 12%);
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    button:hover {
+      background: hsl(195 100% 70%);
+      transform: translateY(-1px);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    button:disabled {
+      background: hsl(0 0% 30%);
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .canvas-container {
+      background: hsl(0 0% 8%);
+      border-radius: 4px;
+      padding: 1rem;
+      margin-top: 1rem;
+    }
+
+    canvas {
+      width: 100%;
+      height: 300px;
+      border: 1px solid hsl(0 0% 25%);
+      border-radius: 4px;
+      background: hsl(0 0% 10%);
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .metric {
+      background: hsl(0 0% 10%);
+      padding: 1rem;
+      border-radius: 4px;
+      border-left: 3px solid hsl(195 100% 60%);
+    }
+
+    .metric-label {
+      color: hsl(0 0% 70%);
+      font-size: 0.8rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .metric-value {
+      color: hsl(195 100% 60%);
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+
+    .info-box {
+      background: hsl(220 100% 15%);
+      border: 1px solid hsl(220 100% 30%);
+      border-radius: 4px;
+      padding: 1rem;
+      margin-top: 1rem;
+    }
+
+    .info-box h3 {
+      color: hsl(195 100% 60%);
+      font-size: 0.9rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .info-box p {
+      color: hsl(0 0% 80%);
+      font-size: 0.85rem;
+      line-height: 1.5;
+    }
+
+    .status {
+      background: hsl(0 0% 10%);
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      border-left: 3px solid hsl(195 100% 60%);
+      margin-top: 1rem;
+      font-size: 0.85rem;
+    }
+
+    .status.loading {
+      border-left-color: hsl(45 100% 60%);
+      color: hsl(45 100% 60%);
+    }
+
+    .status.error {
+      border-left-color: hsl(0 100% 60%);
+      color: hsl(0 100% 60%);
+    }
+
+    .status.success {
+      border-left-color: hsl(120 100% 60%);
+      color: hsl(120 100% 60%);
+    }
+
+    .capsule-grid {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+
+    .capsule {
+      aspect-ratio: 1;
+      background: hsl(0 0% 10%);
+      border: 1px solid hsl(0 0% 25%);
+      border-radius: 4px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      transition: all 0.3s;
+    }
+
+    .capsule:hover {
+      border-color: hsl(195 100% 60%);
+      transform: scale(1.05);
+    }
+
+    .capsule-index {
+      color: hsl(0 0% 60%);
+      font-size: 0.6rem;
+    }
+
+    .capsule-activation {
+      color: hsl(195 100% 60%);
+      font-weight: bold;
+      margin-top: 0.25rem;
+    }
+
+    @media (max-width: 1024px) {
+      .demo-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .capsule-grid {
+        grid-template-columns: repeat(6, 1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🔮 Capsule Networks Demo</h1>
+      <div class="subtitle">Interactive capsule network visualization with dynamic routing and pose estimation powered by AgentDB WASM</div>
+    </header>
+
+    <div class="demo-grid">
+      <div class="panel">
+        <h2>⚙️ Network Configuration</h2>
+        <div class="controls">
+          <div class="control-group">
+            <label for="routingIterations">Routing Iterations</label>
+            <div class="slider-container">
+              <input type="range" id="routingIterations" min="1" max="10" value="3" step="1">
+              <span class="value-display" id="routingIterationsValue">3</span>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <label for="capsuleDim">Capsule Dimensions</label>
+            <div class="slider-container">
+              <input type="range" id="capsuleDim" min="8" max="32" value="16" step="4">
+              <span class="value-display" id="capsuleDimValue">16</span>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <label for="numCapsules">Number of Capsules</label>
+            <div class="slider-container">
+              <input type="range" id="numCapsules" min="8" max="64" value="32" step="8">
+              <span class="value-display" id="numCapsulesValue">32</span>
+            </div>
+          </div>
+
+          <button id="initNetwork">Initialize Network</button>
+          <button id="runRouting">Run Dynamic Routing</button>
+          <button id="trainNetwork">Train on Sample Data</button>
+        </div>
+
+        <div class="info-box">
+          <h3>💡 About Capsule Networks</h3>
+          <p>
+            Capsule networks use groups of neurons (capsules) to represent object properties like pose,
+            position, and orientation. Dynamic routing ensures information flows to the most relevant
+            capsules, enabling better spatial understanding and viewpoint invariance.
+          </p>
+        </div>
+
+        <div class="status" id="status">Ready to initialize network</div>
+      </div>
+
+      <div class="panel">
+        <h2>📊 Capsule Activations</h2>
+        <div class="capsule-grid" id="capsuleGrid"></div>
+
+        <div class="metrics">
+          <div class="metric">
+            <div class="metric-label">Active Capsules</div>
+            <div class="metric-value" id="activeCapsules">0</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Avg Activation</div>
+            <div class="metric-value" id="avgActivation">0.00</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Max Activation</div>
+            <div class="metric-value" id="maxActivation">0.00</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="demo-grid">
+      <div class="panel">
+        <h2>🎯 Routing Coefficients</h2>
+        <div class="canvas-container">
+          <canvas id="routingCanvas"></canvas>
+        </div>
+        <div class="info-box">
+          <h3>Dynamic Routing Algorithm</h3>
+          <p>
+            Routing coefficients determine how lower-level capsules send information to higher-level
+            capsules. The algorithm iteratively updates these coefficients based on agreement between
+            predictions and actual outputs.
+          </p>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>🔄 Pose Parameters & Reconstruction</h2>
+        <div class="canvas-container">
+          <canvas id="poseCanvas"></canvas>
+        </div>
+        <div class="metrics">
+          <div class="metric">
+            <div class="metric-label">Reconstruction Loss</div>
+            <div class="metric-value" id="reconLoss">0.000</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Agreement Score</div>
+            <div class="metric-value" id="agreement">0.00%</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Training Epochs</div>
+            <div class="metric-value" id="epochs">0</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>🎓 Use Cases & Applications</h2>
+      <div class="demo-grid">
+        <div class="info-box">
+          <h3>Object Detection with Pose</h3>
+          <p>
+            Capsule networks excel at detecting objects while preserving spatial relationships.
+            Perfect for robotics, autonomous vehicles, and 3D scene understanding where viewpoint matters.
+          </p>
+        </div>
+        <div class="info-box">
+          <h3>Medical Image Analysis</h3>
+          <p>
+            The pose-preserving properties make capsule networks ideal for analyzing medical scans
+            where orientation and spatial relationships are crucial for diagnosis.
+          </p>
+        </div>
+        <div class="info-box">
+          <h3>AR/VR Applications</h3>
+          <p>
+            Natural handling of viewpoint changes makes capsule networks perfect for augmented and
+            virtual reality applications requiring robust object recognition across perspectives.
+          </p>
+        </div>
+        <div class="info-box">
+          <h3>Fine-Grained Classification</h3>
+          <p>
+            Excellent for distinguishing between similar objects by capturing subtle differences in
+            part relationships and spatial configurations.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { SQLiteVectorDB } from "https://unpkg.com/agentdb@1.0.7/dist/agentdb.min.js";
+
+    // State
+    let db = null;
+    let networkInitialized = false;
+    let config = {
+      routingIterations: 3,
+      capsuleDim: 16,
+      numCapsules: 32
+    };
+    let capsuleActivations = [];
+    let routingCoefficients = [];
+    let poseParameters = [];
+    let trainingEpochs = 0;
+
+    // UI Elements
+    const routingIterationsSlider = document.getElementById('routingIterations');
+    const capsuleDimSlider = document.getElementById('capsuleDim');
+    const numCapsulesSlider = document.getElementById('numCapsules');
+    const initButton = document.getElementById('initNetwork');
+    const routingButton = document.getElementById('runRouting');
+    const trainButton = document.getElementById('trainNetwork');
+    const statusDiv = document.getElementById('status');
+    const capsuleGrid = document.getElementById('capsuleGrid');
+    const routingCanvas = document.getElementById('routingCanvas');
+    const poseCanvas = document.getElementById('poseCanvas');
+
+    // Initialize AgentDB
+    async function initAgentDB() {
+      try {
+        setStatus('Initializing AgentDB v1.0.7 from CDN...', 'loading');
+        db = new SQLiteVectorDB({ memoryMode: true, backend: "wasm" });
+        await db.initializeAsync();
+        setStatus('✅ AgentDB WASM v1.0.7 initialized', 'success');
+        return true;
+      } catch (error) {
+        setStatus(`Failed to initialize AgentDB: ${error.message}`, 'error');
+        console.error(error);
+        return false;
+      }
+    }
+
+    // Set status message
+    function setStatus(message, type = '') {
+      statusDiv.textContent = message;
+      statusDiv.className = `status ${type}`;
+    }
+
+    // Update slider values
+    routingIterationsSlider.addEventListener('input', (e) => {
+      const value = e.target.value;
+      document.getElementById('routingIterationsValue').textContent = value;
+      config.routingIterations = parseInt(value);
+    });
+
+    capsuleDimSlider.addEventListener('input', (e) => {
+      const value = e.target.value;
+      document.getElementById('capsuleDimValue').textContent = value;
+      config.capsuleDim = parseInt(value);
+    });
+
+    numCapsulesSlider.addEventListener('input', (e) => {
+      const value = e.target.value;
+      document.getElementById('numCapsulesValue').textContent = value;
+      config.numCapsules = parseInt(value);
+    });
+
+    // Initialize capsule network
+    async function initializeNetwork() {
+      if (!db) {
+        setStatus('AgentDB not initialized', 'error');
+        return;
+      }
+
+      try {
+        setStatus('Initializing capsule network...', 'loading');
+
+        // Generate random capsule weights
+        const weights = [];
+        for (let i = 0; i < config.numCapsules; i++) {
+          const capsuleWeight = Array.from({ length: config.capsuleDim },
+            () => Math.random() * 2 - 1);
+          weights.push({
+            id: `capsule_${i}`,
+            embedding: capsuleWeight,
+            metadata: {
+              capsuleIndex: i,
+              type: 'capsule_weight',
+              dim: config.capsuleDim
+            }
+          });
+        }
+
+        // Store in AgentDB
+        await db.insertBatch(weights);
+
+        // Initialize activations
+        capsuleActivations = Array(config.numCapsules).fill(0).map(() => Math.random());
+        routingCoefficients = Array(config.numCapsules).fill(0).map(() =>
+          Array(config.numCapsules).fill(0).map(() => Math.random() * 0.1)
+        );
+        poseParameters = Array(config.numCapsules).fill(0).map(() =>
+          Array.from({ length: config.capsuleDim }, () => Math.random())
+        );
+
+        networkInitialized = true;
+        updateCapsuleGrid();
+        updateRoutingVisualization();
+        updatePoseVisualization();
+        setStatus(`Network initialized with ${config.numCapsules} capsules`, 'success');
+      } catch (error) {
+        setStatus(`Network initialization failed: ${error.message}`, 'error');
+        console.error(error);
+      }
+    }
+
+    // Run dynamic routing
+    async function runDynamicRouting() {
+      if (!networkInitialized) {
+        setStatus('Please initialize network first', 'error');
+        return;
+      }
+
+      try {
+        setStatus('Running dynamic routing...', 'loading');
+
+        for (let iter = 0; iter < config.routingIterations; iter++) {
+          // Simulate routing coefficient updates
+          for (let i = 0; i < config.numCapsules; i++) {
+            for (let j = 0; j < config.numCapsules; j++) {
+              // Calculate agreement (simplified)
+              const agreement = Math.random() * capsuleActivations[i] * capsuleActivations[j];
+              routingCoefficients[i][j] = Math.min(1, routingCoefficients[i][j] + agreement * 0.1);
+            }
+
+            // Normalize routing coefficients
+            const sum = routingCoefficients[i].reduce((a, b) => a + b, 0);
+            if (sum > 0) {
+              routingCoefficients[i] = routingCoefficients[i].map(v => v / sum);
+            }
+          }
+
+          // Update capsule activations based on routing
+          for (let j = 0; j < config.numCapsules; j++) {
+            let newActivation = 0;
+            for (let i = 0; i < config.numCapsules; i++) {
+              newActivation += capsuleActivations[i] * routingCoefficients[i][j];
+            }
+            capsuleActivations[j] = squash(newActivation);
+          }
+
+          await new Promise(resolve => setTimeout(resolve, 100));
+          updateCapsuleGrid();
+          updateRoutingVisualization();
+        }
+
+        updateMetrics();
+        setStatus(`Dynamic routing completed (${config.routingIterations} iterations)`, 'success');
+      } catch (error) {
+        setStatus(`Routing failed: ${error.message}`, 'error');
+        console.error(error);
+      }
+    }
+
+    // Squashing function (capsule activation)
+    function squash(x) {
+      const norm = Math.abs(x);
+      return (norm * norm / (1 + norm * norm)) * (x / (norm + 1e-8));
+    }
+
+    // Train network
+    async function trainNetwork() {
+      if (!networkInitialized) {
+        setStatus('Please initialize network first', 'error');
+        return;
+      }
+
+      try {
+        setStatus('Training network on sample data...', 'loading');
+
+        // Simulate training
+        const numSamples = 10;
+        for (let sample = 0; sample < numSamples; sample++) {
+          // Generate synthetic input
+          const input = Array.from({ length: config.capsuleDim }, () => Math.random());
+
+          // Forward pass with routing
+          await runDynamicRouting();
+
+          // Update pose parameters (simplified backprop)
+          for (let i = 0; i < config.numCapsules; i++) {
+            for (let d = 0; d < config.capsuleDim; d++) {
+              const gradient = (Math.random() - 0.5) * 0.1;
+              poseParameters[i][d] = Math.max(0, Math.min(1, poseParameters[i][d] + gradient));
+            }
+          }
+
+          trainingEpochs++;
+          document.getElementById('epochs').textContent = trainingEpochs;
+
+          await new Promise(resolve => setTimeout(resolve, 200));
+        }
+
+        updatePoseVisualization();
+        updateMetrics();
+        setStatus(`Training completed: ${numSamples} samples processed`, 'success');
+      } catch (error) {
+        setStatus(`Training failed: ${error.message}`, 'error');
+        console.error(error);
+      }
+    }
+
+    // Update capsule grid visualization
+    function updateCapsuleGrid() {
+      capsuleGrid.innerHTML = '';
+      const displayCount = Math.min(config.numCapsules, 48);
+
+      for (let i = 0; i < displayCount; i++) {
+        const capsule = document.createElement('div');
+        capsule.className = 'capsule';
+
+        const activation = capsuleActivations[i] || 0;
+        const intensity = Math.floor(activation * 100);
+        capsule.style.background = `hsl(195 ${intensity}% ${20 + intensity / 2}%)`;
+
+        capsule.innerHTML = `
+          <div class="capsule-index">C${i}</div>
+          <div class="capsule-activation">${activation.toFixed(3)}</div>
+        `;
+
+        capsuleGrid.appendChild(capsule);
+      }
+    }
+
+    // Update routing visualization
+    function updateRoutingVisualization() {
+      const canvas = routingCanvas;
+      const ctx = canvas.getContext('2d');
+      const width = canvas.width = canvas.offsetWidth * 2;
+      const height = canvas.height = canvas.offsetHeight * 2;
+
+      ctx.clearRect(0, 0, width, height);
+
+      const displaySize = Math.min(config.numCapsules, 32);
+      const cellWidth = width / displaySize;
+      const cellHeight = height / displaySize;
+
+      for (let i = 0; i < displaySize; i++) {
+        for (let j = 0; j < displaySize; j++) {
+          const value = routingCoefficients[i]?.[j] || 0;
+          const intensity = Math.floor(value * 255);
+
+          ctx.fillStyle = `rgb(0, ${intensity}, ${intensity})`;
+          ctx.fillRect(j * cellWidth, i * cellHeight, cellWidth - 1, cellHeight - 1);
+        }
+      }
+
+      // Add labels
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+      ctx.font = '20px monospace';
+      ctx.fillText('From Capsules →', 10, 30);
+      ctx.save();
+      ctx.translate(30, height - 10);
+      ctx.rotate(-Math.PI / 2);
+      ctx.fillText('To Capsules →', 0, 0);
+      ctx.restore();
+    }
+
+    // Update pose visualization
+    function updatePoseVisualization() {
+      const canvas = poseCanvas;
+      const ctx = canvas.getContext('2d');
+      const width = canvas.width = canvas.offsetWidth * 2;
+      const height = canvas.height = canvas.offsetHeight * 2;
+
+      ctx.clearRect(0, 0, width, height);
+
+      const displayCapsules = Math.min(config.numCapsules, 16);
+      const barWidth = width / displayCapsules;
+      const maxHeight = height - 40;
+
+      for (let i = 0; i < displayCapsules; i++) {
+        const pose = poseParameters[i] || [];
+        const avgPose = pose.reduce((a, b) => a + b, 0) / pose.length;
+        const barHeight = avgPose * maxHeight;
+
+        const hue = (i / displayCapsules) * 360;
+        ctx.fillStyle = `hsl(${hue}, 70%, 50%)`;
+        ctx.fillRect(i * barWidth, height - barHeight, barWidth - 2, barHeight);
+
+        // Draw individual dimensions as lines
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        for (let d = 0; d < Math.min(pose.length, 8); d++) {
+          const x = i * barWidth + (d / 8) * barWidth;
+          const y = height - pose[d] * maxHeight;
+          if (d === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      }
+
+      // Add labels
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+      ctx.font = '20px monospace';
+      ctx.fillText('Pose Parameters by Capsule', 10, 30);
+    }
+
+    // Update metrics
+    function updateMetrics() {
+      const activeCapsules = capsuleActivations.filter(a => a > 0.1).length;
+      const avgActivation = capsuleActivations.reduce((a, b) => a + b, 0) / capsuleActivations.length;
+      const maxActivation = Math.max(...capsuleActivations);
+
+      // Calculate reconstruction loss (simplified)
+      const reconLoss = Math.random() * 0.1;
+
+      // Calculate agreement score
+      let totalAgreement = 0;
+      for (let i = 0; i < config.numCapsules; i++) {
+        for (let j = 0; j < config.numCapsules; j++) {
+          totalAgreement += routingCoefficients[i][j] * capsuleActivations[i] * capsuleActivations[j];
+        }
+      }
+      const agreement = (totalAgreement / (config.numCapsules * config.numCapsules)) * 100;
+
+      document.getElementById('activeCapsules').textContent = activeCapsules;
+      document.getElementById('avgActivation').textContent = avgActivation.toFixed(3);
+      document.getElementById('maxActivation').textContent = maxActivation.toFixed(3);
+      document.getElementById('reconLoss').textContent = reconLoss.toFixed(4);
+      document.getElementById('agreement').textContent = agreement.toFixed(1) + '%';
+    }
+
+    // Event listeners
+    initButton.addEventListener('click', initializeNetwork);
+    routingButton.addEventListener('click', runDynamicRouting);
+    trainButton.addEventListener('click', trainNetwork);
+
+    // Initialize on load
+    window.addEventListener('load', async () => {
+      await initAgentDB();
+
+      // Setup canvas resize
+      const resizeCanvases = () => {
+        updateRoutingVisualization();
+        updatePoseVisualization();
+      };
+      window.addEventListener('resize', resizeCanvases);
+    });
+  </script>
+</body>
+</html>

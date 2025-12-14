@@ -1,0 +1,32 @@
+[
+  {
+    "name": "Sample Pattern 1",
+    "pattern_type": "cognitive",
+    "content": "This is a sample cognitive pattern for testing batch import functionality. It demonstrates the expected JSON format.",
+    "metadata": {
+      "category": "sample",
+      "difficulty": "beginner",
+      "tags": ["test", "example"]
+    }
+  },
+  {
+    "name": "Sample Pattern 2",
+    "pattern_type": "behavioral",
+    "content": "Another sample pattern showing behavioral analysis. You can import multiple patterns at once using this format.",
+    "metadata": {
+      "category": "sample",
+      "difficulty": "intermediate",
+      "tags": ["test", "demo"]
+    }
+  },
+  {
+    "name": "Sample Pattern 3",
+    "pattern_type": "cognitive",
+    "content": "Third sample pattern demonstrating batch import capabilities. Upload this file or paste the JSON directly.",
+    "metadata": {
+      "category": "sample",
+      "difficulty": "advanced",
+      "tags": ["test", "batch"]
+    }
+  }
+]

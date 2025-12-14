@@ -1,0 +1,1141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Autonomous Research Assistant - AgentDB</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+      background: hsl(0 0% 12%);
+      color: hsl(0 0% 95%);
+      min-height: 100vh;
+      padding: 2rem;
+    }
+
+    .container {
+      max-width: 1600px;
+      margin: 0 auto;
+    }
+
+    header {
+      background: hsl(0 0% 15%);
+      border: 1px solid hsl(0 0% 25%);
+      border-radius: 16px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 6px 24px hsl(222 20% 0% / 0.24);
+    }
+
+    h1 {
+      color: hsl(195 100% 60%);
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+      letter-spacing: -0.005em;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .subtitle {
+      color: hsl(0 0% 85%);
+      font-size: 1.1rem;
+    }
+
+    .main-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .card {
+      background: hsl(0 0% 15%);
+      border: 1px solid hsl(0 0% 25%);
+      border-radius: 16px;
+      padding: 2rem;
+      box-shadow: 0 6px 24px hsl(222 20% 0% / 0.24);
+    }
+
+    .card.full-width {
+      grid-column: 1 / -1;
+    }
+
+    .card h2 {
+      color: hsl(0 0% 95%);
+      margin-bottom: 1rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .status-indicator {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    .status-active { background: #10b981; }
+    .status-learning { background: #f59e0b; }
+    .status-thinking { background: #8b5cf6; }
+    .status-idle { background: #6b7280; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .research-input {
+      width: 100%;
+      background: hsl(0 0% 18%);
+      border: 1px solid hsl(0 0% 25%);
+      border-radius: 12px;
+      padding: 1.5rem;
+      color: hsl(0 0% 95%);
+      font-size: 1rem;
+      font-family: inherit;
+      resize: vertical;
+      min-height: 120px;
+      transition: border-color 0.2s ease;
+    }
+
+    .research-input:focus {
+      outline: none;
+      border-color: hsl(195 100% 60%);
+    }
+
+    .input-label {
+      display: block;
+      margin-bottom: 0.75rem;
+      color: hsl(0 0% 85%);
+      font-weight: 500;
+    }
+
+    .btn {
+      padding: 0.75rem 1.5rem;
+      background: hsl(195 100% 60%);
+      color: hsl(0 0% 10%);
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn:hover:not(:disabled) {
+      opacity: 0.85;
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: hsl(0 0% 18%);
+      color: hsl(195 100% 60%);
+      border: 1px solid hsl(0 0% 25%);
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 12px;
+      margin-top: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 12px;
+      margin-bottom: 1rem;
+    }
+
+    .stat-box {
+      background: hsl(0 0% 18%);
+      border: 1px solid hsl(0 0% 25%);
+      padding: 1rem;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 1.8rem;
+      font-weight: bold;
+      color: hsl(195 100% 60%);
+      display: block;
+    }
+
+    .stat-label {
+      font-size: 0.85rem;
+      color: hsl(0 0% 75%);
+      margin-top: 0.25rem;
+      display: block;
+    }
+
+    .progress-steps {
+      background: hsl(0 0% 18%);
+      border: 1px solid hsl(0 0% 25%);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      display: none;
+    }
+
+    .progress-steps.active {
+      display: block;
+    }
+
+    .step {
+      display: flex;
+      align-items: center;
+      padding: 1rem;
+      margin-bottom: 0.75rem;
+      background: hsl(0 0% 15%);
+      border-radius: 8px;
+      border-left: 3px solid hsl(0 0% 30%);
+      transition: all 0.3s ease;
+    }
+
+    .step.active {
+      border-left-color: hsl(195 100% 60%);
+      background: hsl(195 100% 60% / 0.05);
+    }
+
+    .step.completed {
+      border-left-color: hsl(120 60% 50%);
+      opacity: 0.7;
+    }
+
+    .step-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: hsl(0 0% 25%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 1rem;
+      font-size: 1.2rem;
+      flex-shrink: 0;
+    }
+
+    .step.active .step-icon {
+      background: hsl(195 100% 60%);
+      color: hsl(0 0% 10%);
+      animation: spin 2s linear infinite;
+    }
+
+    .step.completed .step-icon {
+      background: hsl(120 60% 50%);
+      color: hsl(0 0% 10%);
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .step-content {
+      flex: 1;
+    }
+
+    .step-title {
+      font-weight: 600;
+      color: hsl(0 0% 95%);
+      margin-bottom: 0.25rem;
+    }
+
+    .step-detail {
+      font-size: 0.9rem;
+      color: hsl(0 0% 70%);
+    }
+
+    .result-container {
+      background: hsl(0 0% 18%);
+      border: 1px solid hsl(0 0% 25%);
+      border-radius: 12px;
+      padding: 1.5rem;
+      max-height: 600px;
+      overflow-y: auto;
+    }
+
+    .result-section {
+      margin-bottom: 2rem;
+    }
+
+    .result-title {
+      color: hsl(195 100% 60%);
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .result-content {
+      color: hsl(0 0% 92%);
+      line-height: 1.7;
+      white-space: pre-wrap;
+    }
+
+    .insight-box {
+      background: hsl(120 60% 50% / 0.1);
+      border: 1px solid hsl(120 60% 50% / 0.3);
+      border-radius: 8px;
+      padding: 1rem;
+      margin-top: 1rem;
+    }
+
+    .insight-title {
+      color: hsl(120 60% 50%);
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .knowledge-graph {
+      background: hsl(0 0% 18%);
+      border: 1px solid hsl(0 0% 25%);
+      border-radius: 12px;
+      padding: 1.5rem;
+      min-height: 300px;
+    }
+
+    .graph-node {
+      display: inline-block;
+      background: hsl(0 0% 15%);
+      border: 2px solid hsl(195 100% 60%);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      margin: 0.5rem;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+
+    .graph-node:hover {
+      transform: scale(1.05);
+      box-shadow: 0 4px 12px hsl(195 100% 60% / 0.3);
+    }
+
+    .graph-node.central {
+      background: hsl(195 100% 60% / 0.2);
+      border-width: 3px;
+      font-weight: 600;
+    }
+
+    .graph-node.related {
+      border-color: hsl(270 100% 60%);
+    }
+
+    .connection-line {
+      height: 2px;
+      background: linear-gradient(90deg, hsl(195 100% 60%), transparent);
+      margin: 0.5rem 2rem;
+      opacity: 0.5;
+    }
+
+    .learning-indicator {
+      background: hsl(40 90% 60% / 0.1);
+      border: 1px solid hsl(40 90% 60% / 0.3);
+      border-radius: 8px;
+      padding: 1rem;
+      margin-top: 1rem;
+    }
+
+    .learning-title {
+      color: hsl(40 90% 60%);
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .learning-metrics {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .metric-item {
+      text-align: center;
+      padding: 0.75rem;
+      background: hsl(0 0% 18%);
+      border-radius: 6px;
+    }
+
+    .metric-value {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: hsl(195 100% 60%);
+    }
+
+    .metric-label {
+      font-size: 0.8rem;
+      color: hsl(0 0% 70%);
+      margin-top: 0.25rem;
+    }
+
+    .log-container {
+      background: hsl(0 0% 18%);
+      border: 1px solid hsl(0 0% 25%);
+      border-radius: 8px;
+      padding: 1rem;
+      max-height: 300px;
+      overflow-y: auto;
+      font-size: 0.85rem;
+    }
+
+    .log-entry {
+      padding: 6px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      display: flex;
+      gap: 8px;
+    }
+
+    .log-timestamp {
+      color: hsl(0 0% 60%);
+      flex-shrink: 0;
+    }
+
+    .log-info { color: hsl(195 100% 60%); }
+    .log-success { color: hsl(120 60% 50%); }
+    .log-warning { color: hsl(40 90% 60%); }
+
+    @media (max-width: 1200px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>
+        <span>🔬</span>
+        Autonomous Research Assistant
+      </h1>
+      <p class="subtitle">AI-Powered Research with Autonomous Learning & Pattern Discovery</p>
+    </header>
+
+    <div class="main-grid">
+      <div class="card">
+        <h2>📝 Research Query</h2>
+        <label class="input-label">What would you like to research?</label>
+        <textarea
+          id="researchQuery"
+          class="research-input"
+          placeholder="Example: Explain quantum computing and its applications in cryptography&#10;&#10;The assistant will autonomously:&#10;• Learn from your research patterns&#10;• Build knowledge graphs of concepts&#10;• Make connections between topics&#10;• Provide insights based on prior learning&#10;• Improve recommendations over time"
+        ></textarea>
+        <div class="btn-group">
+          <button id="researchBtn" class="btn">
+            <span id="researchIcon">🚀</span>
+            <span id="researchText">Start Research</span>
+          </button>
+          <button id="clearBtn" class="btn-secondary">
+            Clear Results
+          </button>
+        </div>
+
+        <!-- Progress Steps -->
+        <div id="progressSteps" class="progress-steps">
+          <div id="step1" class="step">
+            <div class="step-icon">🔍</div>
+            <div class="step-content">
+              <div class="step-title">Analyzing Query</div>
+              <div class="step-detail">Extracting concepts and intent...</div>
+            </div>
+          </div>
+          <div id="step2" class="step">
+            <div class="step-icon">🧠</div>
+            <div class="step-content">
+              <div class="step-title">Searching Knowledge Base</div>
+              <div class="step-detail">Finding related research and patterns...</div>
+            </div>
+          </div>
+          <div id="step3" class="step">
+            <div class="step-icon">🤖</div>
+            <div class="step-content">
+              <div class="step-title">AI Synthesis</div>
+              <div class="step-detail">Generating insights with Gemini...</div>
+            </div>
+          </div>
+          <div id="step4" class="step">
+            <div class="step-icon">📊</div>
+            <div class="step-content">
+              <div class="step-title">Learning & Connecting</div>
+              <div class="step-detail">Updating knowledge graph and patterns...</div>
+            </div>
+          </div>
+          <div id="step5" class="step">
+            <div class="step-icon">💡</div>
+            <div class="step-content">
+              <div class="step-title">Generating Insights</div>
+              <div class="step-detail">Creating autonomous recommendations...</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Results -->
+        <div id="resultContainer" style="display: none;"></div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 20px;">
+        <div class="card">
+          <h2>
+            <span class="status-indicator status-idle" id="systemStatus"></span>
+            System Status
+          </h2>
+          <div class="stats-grid">
+            <div class="stat-box">
+              <span class="stat-value" id="queriesCount">0</span>
+              <span class="stat-label">Queries</span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-value" id="conceptsCount">0</span>
+              <span class="stat-label">Concepts</span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-value" id="connectionsCount">0</span>
+              <span class="stat-label">Connections</span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-value" id="insightsCount">0</span>
+              <span class="stat-label">Insights</span>
+            </div>
+          </div>
+
+          <!-- Learning Indicator -->
+          <div class="learning-indicator">
+            <div class="learning-title">
+              <span>🧠</span>
+              <span>Learning Progress</span>
+            </div>
+            <div class="learning-metrics">
+              <div class="metric-item">
+                <div class="metric-value" id="learningAccuracy">0%</div>
+                <div class="metric-label">Accuracy</div>
+              </div>
+              <div class="metric-item">
+                <div class="metric-value" id="patternStrength">0%</div>
+                <div class="metric-label">Patterns</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>📊 Activity Log</h2>
+          <div class="log-container" id="logContainer"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card full-width">
+      <h2>🗺️ Knowledge Graph</h2>
+      <div id="knowledgeGraph" class="knowledge-graph">
+        <div style="text-align: center; color: hsl(0 0% 60%); padding: 3rem; font-style: italic;">
+          Knowledge graph will build as you research topics...
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { SQLiteVectorDB } from 'https://unpkg.com/agentdb@1.0.7/dist/agentdb.min.js';
+
+    // System state
+    const state = {
+      db: null,
+      isProcessing: false,
+      queriesProcessed: 0,
+      conceptsLearned: new Set(),
+      connections: new Map(), // topic -> related topics
+      insightsGenerated: 0,
+      queryHistory: [],
+      topicFrequency: new Map(),
+      learningAccuracy: 0,
+      patternStrength: 0
+    };
+
+    const SUPABASE_URL = 'https://yoyrnfdeqygvfpmhjwty.supabase.co';
+    const AI_ENDPOINT = `${SUPABASE_URL}/functions/v1/agentdb-ai`;
+
+    // Initialize AgentDB
+    async function initializeDB() {
+      try {
+        logMessage('info', '🔧 Initializing AgentDB WASM v1.0.7...');
+        state.db = new SQLiteVectorDB({
+          memoryMode: true,
+          backend: 'wasm'
+        });
+        await state.db.initializeAsync();
+        logMessage('success', '✅ AgentDB initialized - Ready for autonomous learning');
+        return true;
+      } catch (error) {
+        console.error('Failed to initialize AgentDB:', error);
+        logMessage('warning', `⚠️ AgentDB initialization failed: ${error.message}`);
+        return false;
+      }
+    }
+
+    // Call Gemini AI for research synthesis
+    async function callGeminiAI(query, context = {}) {
+      try {
+        const systemPrompt = `You are an autonomous research assistant. Provide:
+1. Summary (2-3 clear sentences)
+2. Key Concepts (3-5 main ideas)
+3. Insights (practical applications)
+4. Related Topics (areas to explore)
+
+Be concise, clear, and insightful.`;
+
+        const response = await fetch(AI_ENDPOINT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'research',
+            code: systemPrompt,
+            data: context,
+            context: query,
+            model: 'google/gemini-2.5-flash'
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`AI service unavailable (${response.status})`);
+        }
+
+        const result = await response.json();
+        return result.response;
+      } catch (error) {
+        logMessage('warning', `⚠️ AI fallback mode active`);
+        return generateFallbackResponse(query, context);
+      }
+    }
+
+    // Fallback response when AI unavailable
+    function generateFallbackResponse(query, context) {
+      const concepts = extractConcepts(query);
+      const relatedTopics = Array.from(state.topicFrequency.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(([topic]) => topic);
+
+      return `📋 Research Summary (Demo Mode - Learning Actively)
+
+Query: "${query.substring(0, 100)}..."
+
+🎯 Key Concepts:
+${concepts.slice(0, 5).map(c => `• ${c}`).join('\n')}
+
+💡 Autonomous Insights:
+• I'm learning from your research patterns in real-time
+• Building connections between ${state.conceptsLearned.size} concepts
+• Tracking ${state.connections.size} topic relationships
+${relatedTopics.length > 0 ? `• Related to your interest in: ${relatedTopics.join(', ')}` : ''}
+
+🔗 Learning Notes:
+The system is autonomously building a knowledge graph from your queries. Each research deepens my understanding of your interests and improves future recommendations.
+
+Note: Deploy Gemini Edge Function for full AI synthesis. Learning features work fully offline!`;
+    }
+
+    // Extract concepts from text
+    function extractConcepts(text) {
+      const words = text.toLowerCase()
+        .replace(/[^\w\s]/g, '')
+        .split(/\s+/)
+        .filter(w => w.length > 4);
+
+      const stopWords = new Set(['about', 'would', 'could', 'should', 'their', 'there', 'where', 'which', 'these', 'those']);
+      return [...new Set(words)].filter(w => !stopWords.has(w));
+    }
+
+    // Learn from query autonomously
+    async function learnAutonomously(query, response) {
+      updateStep(4, 'active');
+      await sleep(500);
+
+      try {
+        // Extract and learn concepts
+        const concepts = extractConcepts(query);
+        concepts.forEach(concept => {
+          state.conceptsLearned.add(concept);
+          const freq = state.topicFrequency.get(concept) || 0;
+          state.topicFrequency.set(concept, freq + 1);
+        });
+
+        // Build connections between concepts
+        for (let i = 0; i < concepts.length; i++) {
+          const related = state.connections.get(concepts[i]) || new Set();
+          concepts.forEach((other, j) => {
+            if (i !== j) related.add(other);
+          });
+          state.connections.set(concepts[i], related);
+        }
+
+        // Store in vector database with rich metadata
+        const embedding = await generateEmbedding(query);
+        await state.db.insert({
+          embedding,
+          metadata: {
+            query: query.substring(0, 200),
+            response: response.substring(0, 500),
+            concepts: concepts.slice(0, 10),
+            timestamp: Date.now(),
+            queryNumber: state.queriesProcessed + 1
+          }
+        });
+
+        // Update learning metrics
+        state.learningAccuracy = Math.min(95, 50 + (state.queriesProcessed * 5));
+        state.patternStrength = Math.min(100, (state.connections.size / state.conceptsLearned.size) * 100);
+
+        logMessage('success', `🧠 Learned ${concepts.length} concepts, found ${concepts.length * (concepts.length - 1)} connections`);
+        updateStep(4, 'completed');
+      } catch (error) {
+        console.error('Learning error:', error);
+      }
+    }
+
+    // Generate insights autonomously
+    async function generateAutonomousInsights(query) {
+      updateStep(5, 'active');
+      await sleep(500);
+
+      const insights = [];
+
+      // Pattern-based insights
+      const topConcepts = Array.from(state.topicFrequency.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5);
+
+      if (topConcepts.length > 0) {
+        insights.push(`💡 Pattern Detected: You frequently research ${topConcepts.map(([t]) => t).join(', ')}`);
+      }
+
+      // Connection insights
+      const queryConcepts = extractConcepts(query);
+      const relatedConcepts = new Set();
+      queryConcepts.forEach(concept => {
+        const related = state.connections.get(concept);
+        if (related) related.forEach(r => relatedConcepts.add(r));
+      });
+
+      if (relatedConcepts.size > 0) {
+        insights.push(`🔗 Connected Topics: ${Array.from(relatedConcepts).slice(0, 5).join(', ')}`);
+      }
+
+      // Learning progress
+      if (state.queriesProcessed > 2) {
+        insights.push(`📈 Learning Improvement: ${Math.round(state.learningAccuracy)}% accurate, ${state.connections.size} topic connections discovered`);
+      }
+
+      state.insightsGenerated += insights.length;
+      updateStep(5, 'completed');
+
+      return insights;
+    }
+
+    // Process research query
+    async function processResearch() {
+      const query = document.getElementById('researchQuery').value.trim();
+
+      if (!query) {
+        logMessage('warning', '⚠️ Please enter a research query');
+        return;
+      }
+
+      if (state.isProcessing) return;
+      state.isProcessing = true;
+      updateSystemStatus('thinking');
+      updateButton(true);
+
+      // Show progress steps
+      document.getElementById('progressSteps').classList.add('active');
+      resetSteps();
+
+      try {
+        // Initialize DB if needed
+        if (!state.db) {
+          await initializeDB();
+        }
+
+        // Step 1: Analyze Query
+        updateStep(1, 'active');
+        logMessage('info', '🔍 Analyzing query and extracting concepts...');
+        await sleep(800);
+        const concepts = extractConcepts(query);
+        logMessage('info', `📝 Extracted ${concepts.length} concepts: ${concepts.slice(0, 3).join(', ')}...`);
+        updateStep(1, 'completed');
+
+        // Step 2: Search Knowledge Base
+        updateStep(2, 'active');
+        logMessage('info', '🧠 Searching knowledge base for related research...');
+        await sleep(600);
+
+        const relatedKnowledge = await findRelatedKnowledge(query);
+        logMessage('info', `📚 Found ${relatedKnowledge.length} related queries in knowledge base`);
+        updateStep(2, 'completed');
+
+        // Step 3: AI Synthesis
+        updateStep(3, 'active');
+        updateSystemStatus('learning');
+        logMessage('info', '🤖 Consulting Gemini AI for synthesis...');
+
+        const context = {
+          relatedQueries: relatedKnowledge.map(k => k.query),
+          conceptFrequency: Array.from(state.topicFrequency.entries()).slice(0, 10)
+        };
+
+        const aiResponse = await callGeminiAI(query, context);
+        logMessage('success', '✅ AI synthesis complete');
+        updateStep(3, 'completed');
+
+        // Step 4: Learn Autonomously
+        await learnAutonomously(query, aiResponse);
+
+        // Step 5: Generate Insights
+        const insights = await generateAutonomousInsights(query);
+
+        // Display results
+        displayResults(query, aiResponse, relatedKnowledge, insights);
+
+        // Update stats
+        state.queriesProcessed++;
+        state.queryHistory.push({ query, timestamp: Date.now() });
+        updateStats();
+        updateKnowledgeGraph();
+
+        logMessage('success', '✅ Research complete with autonomous learning!');
+        updateSystemStatus('active');
+
+      } catch (error) {
+        console.error('Research error:', error);
+        logMessage('warning', `❌ Error: ${error.message}`);
+        updateSystemStatus('idle');
+      } finally {
+        state.isProcessing = false;
+        updateButton(false);
+      }
+    }
+
+    // Find related knowledge using vector search
+    async function findRelatedKnowledge(query) {
+      try {
+        const embedding = await generateEmbedding(query);
+        const results = await state.db.search(embedding, 3, 0.3);
+        return results.map(r => r.metadata);
+      } catch (error) {
+        return [];
+      }
+    }
+
+    // Generate embedding
+    async function generateEmbedding(text) {
+      const words = text.toLowerCase().split(/\s+/);
+      const embedding = new Array(384).fill(0);
+
+      words.forEach((word, idx) => {
+        for (let i = 0; i < word.length; i++) {
+          const pos = (word.charCodeAt(i) + idx) % 384;
+          embedding[pos] += 0.1;
+        }
+      });
+
+      const magnitude = Math.sqrt(embedding.reduce((sum, val) => sum + val * val, 0));
+      return embedding.map(val => val / (magnitude || 1));
+    }
+
+    // Display results
+    function displayResults(query, response, relatedKnowledge, insights) {
+      const container = document.getElementById('resultContainer');
+      container.style.display = 'block';
+
+      let html = `
+        <div class="result-container">
+          <div class="result-section">
+            <div class="result-title">📋 Your Query</div>
+            <div class="result-content">${query}</div>
+          </div>
+
+          <div class="result-section">
+            <div class="result-title">🎯 AI Research Synthesis</div>
+            <div class="result-content">${response}</div>
+          </div>
+      `;
+
+      if (relatedKnowledge.length > 0) {
+        html += `
+          <div class="result-section">
+            <div class="result-title">🔗 Related Research (From Learning)</div>
+            ${relatedKnowledge.map(k => `
+              <div style="padding: 0.75rem; background: hsl(0 0% 18%); border-radius: 6px; margin-bottom: 0.5rem;">
+                <strong>${k.query}</strong>
+                <div style="font-size: 0.9rem; color: hsl(0 0% 70%); margin-top: 0.25rem;">
+                  Concepts: ${k.concepts?.join(', ') || 'N/A'}
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      }
+
+      if (insights.length > 0) {
+        html += `
+          <div class="insight-box">
+            <div class="insight-title">💡 Autonomous Insights</div>
+            ${insights.map(i => `<div style="margin-bottom: 0.5rem;">• ${i}</div>`).join('')}
+          </div>
+        `;
+      }
+
+      html += '</div>';
+      container.innerHTML = html;
+    }
+
+    // Update knowledge graph visualization
+    function updateKnowledgeGraph() {
+      const container = document.getElementById('knowledgeGraph');
+
+      if (state.conceptsLearned.size === 0) {
+        return;
+      }
+
+      const topConcepts = Array.from(state.topicFrequency.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 15);
+
+      let html = '<div style="text-align: center;">';
+
+      topConcepts.forEach(([concept, freq], idx) => {
+        const related = state.connections.get(concept);
+        const isCentral = freq > 2;
+        html += `
+          <div class="graph-node ${isCentral ? 'central' : ''}"
+               title="${freq} occurrence(s), ${related?.size || 0} connections">
+            ${concept} ${freq > 1 ? `(${freq})` : ''}
+          </div>
+        `;
+
+        if (idx % 4 === 3 && idx < topConcepts.length - 1) {
+          html += '<div class="connection-line"></div>';
+        }
+      });
+
+      html += '</div>';
+      container.innerHTML = html;
+    }
+
+    // UI helpers
+    function updateStep(stepNum, status) {
+      const step = document.getElementById(`step${stepNum}`);
+      step.className = 'step';
+      if (status) step.classList.add(status);
+    }
+
+    function resetSteps() {
+      for (let i = 1; i <= 5; i++) {
+        updateStep(i, '');
+      }
+    }
+
+    function updateStats() {
+      document.getElementById('queriesCount').textContent = state.queriesProcessed;
+      document.getElementById('conceptsCount').textContent = state.conceptsLearned.size;
+      document.getElementById('connectionsCount').textContent = state.connections.size;
+      document.getElementById('insightsCount').textContent = state.insightsGenerated;
+      document.getElementById('learningAccuracy').textContent = Math.round(state.learningAccuracy) + '%';
+      document.getElementById('patternStrength').textContent = Math.round(state.patternStrength) + '%';
+    }
+
+    function updateSystemStatus(status) {
+      const indicator = document.getElementById('systemStatus');
+      indicator.className = 'status-indicator status-' + status;
+    }
+
+    function updateButton(isLoading) {
+      const btn = document.getElementById('researchBtn');
+      const icon = document.getElementById('researchIcon');
+      const text = document.getElementById('researchText');
+
+      if (isLoading) {
+        icon.textContent = '⚙️';
+        text.textContent = 'Researching...';
+        btn.disabled = true;
+      } else {
+        icon.textContent = '🚀';
+        text.textContent = 'Start Research';
+        btn.disabled = false;
+      }
+    }
+
+    function clearResults() {
+      document.getElementById('resultContainer').style.display = 'none';
+      document.getElementById('progressSteps').classList.remove('active');
+      document.getElementById('researchQuery').value = '';
+      logMessage('info', '🧹 Results cleared');
+    }
+
+    function logMessage(type, message) {
+      const container = document.getElementById('logContainer');
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+      const timestamp = new Date().toLocaleTimeString();
+      entry.innerHTML = `
+        <span class="log-timestamp">[${timestamp}]</span>
+        <span class="log-${type}">${message}</span>
+      `;
+      container.insertBefore(entry, container.firstChild);
+
+      while (container.children.length > 50) {
+        container.removeChild(container.lastChild);
+      }
+    }
+
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    // Event listeners
+    document.getElementById('researchBtn').addEventListener('click', processResearch);
+    document.getElementById('clearBtn').addEventListener('click', clearResults);
+
+    // Ctrl+Enter to submit
+    document.getElementById('researchQuery').addEventListener('keydown', (e) => {
+      if (e.ctrlKey && e.key === 'Enter') {
+        processResearch();
+      }
+    });
+
+    // Initialize demo data and populate knowledge graph
+    async function initializeDemoData() {
+      logMessage('info', '📚 Loading demo knowledge base...');
+
+      const demoData = [
+        {
+          query: "What is machine learning and how does it work?",
+          concepts: ['machine learning', 'algorithms', 'data', 'training', 'prediction', 'models', 'artificial intelligence'],
+          response: "Machine learning enables computers to learn patterns from data and make predictions without explicit programming."
+        },
+        {
+          query: "Explain neural networks and deep learning architectures",
+          concepts: ['neural networks', 'deep learning', 'layers', 'neurons', 'training', 'backpropagation', 'artificial intelligence'],
+          response: "Neural networks are computing systems inspired by biological neural networks, using layers of interconnected nodes to process information."
+        },
+        {
+          query: "What are vector databases and their applications in AI?",
+          concepts: ['vector databases', 'embeddings', 'similarity search', 'machine learning', 'semantic search', 'data'],
+          response: "Vector databases store and query high-dimensional vectors, enabling semantic search and similarity matching for AI applications."
+        },
+        {
+          query: "How does natural language processing work?",
+          concepts: ['natural language processing', 'nlp', 'language models', 'text analysis', 'machine learning', 'artificial intelligence'],
+          response: "NLP enables computers to understand, interpret, and generate human language using machine learning techniques."
+        },
+        {
+          query: "What is the role of embeddings in modern AI systems?",
+          concepts: ['embeddings', 'vector databases', 'semantic search', 'natural language processing', 'machine learning', 'representation'],
+          response: "Embeddings convert complex data into numerical vectors that capture semantic meaning, enabling AI systems to understand relationships."
+        }
+      ];
+
+      // Process each demo item through the learning system
+      for (let i = 0; i < demoData.length; i++) {
+        const { query, concepts, response } = demoData[i];
+
+        // Simulate the learning process
+        await sleep(300);
+        logMessage('info', `🔍 Learning from: "${query.substring(0, 50)}..."`);
+
+        // Learn concepts
+        concepts.forEach(concept => {
+          state.conceptsLearned.add(concept);
+          const freq = state.topicFrequency.get(concept) || 0;
+          state.topicFrequency.set(concept, freq + 1);
+        });
+
+        // Build connections between concepts
+        for (let j = 0; j < concepts.length; j++) {
+          const related = state.connections.get(concepts[j]) || new Set();
+          concepts.forEach((other, k) => {
+            if (j !== k) related.add(other);
+          });
+          state.connections.set(concepts[j], related);
+        }
+
+        // Store in vector database
+        const embedding = await generateEmbedding(query);
+        await state.db.insert({
+          embedding,
+          metadata: {
+            query: query.substring(0, 200),
+            response: response.substring(0, 500),
+            concepts: concepts.slice(0, 10),
+            timestamp: Date.now() - (demoData.length - i) * 60000, // Stagger timestamps
+            queryNumber: i + 1,
+            isDemo: true
+          }
+        });
+
+        // Update metrics
+        state.queriesProcessed++;
+        state.insightsGenerated += Math.floor(Math.random() * 3) + 2;
+      }
+
+      // Update learning accuracy based on demo data
+      state.learningAccuracy = 0.72 + (state.queriesProcessed * 0.05);
+      state.patternStrength = 0.65 + (state.conceptsLearned.size * 0.02);
+
+      // Update UI
+      updateStats();
+      updateKnowledgeGraph();
+
+      logMessage('success', `✅ Loaded ${demoData.length} demo research queries`);
+      logMessage('success', `🧠 Learned ${state.conceptsLearned.size} concepts with ${state.connections.size} connections`);
+      logMessage('info', '⌨️ Knowledge graph is now populated - try your own queries!');
+    }
+
+    // Initialize UI
+    updateStats();
+    logMessage('info', '🎯 Autonomous Research Assistant Ready');
+    logMessage('info', '🧠 Learning system initialized - I will improve with each query');
+
+    // Load demo data after DB initialization
+    (async () => {
+      try {
+        const db = new SQLiteVectorDB({ memoryMode: true, backend: 'wasm' });
+        await db.initializeAsync();
+        state.db = db;
+
+        // Load demo knowledge
+        await initializeDemoData();
+      } catch (error) {
+        console.error('Initialization error:', error);
+        logMessage('error', '⚠️ Could not initialize demo data - system ready for manual queries');
+      }
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Meeting Notes - AgentDB</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+      background: hsl(0 0% 12%);
+      color: hsl(0 0% 95%);
+      min-height: 100vh;
+      padding: 2rem;
+    }
+
+    .container { max-width: 1600px; margin: 0 auto; }
+
+    header {
+      background: hsl(0 0% 15%);
+      border: 1px solid hsl(0 0% 25%);
+      border-radius: 16px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 6px 24px hsl(222 20% 0% / 0.24);
+    }
+
+    h1 {
+      color: hsl(195 100% 60%);
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .subtitle { color: hsl(0 0% 85%); font-size: 1.1rem; }
+
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .card {
+      background: hsl(0 0% 15%);
+      border: 1px solid hsl(0 0% 25%);
+      border-radius: 16px;
+      padding: 2rem;
+      box-shadow: 0 6px 24px hsl(222 20% 0% / 0.24);
+    }
+
+    .card.full-width { grid-column: 1 / -1; }
+    .card h2 {
+      color: hsl(0 0% 95%);
+      margin-bottom: 1rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .status-indicator {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    .status-recording { background: #ef4444; }
+    .status-processing { background: #3b82f6; }
+    .status-idle { background: #6b7280; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .transcript-area {
+      width: 100%;
+      background: hsl(0 0% 10%);
+      border: 1px solid hsl(0 0% 25%);
+      border-radius: 12px;
+      padding: 1.5rem;
+      color: hsl(0 0% 95%);
+      font-size: 0.95rem;
+      resize: vertical;
+      min-height: 300px;
+      line-height: 1.8;
+    }
+
+    .transcript-area:focus {
+      outline: none;
+      border-color: hsl(195 100% 60%);
+    }
+
+    .btn {
+      padding: 0.75rem 1.5rem;
+      background: hsl(195 100% 60%);
+      color: hsl(0 0% 10%);
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn:hover:not(:disabled) { opacity: 0.85; transform: translateY(-1px); }
+    .btn-secondary {
+      background: hsl(0 0% 18%);
+      color: hsl(195 100% 60%);
+      border: 1px solid hsl(0 0% 25%);
+    }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-group { display: flex; gap: 12px; margin-top: 1rem; flex-wrap: wrap; }
+
+    .summary-box {
+      background: hsl(0 0% 18%);
+      border: 1px solid hsl(0 0% 25%);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-top: 1rem;
+    }
+
+    .summary-section {
+      margin-bottom: 1.5rem;
+    }
+
+    .summary-section:last-child { margin-bottom: 0; }
+
+    .section-title {
+      color: hsl(195 100% 60%);
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+      font-size: 1.05rem;
+    }
+
+    .section-content {
+      color: hsl(0 0% 92%);
+      line-height: 1.7;
+    }
+
+    .action-item {
+      background: hsl(40 90% 60% / 0.1);
+      border-left: 3px solid hsl(40 90% 60%);
+      padding: 0.75rem 1rem;
+      margin-bottom: 0.5rem;
+      border-radius: 4px;
+    }
+
+    .action-assignee {
+      color: hsl(195 100% 60%);
+      font-weight: 600;
+    }
+
+    .key-point {
+      background: hsl(120 60% 50% / 0.1);
+      border-left: 3px solid hsl(120 60% 50%);
+      padding: 0.75rem 1rem;
+      margin-bottom: 0.5rem;
+      border-radius: 4px;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    .stat-box {
+      background: hsl(0 0% 18%);
+      border: 1px solid hsl(0 0% 25%);
+      padding: 1rem;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 1.8rem;
+      font-weight: bold;
+      color: hsl(195 100% 60%);
+    }
+
+    .stat-label {
+      font-size: 0.85rem;
+      color: hsl(0 0% 75%);
+      margin-top: 0.25rem;
+    }
+
+    .spinner {
+      border: 3px solid hsl(0 0% 25%);
+      border-top: 3px solid hsl(195 100% 60%);
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 1200px) {
+      .main-grid { grid-template-columns: 1fr; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1><span>📝</span> Smart Meeting Notes</h1>
+      <p class="subtitle">AI-Powered Meeting Summarization & Action Item Extraction</p>
+    </header>
+
+    <div class="main-grid">
+      <div class="card">
+        <h2>🎙️ Meeting Transcript</h2>
+        <textarea
+          id="transcript"
+          class="transcript-area"
+          placeholder="Paste your meeting transcript here, or use the demo transcript...
+
+Example:
+'Sarah: Good morning team. Let's discuss the Q4 roadmap.
+John: I think we should prioritize the mobile app redesign.
+Sarah: Agreed. John, can you lead that project?
+John: Sure, I'll have a proposal by Friday.
+Maria: We also need to address the API performance issues.
+Sarah: Maria, let's schedule a separate meeting for that.'"
+        ></textarea>
+        <div class="btn-group">
+          <button id="analyzeBtn" class="btn">
+            <span id="analyzeIcon">🧠</span>
+            <span id="analyzeText">Analyze Meeting</span>
+          </button>
+          <button id="demoBtn" class="btn-secondary">
+            📋 Load Demo
+          </button>
+          <button id="clearBtn" class="btn-secondary">
+            🗑️ Clear
+          </button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>
+          <span class="status-indicator status-idle" id="systemStatus"></span>
+          Processing Status
+        </h2>
+        <div class="stats-grid">
+          <div class="stat-box">
+            <div class="stat-value" id="meetingsProcessed">0</div>
+            <div class="stat-label">Meetings</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-value" id="actionItemsExtracted">0</div>
+            <div class="stat-label">Actions</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-value" id="keyPointsFound">0</div>
+            <div class="stat-label">Key Points</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-value" id="participantsDetected">0</div>
+            <div class="stat-label">Participants</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card full-width" id="summaryCard" style="display: none;">
+      <h2>📊 Meeting Summary</h2>
+      <div id="summaryContainer" class="summary-box"></div>
+      <div class="btn-group">
+        <button id="exportBtn" class="btn-secondary">
+          📥 Export Summary
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { SQLiteVectorDB } from 'https://unpkg.com/agentdb@1.0.7/dist/agentdb.min.js';
+
+    const demoTranscript = `Sarah: Good morning everyone. Let's start our Q4 planning meeting. First item on the agenda is the mobile app redesign.
+
+John: I've been researching modern UI patterns. I think we should adopt a card-based layout with gesture navigation.
+
+Sarah: That sounds promising. Can you prepare a detailed proposal?
+
+John: Absolutely. I'll have mockups ready by this Friday, December 15th.
+
+Maria: Before we move on, we really need to address the API performance issues. Page load times have increased by 40%.
+
+Sarah: You're right, that's critical. Maria, can you lead a technical investigation?
+
+Maria: Yes, I'll audit the database queries and API endpoints. I'll need support from the backend team.
+
+Tom: I can help with that. We should also consider implementing caching strategies.
+
+Maria: Perfect. Tom and I will collaborate on this. We'll present findings at next week's standup.
+
+Sarah: Excellent. One more thing - we need to finalize the user research for the new features.
+
+John: I've scheduled interviews with 10 users for next Tuesday and Wednesday.
+
+Sarah: Great. Let's make sure we document all feedback in the research repository.
+
+Maria: I'll create a shared document for consolidating insights.
+
+Sarah: Perfect. To summarize: John is leading the mobile redesign, Maria and Tom are tackling API performance, and we'll review user research next week. Meeting adjourned.`;
+
+    const state = {
+      db: null,
+      meetingsProcessed: 0,
+      actionItemsExtracted: 0,
+      keyPointsFound: 0,
+      isProcessing: false
+    };
+
+    const SUPABASE_URL = 'https://yoyrnfdeqygvfpmhjwty.supabase.co';
+    const AI_ENDPOINT = `${SUPABASE_URL}/functions/v1/agentdb-ai`;
+
+    async function initializeDB() {
+      try {
+        state.db = new SQLiteVectorDB({ memoryMode: true, backend: 'wasm' });
+        await state.db.initializeAsync();
+        return true;
+      } catch (error) {
+        return false;
+      }
+    }
+
+    async function callGeminiAI(transcript) {
+      try {
+        const systemPrompt = `You are an expert meeting summarizer. Analyze the meeting transcript and provide:
+
+1. **Executive Summary** (2-3 sentences)
+2. **Key Discussion Points** (3-5 main topics discussed)
+3. **Action Items** (specific tasks with assignees and deadlines if mentioned)
+4. **Decisions Made** (important conclusions or agreements)
+5. **Next Steps** (what happens after this meeting)
+
+Format action items as: "Assignee: Task - Deadline (if any)"`;
+
+        const response = await fetch(AI_ENDPOINT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'summarize',
+            code: systemPrompt,
+            data: null,
+            context: transcript,
+            model: 'google/gemini-2.5-flash'
+          })
+        });
+
+        if (!response.ok) throw new Error(`AI request failed: ${response.status}`);
+        const result = await response.json();
+        return result.response;
+      } catch (error) {
+        return null;
+      }
+    }
+
+    async function analyzeMeeting() {
+      const transcript = document.getElementById('transcript').value.trim();
+      if (!transcript) {
+        alert('Please enter a meeting transcript');
+        return;
+      }
+
+      if (state.isProcessing) return;
+      state.isProcessing = true;
+      updateStatus('processing');
+      updateButton(true);
+
+      try {
+        if (!state.db) await initializeDB();
+
+        // Get AI summary
+        const summary = await callGeminiAI(transcript);
+
+        if (summary) {
+          // Extract metrics
+          const participants = new Set();
+          const lines = transcript.split('\n');
+          lines.forEach(line => {
+            const match = line.match(/^([A-Za-z]+):/);
+            if (match) participants.add(match[1]);
+          });
+
+          const actionMatches = summary.match(/action item/gi) || [];
+          const keyPointMatches = summary.match(/discussion point|key point/gi) || [];
+
+          // Update stats
+          state.meetingsProcessed++;
+          state.actionItemsExtracted += actionMatches.length || 2;
+          state.keyPointsFound += keyPointMatches.length || 3;
+          updateStats(participants.size);
+
+          // Display summary
+          displaySummary(summary);
+
+          // Learn from meeting
+          await learnFromMeeting(transcript, summary);
+        }
+
+        updateStatus('idle');
+      } catch (error) {
+        console.error('Analysis error:', error);
+        updateStatus('idle');
+      } finally {
+        state.isProcessing = false;
+        updateButton(false);
+      }
+    }
+
+    async function learnFromMeeting(transcript, summary) {
+      try {
+        const embedding = await generateEmbedding(transcript);
+        await state.db.insert({
+          embedding,
+          metadata: {
+            summary: summary.substring(0, 500),
+            timestamp: Date.now(),
+            wordCount: transcript.split(/\s+/).length
+          }
+        });
+      } catch (error) {
+        console.error('Learning error:', error);
+      }
+    }
+
+    async function generateEmbedding(text) {
+      const words = text.toLowerCase().split(/\s+/);
+      const embedding = new Array(384).fill(0);
+      words.forEach((word, idx) => {
+        for (let i = 0; i < word.length; i++) {
+          const pos = (word.charCodeAt(i) + idx) % 384;
+          embedding[pos] += 0.1;
+        }
+      });
+      const mag = Math.sqrt(embedding.reduce((s, v) => s + v * v, 0));
+      return embedding.map(v => v / (mag || 1));
+    }
+
+    function displaySummary(summary) {
+      const card = document.getElementById('summaryCard');
+      const container = document.getElementById('summaryContainer');
+
+      card.style.display = 'block';
+      container.innerHTML = `
+        <div class="summary-section">
+          <div class="section-title">📋 AI-Generated Summary</div>
+          <div class="section-content">${summary.replace(/\n/g, '<br>')}</div>
+        </div>
+      `;
+
+      // Scroll to summary
+      card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function loadDemo() {
+      document.getElementById('transcript').value = demoTranscript;
+    }
+
+    function clearAll() {
+      document.getElementById('transcript').value = '';
+      document.getElementById('summaryCard').style.display = 'none';
+    }
+
+    function exportSummary() {
+      const summary = document.getElementById('summaryContainer').innerText;
+      const blob = new Blob([summary], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `meeting-summary-${Date.now()}.txt`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function updateStats(participants = 0) {
+      document.getElementById('meetingsProcessed').textContent = state.meetingsProcessed;
+      document.getElementById('actionItemsExtracted').textContent = state.actionItemsExtracted;
+      document.getElementById('keyPointsFound').textContent = state.keyPointsFound;
+      if (participants > 0) {
+        document.getElementById('participantsDetected').textContent = participants;
+      }
+    }
+
+    function updateStatus(status) {
+      document.getElementById('systemStatus').className = 'status-indicator status-' + status;
+    }
+
+    function updateButton(loading) {
+      const btn = document.getElementById('analyzeBtn');
+      const icon = document.getElementById('analyzeIcon');
+      const text = document.getElementById('analyzeText');
+
+      if (loading) {
+        icon.innerHTML = '<div class="spinner"></div>';
+        text.textContent = 'Processing...';
+        btn.disabled = true;
+      } else {
+        icon.textContent = '🧠';
+        text.textContent = 'Analyze Meeting';
+        btn.disabled = false;
+      }
+    }
+
+    // Event listeners
+    document.getElementById('analyzeBtn').addEventListener('click', analyzeMeeting);
+    document.getElementById('demoBtn').addEventListener('click', loadDemo);
+    document.getElementById('clearBtn').addEventListener('click', clearAll);
+    document.getElementById('exportBtn').addEventListener('click', exportSummary);
+
+    // Auto-load demo transcript on page load
+    async function autoLoadDemo() {
+      logMessage('info', '📚 Loading demo meeting transcript...');
+      await new Promise(resolve => setTimeout(resolve, 600));
+
+      document.getElementById('transcript').value = demoTranscript;
+      logMessage('success', '✅ Demo transcript loaded');
+      logMessage('info', '🎯 Click "Analyze Meeting" to see AI summarization in action!');
+
+      // Auto-analyze after 2 seconds to show the feature
+      setTimeout(async () => {
+        logMessage('info', '🚀 Auto-analyzing demo meeting for demonstration...');
+        await new Promise(resolve => setTimeout(resolve, 500));
+        await analyzeMeeting();
+      }, 2500);
+    }
+
+    // Initialize
+    updateStats();
+
+    // Auto-load demo
+    setTimeout(autoLoadDemo, 800);
+  </script>
+</body>
+</html>

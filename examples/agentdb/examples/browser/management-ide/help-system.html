@@ -1,0 +1,912 @@
+<!-- Enhanced Help Modal with Tabs and Context Awareness -->
+<div id="helpModal" class="modal-overlay">
+  <div class="modal modal-large">
+    <div class="modal-header">
+      <div class="modal-title">❓ AgentDB IDE Help & Documentation</div>
+      <button class="modal-close" onclick="closeHelp()">&times;</button>
+    </div>
+
+    <!-- Main Tab Navigation -->
+    <div class="help-tabs">
+      <button class="help-tab active" data-tab="getting-started" onclick="switchHelpTab('getting-started')">
+        🚀 Getting Started
+      </button>
+      <button class="help-tab" data-tab="features" onclick="switchHelpTab('features')">
+        ⭐ Features
+      </button>
+      <button class="help-tab" data-tab="examples" onclick="switchHelpTab('examples')">
+        💡 Examples
+      </button>
+      <button class="help-tab" data-tab="reference" onclick="switchHelpTab('reference')">
+        📚 Reference
+      </button>
+      <button class="help-tab" data-tab="faq" onclick="switchHelpTab('faq')">
+        ❓ FAQ
+      </button>
+    </div>
+
+    <div class="modal-body help-content">
+
+      <!-- Getting Started Tab -->
+      <div id="help-tab-getting-started" class="help-tab-content active">
+        <div class="help-subsection-tabs">
+          <button class="help-subtab active" onclick="switchHelpSubtab('getting-started', 'overview')">Overview</button>
+          <button class="help-subtab" onclick="switchHelpSubtab('getting-started', 'quickstart')">Quick Start</button>
+          <button class="help-subtab" onclick="switchHelpSubtab('getting-started', 'interface')">Interface Guide</button>
+        </div>
+
+        <div id="help-getting-started-overview" class="help-subsection active">
+          <h3>🎯 Welcome to AgentDB Management IDE</h3>
+          <p>A comprehensive database and vector management system built on <strong>AgentDB v1.3.9</strong>. This IDE provides professional-grade tools for managing SQL databases, vector embeddings, reasoning patterns, and causal relationships.</p>
+
+          <div class="help-card">
+            <h4>What is AgentDB?</h4>
+            <p>AgentDB is an SQL-based agentic memory system that combines traditional relational databases with semantic vector search. It's designed for AI agents, intelligent applications, and systems that need to store, retrieve, and reason over complex data.</p>
+          </div>
+
+          <div class="help-card">
+            <h4>Core Capabilities</h4>
+            <ul>
+              <li><strong>SQL Database:</strong> Full SQLite database with ACID transactions</li>
+              <li><strong>Vector Embeddings:</strong> 384-dimensional semantic vectors for similarity search</li>
+              <li><strong>Pattern Storage:</strong> Reusable reasoning templates with metadata</li>
+              <li><strong>Episode Tracking:</strong> Complete task execution trajectories for RL</li>
+              <li><strong>Causal Graphs:</strong> Cause-effect relationships with weighted edges</li>
+              <li><strong>Query Optimization:</strong> Performance analysis and suggestions</li>
+            </ul>
+          </div>
+        </div>
+
+        <div id="help-getting-started-quickstart" class="help-subsection">
+          <h3>⚡ Quick Start Guide</h3>
+
+          <div class="help-steps">
+            <div class="help-step">
+              <div class="help-step-number">1</div>
+              <div class="help-step-content">
+                <h4>Initialize Database</h4>
+                <p>Click the <strong>🎬 Initialize AgentDB</strong> button in the header. This creates an in-memory database with all required tables and indexes.</p>
+              </div>
+            </div>
+
+            <div class="help-step">
+              <div class="help-step-number">2</div>
+              <div class="help-step-content">
+                <h4>Generate Sample Data</h4>
+                <p>Click <strong>🎲 Sample Data</strong> to generate realistic test data. Choose Gemini AI for intelligent generation or local for instant creation.</p>
+              </div>
+            </div>
+
+            <div class="help-step">
+              <div class="help-step-number">3</div>
+              <div class="help-step-content">
+                <h4>Explore Features</h4>
+                <p>Navigate through the sidebar to access SQL Editor, Data Browser, Patterns, Episodes, Causal Graph, Vector Search, and Query Optimizer.</p>
+              </div>
+            </div>
+
+            <div class="help-step">
+              <div class="help-step-number">4</div>
+              <div class="help-step-content">
+                <h4>Run Queries</h4>
+                <p>Use the SQL Editor to query data, or use specialized panels for pattern search, episode analysis, and causal exploration.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="help-tip">
+            <strong>💡 Pro Tip:</strong> Press <code>Ctrl+Enter</code> (or <code>Cmd+Enter</code> on Mac) in the SQL Editor to execute queries quickly.
+          </div>
+        </div>
+
+        <div id="help-getting-started-interface" class="help-subsection">
+          <h3>🖥️ Interface Guide</h3>
+
+          <div class="help-interface-section">
+            <h4>Header Bar</h4>
+            <ul>
+              <li><strong>Brand Logo:</strong> Click to return to SQL Editor</li>
+              <li><strong>Initialize:</strong> Create/reset the AgentDB database</li>
+              <li><strong>Sample Data:</strong> Generate test data for exploration</li>
+              <li><strong>Settings:</strong> Configure database parameters</li>
+              <li><strong>Export:</strong> Save configuration as standalone HTML</li>
+              <li><strong>Help:</strong> Access this documentation (you're here!)</li>
+            </ul>
+          </div>
+
+          <div class="help-interface-section">
+            <h4>Sidebar Navigation</h4>
+            <ul>
+              <li><strong>✏️ SQL Editor:</strong> Execute SQL queries with diagnostics</li>
+              <li><strong>📊 Data Browser:</strong> Browse tables with pagination</li>
+              <li><strong>🧩 Patterns:</strong> Manage reasoning patterns (60+ features)</li>
+              <li><strong>📝 Episodes:</strong> Track task trajectories with RL dashboard</li>
+              <li><strong>🔗 Causal Graph:</strong> Visualize cause-effect relationships</li>
+              <li><strong>🔍 Vector Search:</strong> Semantic similarity search (60+ features)</li>
+              <li><strong>⚡ Query Optimizer:</strong> Performance analysis engine</li>
+            </ul>
+          </div>
+
+          <div class="help-interface-section">
+            <h4>Console Output</h4>
+            <p>The bottom panel shows real-time logs and execution details. Color-coded messages indicate:</p>
+            <ul>
+              <li><span class="help-badge help-badge-info">INFO</span> General operations</li>
+              <li><span class="help-badge help-badge-success">SUCCESS</span> Completed operations</li>
+              <li><span class="help-badge help-badge-warning">WARNING</span> Potential issues</li>
+              <li><span class="help-badge help-badge-error">ERROR</span> Failed operations</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Features Tab -->
+      <div id="help-tab-features" class="help-tab-content">
+        <div class="help-subsection-tabs">
+          <button class="help-subtab active" onclick="switchHelpSubtab('features', 'sql-editor')">SQL Editor</button>
+          <button class="help-subtab" onclick="switchHelpSubtab('features', 'patterns')">Patterns</button>
+          <button class="help-subtab" onclick="switchHelpSubtab('features', 'episodes')">Episodes</button>
+          <button class="help-subtab" onclick="switchHelpSubtab('features', 'causal')">Causal Graph</button>
+          <button class="help-subtab" onclick="switchHelpSubtab('features', 'vector')">Vector Search</button>
+          <button class="help-subtab" onclick="switchHelpSubtab('features', 'optimizer')">Optimizer</button>
+        </div>
+
+        <div id="help-features-sql-editor" class="help-subsection active">
+          <h3>✏️ SQL Editor</h3>
+          <p>Professional SQL editor with query execution, results display, and performance diagnostics.</p>
+
+          <h4>Features</h4>
+          <ul>
+            <li>Multi-line SQL query editor</li>
+            <li>Execute queries with Ctrl+Enter</li>
+            <li>Tabbed interface (Editor / Results / Diagnostics)</li>
+            <li>Query history tracking</li>
+            <li>Export results to CSV/JSON</li>
+            <li>Performance metrics (execution time, rows affected)</li>
+            <li>Query optimization suggestions</li>
+          </ul>
+
+          <h4>Query Diagnostics</h4>
+          <p>After executing queries, switch to the <strong>Diagnostics</strong> tab to view:</p>
+          <ul>
+            <li>Execution time with color-coded performance indicators</li>
+            <li>Query complexity analysis</li>
+            <li>WHERE clause detection</li>
+            <li>JOIN operation detection</li>
+            <li>LIMIT clause recommendations</li>
+            <li>Optimization suggestions</li>
+          </ul>
+        </div>
+
+        <div id="help-features-patterns" class="help-subsection">
+          <h3>🧩 Patterns - 60+ Features</h3>
+          <p>Advanced pattern management system with bulk operations, analytics, and dual-view interface.</p>
+
+          <h4>Core Features</h4>
+          <ul>
+            <li><strong>Dual View:</strong> Switch between grid cards and list view</li>
+            <li><strong>Advanced Filters:</strong> Multi-criteria filtering with 8+ filter types</li>
+            <li><strong>Bulk Operations:</strong> Select multiple patterns for batch actions</li>
+            <li><strong>Analytics Dashboard:</strong> Pattern distribution, usage stats, trends</li>
+            <li><strong>Pattern Relationships:</strong> Link patterns with dependencies</li>
+            <li><strong>Version Control:</strong> Track pattern changes over time</li>
+            <li><strong>Quality Scoring:</strong> Automatic pattern quality metrics</li>
+            <li><strong>Batch Import:</strong> Import patterns from JSON or templates</li>
+          </ul>
+
+          <h4>Pattern Types</h4>
+          <ul>
+            <li><strong>Causal:</strong> Cause-effect reasoning patterns</li>
+            <li><strong>Temporal:</strong> Time-based sequential patterns</li>
+            <li><strong>Reasoning:</strong> Logic and inference patterns</li>
+            <li><strong>Optimization:</strong> Performance improvement patterns</li>
+            <li><strong>Custom:</strong> User-defined pattern types</li>
+          </ul>
+
+          <h4>Batch Import</h4>
+          <p>Click <strong>📦 Batch Import</strong> to:</p>
+          <ul>
+            <li>Upload JSON files with multiple patterns</li>
+            <li>Use pre-built templates (Marketing, Healthcare, Financial)</li>
+            <li>Generate patterns with specific themes</li>
+            <li>Automatic duplicate detection and merging</li>
+          </ul>
+        </div>
+
+        <div id="help-features-episodes" class="help-subsection">
+          <h3>📝 Episodes - RL Dashboard</h3>
+          <p>Complete reinforcement learning dashboard with trajectory visualization and analysis.</p>
+
+          <h4>Episode Structure</h4>
+          <ul>
+            <li><strong>Task:</strong> What the agent attempted to do</li>
+            <li><strong>Action:</strong> The specific action taken</li>
+            <li><strong>Reward:</strong> Numeric outcome (positive/negative)</li>
+            <li><strong>Critique:</strong> Analysis of the result</li>
+            <li><strong>Trajectory:</strong> Sequence of states and actions</li>
+            <li><strong>Metadata:</strong> Additional context (model, tokens, confidence)</li>
+          </ul>
+
+          <h4>RL Dashboard Features</h4>
+          <ul>
+            <li>📊 Reward distribution chart (success vs failure)</li>
+            <li>📈 Trajectory visualization with state transitions</li>
+            <li>🎯 Success rate calculator</li>
+            <li>📉 Trend analysis over time</li>
+            <li>🔍 Filter by reward range</li>
+            <li>📥 Export episodes to JSON</li>
+            <li>🎨 Color-coded reward indicators</li>
+          </ul>
+
+          <h4>Trajectory Visualization</h4>
+          <p>Click the <strong>📊 View Trajectory</strong> button on any episode to see:</p>
+          <ul>
+            <li>Canvas-based trajectory chart</li>
+            <li>State-action sequences</li>
+            <li>Reward progression</li>
+            <li>Critical decision points</li>
+          </ul>
+        </div>
+
+        <div id="help-features-causal" class="help-subsection">
+          <h3>🔗 Causal Graph Analysis</h3>
+          <p>Advanced graph analysis with path finding, cycle detection, and centrality measures.</p>
+
+          <h4>Graph Analysis Features</h4>
+          <ul>
+            <li><strong>DFS Path Finding:</strong> Find all paths between cause and effect</li>
+            <li><strong>Cycle Detection:</strong> Identify circular dependencies</li>
+            <li><strong>PageRank:</strong> Calculate node importance</li>
+            <li><strong>Betweenness Centrality:</strong> Find critical connectors</li>
+            <li><strong>Weight Analysis:</strong> Identify strongest relationships</li>
+            <li><strong>Graph Visualization:</strong> SVG-based network diagram</li>
+          </ul>
+
+          <h4>Analysis Modes</h4>
+          <ul>
+            <li><strong>Path Analysis:</strong> Find all paths between two nodes</li>
+            <li><strong>Cycle Detection:</strong> Detect feedback loops</li>
+            <li><strong>Centrality:</strong> Find most important nodes</li>
+            <li><strong>Cluster Analysis:</strong> Group related causes/effects</li>
+          </ul>
+
+          <h4>Causal Edge Structure</h4>
+          <ul>
+            <li><strong>Cause:</strong> The triggering event or condition</li>
+            <li><strong>Effect:</strong> The resulting outcome</li>
+            <li><strong>Weight:</strong> Strength of relationship (0.0 - 1.0)</li>
+            <li><strong>Metadata:</strong> Additional context (confidence, evidence)</li>
+          </ul>
+        </div>
+
+        <div id="help-features-vector" class="help-subsection">
+          <h3>🔍 Vector Search - 60+ Features</h3>
+          <p>State-of-the-art semantic search with vector operations, re-ranking, and clustering.</p>
+
+          <h4>Search Features</h4>
+          <ul>
+            <li><strong>Multi-Query Search:</strong> Search across multiple embeddings</li>
+            <li><strong>Vector Operations:</strong> Add, subtract, interpolate vectors</li>
+            <li><strong>k-means Clustering:</strong> Group similar results</li>
+            <li><strong>Re-Ranking Algorithms:</strong> MMR, RRF, Semantic Coherence</li>
+            <li><strong>Drift Detection:</strong> Monitor vector distribution changes</li>
+            <li><strong>Nearest Neighbors:</strong> Find k most similar vectors</li>
+            <li><strong>Vector Analogies:</strong> A is to B as C is to ?</li>
+          </ul>
+
+          <h4>Visualizations</h4>
+          <ul>
+            <li>📊 Similarity distribution chart</li>
+            <li>🎨 PCA 2D projection</li>
+            <li>📈 Cluster visualization</li>
+            <li>🔥 Heatmap of similarities</li>
+            <li>📉 Vector drift over time</li>
+          </ul>
+
+          <h4>Re-Ranking Algorithms</h4>
+          <ul>
+            <li><strong>MMR (Maximal Marginal Relevance):</strong> Balance relevance and diversity</li>
+            <li><strong>RRF (Reciprocal Rank Fusion):</strong> Combine multiple ranking sources</li>
+            <li><strong>Semantic Coherence:</strong> Ensure results are contextually related</li>
+          </ul>
+        </div>
+
+        <div id="help-features-optimizer" class="help-subsection">
+          <h3>⚡ Query Optimizer</h3>
+          <p>Complete SQL optimization engine with benchmarking and query wizard.</p>
+
+          <h4>Optimizer Tabs</h4>
+          <ul>
+            <li><strong>Analyze:</strong> Analyze single queries for performance</li>
+            <li><strong>Compare:</strong> A/B test different query approaches</li>
+            <li><strong>Library:</strong> Pre-built optimized query templates</li>
+            <li><strong>Wizard:</strong> Step-by-step query builder</li>
+          </ul>
+
+          <h4>Analysis Features</h4>
+          <ul>
+            <li>Execution time measurement</li>
+            <li>Query plan visualization</li>
+            <li>Index usage detection</li>
+            <li>Anti-pattern detection (N+1, missing indexes)</li>
+            <li>Optimization suggestions</li>
+            <li>Benchmark comparison</li>
+          </ul>
+
+          <h4>Query Templates</h4>
+          <p>6 pre-built templates for common operations:</p>
+          <ul>
+            <li>Vector similarity search</li>
+            <li>Pattern retrieval by type</li>
+            <li>Episode analysis by reward</li>
+            <li>Causal path queries</li>
+            <li>Aggregate statistics</li>
+            <li>Join optimizations</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Examples Tab -->
+      <div id="help-tab-examples" class="help-tab-content">
+        <div class="help-subsection-tabs">
+          <button class="help-subtab active" onclick="switchHelpSubtab('examples', 'sql')">SQL Queries</button>
+          <button class="help-subtab" onclick="switchHelpSubtab('examples', 'patterns')">Pattern Usage</button>
+          <button class="help-subtab" onclick="switchHelpSubtab('examples', 'episodes')">Episode Tracking</button>
+          <button class="help-subtab" onclick="switchHelpSubtab('examples', 'vector')">Vector Search</button>
+        </div>
+
+        <div id="help-examples-sql" class="help-subsection active">
+          <h3>💻 SQL Query Examples</h3>
+
+          <div class="help-code-example">
+            <h4>View All Tables</h4>
+            <pre><code>-- List all tables in the database
+SELECT name, type, sql
+FROM sqlite_master
+WHERE type = 'table'
+ORDER BY name;</code></pre>
+          </div>
+
+          <div class="help-code-example">
+            <h4>Query Patterns by Type</h4>
+            <pre><code>-- Get all causal patterns
+SELECT
+  id,
+  pattern_type,
+  json_extract(metadata, '$.description') as description,
+  created_at
+FROM patterns
+WHERE pattern_type = 'causal'
+ORDER BY created_at DESC
+LIMIT 10;</code></pre>
+          </div>
+
+          <div class="help-code-example">
+            <h4>Analyze Episode Performance</h4>
+            <pre><code>-- Calculate success rate by task type
+SELECT
+  json_extract(metadata, '$.task_type') as task_type,
+  COUNT(*) as total_episodes,
+  SUM(CASE WHEN reward > 0 THEN 1 ELSE 0 END) as successes,
+  ROUND(AVG(reward), 3) as avg_reward
+FROM episodes
+GROUP BY task_type
+ORDER BY avg_reward DESC;</code></pre>
+          </div>
+
+          <div class="help-code-example">
+            <h4>Find Strong Causal Relationships</h4>
+            <pre><code>-- Get causal edges with high weights
+SELECT
+  cause,
+  effect,
+  json_extract(metadata, '$.weight') as weight,
+  json_extract(metadata, '$.confidence') as confidence
+FROM causal_edges
+WHERE CAST(json_extract(metadata, '$.weight') AS REAL) > 0.7
+ORDER BY weight DESC;</code></pre>
+          </div>
+        </div>
+
+        <div id="help-examples-patterns" class="help-subsection">
+          <h3>🧩 Pattern Usage Examples</h3>
+
+          <div class="help-example-scenario">
+            <h4>Scenario: Marketing Campaign Optimization</h4>
+            <p>Store a pattern for successful marketing campaigns:</p>
+
+            <div class="help-step">
+              <div class="help-step-number">1</div>
+              <div class="help-step-content">
+                <p>Click <strong>➕ Add Pattern</strong> in the Patterns panel</p>
+              </div>
+            </div>
+
+            <div class="help-step">
+              <div class="help-step-number">2</div>
+              <div class="help-step-content">
+                <p>Fill in the details:</p>
+                <ul>
+                  <li><strong>Type:</strong> optimization</li>
+                  <li><strong>Description:</strong> "Social media campaign with A/B testing"</li>
+                  <li><strong>Metadata:</strong> <code>{"platform": "instagram", "ctr": 3.2, "conversion": 1.8}</code></li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="help-step">
+              <div class="help-step-number">3</div>
+              <div class="help-step-content">
+                <p>Use Vector Search to find similar successful campaigns</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="help-example-scenario">
+            <h4>Scenario: Batch Import Industry Templates</h4>
+            <p>Import pre-built patterns for your industry:</p>
+
+            <ol>
+              <li>Click <strong>📦 Batch Import</strong></li>
+              <li>Select <strong>Template</strong> method</li>
+              <li>Choose <strong>Marketing Campaign Patterns</strong></li>
+              <li>Review and import 10 proven patterns</li>
+            </ol>
+          </div>
+        </div>
+
+        <div id="help-examples-episodes" class="help-subsection">
+          <h3>📝 Episode Tracking Examples</h3>
+
+          <div class="help-example-scenario">
+            <h4>Scenario: AI Agent Learning</h4>
+            <p>Track an agent's learning progress over time:</p>
+
+            <div class="help-code-example">
+              <pre><code>// Store an episode after agent action
+{
+  "task": "Generate product description",
+  "action": "Used GPT-4 with creative prompt",
+  "reward": 0.85,
+  "critique": "Description was engaging but slightly too long",
+  "trajectory": ["research_product", "generate_draft", "refine_content"],
+  "metadata": {
+    "model": "gpt-4",
+    "tokens": 256,
+    "confidence": 0.92
+  }
+}</code></pre>
+            </div>
+
+            <p><strong>Analysis:</strong> Use the RL Dashboard to:</p>
+            <ul>
+              <li>View reward distribution (how many positive vs negative)</li>
+              <li>Calculate success rate (percentage with reward > 0)</li>
+              <li>Identify which actions lead to best outcomes</li>
+              <li>Visualize trajectory patterns</li>
+            </ul>
+          </div>
+        </div>
+
+        <div id="help-examples-vector" class="help-subsection">
+          <h3>🔍 Vector Search Examples</h3>
+
+          <div class="help-example-scenario">
+            <h4>Scenario: Find Similar Patterns</h4>
+            <ol>
+              <li>Enter a query: "budget optimization for marketing"</li>
+              <li>Set similarity threshold: 0.7</li>
+              <li>Set max results: 5</li>
+              <li>Click <strong>🔍 Search</strong></li>
+            </ol>
+            <p>Results show patterns semantically similar to your query, ranked by cosine similarity.</p>
+          </div>
+
+          <div class="help-example-scenario">
+            <h4>Scenario: Vector Arithmetic</h4>
+            <p>Find patterns that combine concepts:</p>
+            <ul>
+              <li><strong>Query:</strong> "email campaign" + "automation" - "manual"</li>
+              <li><strong>Result:</strong> Patterns about automated email marketing</li>
+            </ul>
+          </div>
+
+          <div class="help-example-scenario">
+            <h4>Scenario: Cluster Analysis</h4>
+            <ol>
+              <li>Run a broad vector search</li>
+              <li>Click <strong>📊 Cluster Results</strong></li>
+              <li>Choose number of clusters: 3</li>
+              <li>View grouped results by similarity</li>
+            </ol>
+            <p>k-means clustering automatically groups similar results together.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reference Tab -->
+      <div id="help-tab-reference" class="help-tab-content">
+        <div class="help-subsection-tabs">
+          <button class="help-subtab active" onclick="switchHelpSubtab('reference', 'schema')">Database Schema</button>
+          <button class="help-subtab" onclick="switchHelpSubtab('reference', 'api')">API Reference</button>
+          <button class="help-subtab" onclick="switchHelpSubtab('reference', 'shortcuts')">Keyboard Shortcuts</button>
+        </div>
+
+        <div id="help-reference-schema" class="help-subsection active">
+          <h3>🗄️ Database Schema</h3>
+
+          <h4>patterns Table</h4>
+          <table class="help-table">
+            <thead>
+              <tr>
+                <th>Column</th>
+                <th>Type</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>id</code></td>
+                <td>INTEGER</td>
+                <td>Primary key (auto-increment)</td>
+              </tr>
+              <tr>
+                <td><code>pattern_type</code></td>
+                <td>TEXT</td>
+                <td>Category: causal, temporal, reasoning, etc.</td>
+              </tr>
+              <tr>
+                <td><code>embedding</code></td>
+                <td>BLOB</td>
+                <td>384-dimensional vector (binary)</td>
+              </tr>
+              <tr>
+                <td><code>metadata</code></td>
+                <td>TEXT</td>
+                <td>JSON object with additional context</td>
+              </tr>
+              <tr>
+                <td><code>created_at</code></td>
+                <td>TEXT</td>
+                <td>ISO 8601 timestamp</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h4>episodes Table</h4>
+          <table class="help-table">
+            <thead>
+              <tr>
+                <th>Column</th>
+                <th>Type</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>id</code></td>
+                <td>INTEGER</td>
+                <td>Primary key (auto-increment)</td>
+              </tr>
+              <tr>
+                <td><code>task</code></td>
+                <td>TEXT</td>
+                <td>What was attempted</td>
+              </tr>
+              <tr>
+                <td><code>action</code></td>
+                <td>TEXT</td>
+                <td>Action taken</td>
+              </tr>
+              <tr>
+                <td><code>reward</code></td>
+                <td>REAL</td>
+                <td>Numeric outcome (-1.0 to 1.0)</td>
+              </tr>
+              <tr>
+                <td><code>critique</code></td>
+                <td>TEXT</td>
+                <td>Analysis of result</td>
+              </tr>
+              <tr>
+                <td><code>trajectory</code></td>
+                <td>TEXT</td>
+                <td>JSON array of states/actions</td>
+              </tr>
+              <tr>
+                <td><code>metadata</code></td>
+                <td>TEXT</td>
+                <td>JSON object (model, tokens, etc.)</td>
+              </tr>
+              <tr>
+                <td><code>created_at</code></td>
+                <td>TEXT</td>
+                <td>ISO 8601 timestamp</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h4>causal_edges Table</h4>
+          <table class="help-table">
+            <thead>
+              <tr>
+                <th>Column</th>
+                <th>Type</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>id</code></td>
+                <td>INTEGER</td>
+                <td>Primary key (auto-increment)</td>
+              </tr>
+              <tr>
+                <td><code>cause</code></td>
+                <td>TEXT</td>
+                <td>Triggering event/condition</td>
+              </tr>
+              <tr>
+                <td><code>effect</code></td>
+                <td>TEXT</td>
+                <td>Resulting outcome</td>
+              </tr>
+              <tr>
+                <td><code>metadata</code></td>
+                <td>TEXT</td>
+                <td>JSON: {"weight": 0.85, "confidence": 0.92}</td>
+              </tr>
+              <tr>
+                <td><code>created_at</code></td>
+                <td>TEXT</td>
+                <td>ISO 8601 timestamp</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h4>vectors Table</h4>
+          <table class="help-table">
+            <thead>
+              <tr>
+                <th>Column</th>
+                <th>Type</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>id</code></td>
+                <td>INTEGER</td>
+                <td>Primary key (auto-increment)</td>
+              </tr>
+              <tr>
+                <td><code>embedding</code></td>
+                <td>BLOB</td>
+                <td>384-dimensional vector</td>
+              </tr>
+              <tr>
+                <td><code>metadata</code></td>
+                <td>TEXT</td>
+                <td>JSON context</td>
+              </tr>
+              <tr>
+                <td><code>created_at</code></td>
+                <td>TEXT</td>
+                <td>ISO 8601 timestamp</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div id="help-reference-api" class="help-subsection">
+          <h3>📚 API Reference</h3>
+
+          <h4>Core AgentDB Methods</h4>
+
+          <div class="help-api-method">
+            <code>db.storePattern(options)</code>
+            <p>Store a reasoning pattern with vector embedding</p>
+            <pre><code>await db.storePattern({
+  pattern_type: 'causal',
+  embedding: vectorArray,
+  metadata: { description: 'Pattern description' }
+});</code></pre>
+          </div>
+
+          <div class="help-api-method">
+            <code>db.searchPatterns(query, options)</code>
+            <p>Search patterns by semantic similarity</p>
+            <pre><code>const results = await db.searchPatterns(
+  'budget optimization',
+  { threshold: 0.7, limit: 5 }
+);</code></pre>
+          </div>
+
+          <div class="help-api-method">
+            <code>db.storeEpisode(options)</code>
+            <p>Store an episode with trajectory</p>
+            <pre><code>await db.storeEpisode({
+  task: 'Generate content',
+  action: 'Used GPT-4',
+  reward: 0.85,
+  critique: 'Good quality',
+  trajectory: ['research', 'draft', 'refine']
+});</code></pre>
+          </div>
+
+          <div class="help-api-method">
+            <code>db.addCausalEdge(options)</code>
+            <p>Add a causal relationship</p>
+            <pre><code>await db.addCausalEdge({
+  cause: 'increased_budget',
+  effect: 'higher_conversions',
+  metadata: { weight: 0.85 }
+});</code></pre>
+          </div>
+
+          <h4>SQL Helper Functions</h4>
+
+          <div class="help-api-method">
+            <code>sqlAll(query, params)</code>
+            <p>Execute query and return all rows as objects</p>
+            <pre><code>const patterns = sqlAll(
+  'SELECT * FROM patterns WHERE pattern_type = ?',
+  ['causal']
+);</code></pre>
+          </div>
+
+          <div class="help-api-method">
+            <code>sqlGet(query, params)</code>
+            <p>Execute query and return first row</p>
+            <pre><code>const pattern = sqlGet(
+  'SELECT * FROM patterns WHERE id = ?',
+  [123]
+);</code></pre>
+          </div>
+
+          <div class="help-api-method">
+            <code>sqlRun(query, params)</code>
+            <p>Execute query without returning results</p>
+            <pre><code>sqlRun(
+  'DELETE FROM patterns WHERE id = ?',
+  [123]
+);</code></pre>
+          </div>
+        </div>
+
+        <div id="help-reference-shortcuts" class="help-subsection">
+          <h3>⌨️ Keyboard Shortcuts</h3>
+
+          <h4>SQL Editor</h4>
+          <table class="help-table">
+            <thead>
+              <tr>
+                <th>Shortcut</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><kbd>Ctrl</kbd> + <kbd>Enter</kbd></td>
+                <td>Execute query</td>
+              </tr>
+              <tr>
+                <td><kbd>Cmd</kbd> + <kbd>Enter</kbd></td>
+                <td>Execute query (Mac)</td>
+              </tr>
+              <tr>
+                <td><kbd>Ctrl</kbd> + <kbd>/</kbd></td>
+                <td>Toggle comment</td>
+              </tr>
+              <tr>
+                <td><kbd>Tab</kbd></td>
+                <td>Indent selection</td>
+              </tr>
+              <tr>
+                <td><kbd>Shift</kbd> + <kbd>Tab</kbd></td>
+                <td>Outdent selection</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h4>Global Shortcuts</h4>
+          <table class="help-table">
+            <thead>
+              <tr>
+                <th>Shortcut</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><kbd>?</kbd></td>
+                <td>Open help (this modal)</td>
+              </tr>
+              <tr>
+                <td><kbd>Esc</kbd></td>
+                <td>Close current modal</td>
+              </tr>
+              <tr>
+                <td><kbd>Ctrl</kbd> + <kbd>S</kbd></td>
+                <td>Save/export current view</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- FAQ Tab -->
+      <div id="help-tab-faq" class="help-tab-content">
+        <h3>❓ Frequently Asked Questions</h3>
+
+        <div class="help-faq-item">
+          <h4>Q: Is my data stored permanently?</h4>
+          <p><strong>A:</strong> By default, AgentDB IDE uses in-memory storage. Your data is lost when you close the browser tab. To persist data, use the Export HTML feature to save your database configuration, or implement browser storage integration.</p>
+        </div>
+
+        <div class="help-faq-item">
+          <h4>Q: What are vector embeddings and why 384 dimensions?</h4>
+          <p><strong>A:</strong> Vector embeddings are numeric representations of text that capture semantic meaning. 384 dimensions is the standard for many embedding models (like MiniLM) and provides a good balance between semantic richness and computational efficiency.</p>
+        </div>
+
+        <div class="help-faq-item">
+          <h4>Q: How do I generate embeddings for my own text?</h4>
+          <p><strong>A:</strong> The Sample Data Generator includes Gemini AI integration that automatically generates embeddings. For custom integration, you can use embedding APIs (OpenAI, Cohere, etc.) and store the resulting vectors in the database.</p>
+        </div>
+
+        <div class="help-faq-item">
+          <h4>Q: What's the difference between Patterns and Episodes?</h4>
+          <p><strong>A:</strong> <strong>Patterns</strong> are reusable reasoning templates (e.g., "how to optimize budgets"). <strong>Episodes</strong> are specific execution records (e.g., "I tried optimization approach X and got reward Y"). Patterns are for knowledge storage, episodes are for learning from experience.</p>
+        </div>
+
+        <div class="help-faq-item">
+          <h4>Q: How accurate is the Query Optimizer?</h4>
+          <p><strong>A:</strong> The optimizer provides heuristic-based suggestions based on common SQL anti-patterns. While helpful for most queries, it doesn't replace a full query planner. Use it as a guide, and always test performance with your actual data.</p>
+        </div>
+
+        <div class="help-faq-item">
+          <h4>Q: Can I use this with real APIs and external databases?</h4>
+          <p><strong>A:</strong> Yes! The IDE is designed to be extended. You can modify the code to integrate with external APIs, connect to remote databases, or add custom data sources. The Export HTML feature makes it easy to create customized versions.</p>
+        </div>
+
+        <div class="help-faq-item">
+          <h4>Q: What's the maximum database size?</h4>
+          <p><strong>A:</strong> Since this uses WASM/SQLite in the browser, you're limited by browser memory (typically 1-2 GB). For larger datasets, consider using AgentDB's Node.js version with file-based storage.</p>
+        </div>
+
+        <div class="help-faq-item">
+          <h4>Q: How do I report bugs or request features?</h4>
+          <p><strong>A:</strong> Visit the <a href="https://github.com/ruvnet/agentic-flow/tree/main/packages/agentdb" target="_blank" style="color: var(--accent);">GitHub repository</a> to open issues or submit pull requests. We welcome community contributions!</p>
+        </div>
+
+        <div class="help-faq-item">
+          <h4>Q: Is this production-ready?</h4>
+          <p><strong>A:</strong> The IDE is a powerful development and prototyping tool. For production use, consider:</p>
+          <ul>
+            <li>Adding authentication and access control</li>
+            <li>Implementing persistent storage</li>
+            <li>Adding error handling and monitoring</li>
+            <li>Performance testing with real workloads</li>
+            <li>Security audits and input validation</li>
+          </ul>
+        </div>
+
+        <div class="help-faq-item">
+          <h4>Q: Where can I learn more about AgentDB?</h4>
+          <p><strong>A:</strong> Resources:</p>
+          <ul>
+            <li><a href="https://agentdb.ruv.io" target="_blank" style="color: var(--accent);">Official Website</a> - Comprehensive documentation</li>
+            <li><a href="https://github.com/ruvnet/agentic-flow/tree/main/packages/agentdb" target="_blank" style="color: var(--accent);">GitHub Repository</a> - Source code and examples</li>
+            <li><a href="https://www.npmjs.com/package/agentdb" target="_blank" style="color: var(--accent);">NPM Package</a> - Installation and usage</li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeHelp()">Close</button>
+      <a href="https://agentdb.ruv.io" target="_blank" class="btn btn-primary">📚 Full Documentation</a>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>K-Means Clustering - AgentDB WASM Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+            background: hsl(0 0% 12%);
+            color: hsl(0 0% 90%);
+            padding: 2rem;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        h1 {
+            color: hsl(195 100% 60%);
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .subtitle {
+            color: hsl(0 0% 70%);
+            font-size: 1rem;
+        }
+
+        .demo-grid {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .controls-panel {
+            background: hsl(0 0% 16%);
+            border: 1px solid hsl(0 0% 25%);
+            border-radius: 8px;
+            padding: 1.5rem;
+        }
+
+        .control-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .control-group:last-child {
+            margin-bottom: 0;
+        }
+
+        label {
+            display: block;
+            color: hsl(195 100% 60%);
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            background: hsl(0 0% 25%);
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background: hsl(195 100% 60%);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            background: hsl(195 100% 60%);
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+        }
+
+        .value-display {
+            text-align: right;
+            color: hsl(0 0% 70%);
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+        }
+
+        button {
+            width: 100%;
+            padding: 0.75rem;
+            background: hsl(195 100% 60%);
+            color: hsl(0 0% 12%);
+            border: none;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 0.5rem;
+        }
+
+        button:hover {
+            background: hsl(195 100% 70%);
+            transform: translateY(-1px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button.secondary {
+            background: hsl(0 0% 25%);
+            color: hsl(0 0% 90%);
+        }
+
+        button.secondary:hover {
+            background: hsl(0 0% 30%);
+        }
+
+        .visualization-panel {
+            background: hsl(0 0% 16%);
+            border: 1px solid hsl(0 0% 25%);
+            border-radius: 8px;
+            padding: 1.5rem;
+            min-height: 600px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        canvas {
+            width: 100%;
+            height: 500px;
+            background: hsl(0 0% 10%);
+            border-radius: 4px;
+            cursor: crosshair;
+        }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .metric-card {
+            background: hsl(0 0% 20%);
+            padding: 1rem;
+            border-radius: 6px;
+            border-left: 3px solid hsl(195 100% 60%);
+        }
+
+        .metric-label {
+            color: hsl(0 0% 60%);
+            font-size: 0.75rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .metric-value {
+            color: hsl(195 100% 60%);
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .info-section {
+            background: hsl(0 0% 16%);
+            border: 1px solid hsl(0 0% 25%);
+            border-radius: 8px;
+            padding: 1.5rem;
+        }
+
+        .info-section h2 {
+            color: hsl(195 100% 60%);
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+        }
+
+        .info-section p {
+            color: hsl(0 0% 70%);
+            margin-bottom: 0.75rem;
+        }
+
+        .use-cases {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .use-case {
+            background: hsl(0 0% 20%);
+            padding: 1rem;
+            border-radius: 6px;
+        }
+
+        .use-case h3 {
+            color: hsl(195 100% 60%);
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .use-case p {
+            color: hsl(0 0% 70%);
+            font-size: 0.8rem;
+            margin: 0;
+        }
+
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-top: 1rem;
+            padding: 1rem;
+            background: hsl(0 0% 20%);
+            border-radius: 6px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid hsl(0 0% 40%);
+        }
+
+        .status {
+            padding: 0.75rem;
+            background: hsl(0 0% 20%);
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+            color: hsl(0 0% 70%);
+        }
+
+        .status.success {
+            background: hsl(142 76% 36% / 0.2);
+            color: hsl(142 76% 60%);
+            border-left: 3px solid hsl(142 76% 60%);
+        }
+
+        .status.error {
+            background: hsl(0 84% 60% / 0.2);
+            color: hsl(0 84% 70%);
+            border-left: 3px solid hsl(0 84% 60%);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>K-Means Clustering</h1>
+            <p class="subtitle">Unsupervised clustering with AgentDB WASM</p>
+        </header>
+
+        <div class="demo-grid">
+            <div class="controls-panel">
+                <div class="status" id="status">Click canvas to add data points</div>
+
+                <div class="control-group">
+                    <label for="kValue">Number of Clusters (K)</label>
+                    <input type="range" id="kValue" min="2" max="8" value="3" step="1">
+                    <div class="value-display" id="kDisplay">3</div>
+                </div>
+
+                <div class="control-group">
+                    <label for="iterations">Max Iterations</label>
+                    <input type="range" id="iterations" min="10" max="100" value="50" step="10">
+                    <div class="value-display" id="iterationsDisplay">50</div>
+                </div>
+
+                <button id="runClustering">Run K-Means</button>
+                <button id="generateRandom" class="secondary">Generate Random Points</button>
+                <button id="clearPoints" class="secondary">Clear All Points</button>
+                <button id="resetClusters" class="secondary">Reset Clusters</button>
+
+                <div class="legend" id="legend"></div>
+            </div>
+
+            <div class="visualization-panel">
+                <canvas id="canvas"></canvas>
+                <div class="metrics">
+                    <div class="metric-card">
+                        <div class="metric-label">Data Points</div>
+                        <div class="metric-value" id="pointCount">0</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Iterations</div>
+                        <div class="metric-value" id="iterationCount">0</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Inertia</div>
+                        <div class="metric-value" id="inertia">0.00</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Silhouette Score</div>
+                        <div class="metric-value" id="silhouette">0.00</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="info-section">
+            <h2>About K-Means Clustering</h2>
+            <p>K-Means is an unsupervised machine learning algorithm that partitions data into K distinct clusters. Each data point belongs to the cluster with the nearest centroid. The algorithm iteratively refines cluster assignments until convergence.</p>
+
+            <h2 style="margin-top: 1.5rem;">Use Cases</h2>
+            <div class="use-cases">
+                <div class="use-case">
+                    <h3>Customer Segmentation</h3>
+                    <p>Group customers by purchasing behavior, demographics, or engagement patterns for targeted marketing.</p>
+                </div>
+                <div class="use-case">
+                    <h3>Image Compression</h3>
+                    <p>Reduce color palette by clustering similar colors, enabling efficient image compression.</p>
+                </div>
+                <div class="use-case">
+                    <h3>Anomaly Detection</h3>
+                    <p>Identify outliers by finding points that are far from all cluster centers.</p>
+                </div>
+                <div class="use-case">
+                    <h3>Document Clustering</h3>
+                    <p>Group similar documents for organization, search, or recommendation systems.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { SQLiteVectorDB } from "https://unpkg.com/agentdb@1.0.7/dist/agentdb.min.js";
+
+        // State
+        let db = null;
+        let dataPoints = [];
+        let clusters = [];
+        let clusterAssignments = [];
+        let converged = false;
+        let currentIteration = 0;
+
+        // Canvas setup
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = canvas.offsetWidth;
+        canvas.height = 500;
+
+        // Cluster colors
+        const clusterColors = [
+            'hsl(195 100% 60%)',
+            'hsl(142 76% 60%)',
+            'hsl(271 91% 65%)',
+            'hsl(47 96% 53%)',
+            'hsl(0 84% 60%)',
+            'hsl(168 76% 42%)',
+            'hsl(24 100% 58%)',
+            'hsl(293 69% 49%)'
+        ];
+
+        // Initialize AgentDB WASM
+        async function initDB() {
+            try {
+                console.log('Initializing AgentDB v1.0.7 from CDN...');
+                db = new SQLiteVectorDB({ memoryMode: true, backend: "wasm" });
+                await db.initializeAsync();
+                console.log('✅ AgentDB WASM v1.0.7 initialized');
+                updateStatus('AgentDB WASM v1.0.7 initialized successfully', 'success');
+            } catch (error) {
+                console.error('Failed to initialize AgentDB:', error);
+                updateStatus('Failed to initialize AgentDB: ' + error.message, 'error');
+            }
+        }
+
+        // Update status message
+        function updateStatus(message, type = '') {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = 'status' + (type ? ' ' + type : '');
+        }
+
+        // Add data point
+        function addPoint(x, y) {
+            const point = [x / canvas.width, y / canvas.height];
+            dataPoints.push(point);
+            updateMetrics();
+            draw();
+        }
+
+        // Generate random points
+        function generateRandomPoints(count = 50) {
+            dataPoints = [];
+            for (let i = 0; i < count; i++) {
+                dataPoints.push([Math.random(), Math.random()]);
+            }
+            updateMetrics();
+            draw();
+        }
+
+        // Initialize cluster centers
+        function initializeClusters(k) {
+            clusters = [];
+            for (let i = 0; i < k; i++) {
+                // Use k-means++ initialization
+                if (i === 0) {
+                    const randomIdx = Math.floor(Math.random() * dataPoints.length);
+                    clusters.push([...dataPoints[randomIdx]]);
+                } else {
+                    const distances = dataPoints.map(point => {
+                        const minDist = Math.min(...clusters.map(cluster =>
+                            euclideanDistance(point, cluster)
+                        ));
+                        return minDist * minDist;
+                    });
+                    const totalDist = distances.reduce((a, b) => a + b, 0);
+                    let random = Math.random() * totalDist;
+                    for (let j = 0; j < distances.length; j++) {
+                        random -= distances[j];
+                        if (random <= 0) {
+                            clusters.push([...dataPoints[j]]);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Euclidean distance
+        function euclideanDistance(p1, p2) {
+            return Math.sqrt(
+                Math.pow(p1[0] - p2[0], 2) +
+                Math.pow(p1[1] - p2[1], 2)
+            );
+        }
+
+        // Assign points to nearest cluster
+        function assignClusters() {
+            clusterAssignments = dataPoints.map(point => {
+                let minDist = Infinity;
+                let cluster = 0;
+                clusters.forEach((center, idx) => {
+                    const dist = euclideanDistance(point, center);
+                    if (dist < minDist) {
+                        minDist = dist;
+                        cluster = idx;
+                    }
+                });
+                return cluster;
+            });
+        }
+
+        // Update cluster centers
+        function updateClusters() {
+            const newClusters = clusters.map(() => [0, 0]);
+            const counts = clusters.map(() => 0);
+
+            dataPoints.forEach((point, idx) => {
+                const cluster = clusterAssignments[idx];
+                newClusters[cluster][0] += point[0];
+                newClusters[cluster][1] += point[1];
+                counts[cluster]++;
+            });
+
+            let changed = false;
+            newClusters.forEach((cluster, idx) => {
+                if (counts[idx] > 0) {
+                    const newCenter = [
+                        cluster[0] / counts[idx],
+                        cluster[1] / counts[idx]
+                    ];
+                    if (euclideanDistance(newCenter, clusters[idx]) > 0.001) {
+                        changed = true;
+                    }
+                    clusters[idx] = newCenter;
+                }
+            });
+
+            return changed;
+        }
+
+        // Calculate inertia (within-cluster sum of squares)
+        function calculateInertia() {
+            let inertia = 0;
+            dataPoints.forEach((point, idx) => {
+                const cluster = clusterAssignments[idx];
+                const dist = euclideanDistance(point, clusters[cluster]);
+                inertia += dist * dist;
+            });
+            return inertia;
+        }
+
+        // Calculate silhouette score
+        function calculateSilhouette() {
+            if (dataPoints.length < 2 || clusters.length < 2) return 0;
+
+            const silhouettes = dataPoints.map((point, idx) => {
+                const cluster = clusterAssignments[idx];
+
+                // Calculate a (mean distance to points in same cluster)
+                const sameClusterPoints = dataPoints.filter((_, i) =>
+                    clusterAssignments[i] === cluster && i !== idx
+                );
+                const a = sameClusterPoints.length > 0
+                    ? sameClusterPoints.reduce((sum, p) =>
+                        sum + euclideanDistance(point, p), 0
+                    ) / sameClusterPoints.length
+                    : 0;
+
+                // Calculate b (mean distance to points in nearest cluster)
+                let minB = Infinity;
+                for (let c = 0; c < clusters.length; c++) {
+                    if (c === cluster) continue;
+                    const otherClusterPoints = dataPoints.filter((_, i) =>
+                        clusterAssignments[i] === c
+                    );
+                    if (otherClusterPoints.length > 0) {
+                        const b = otherClusterPoints.reduce((sum, p) =>
+                            sum + euclideanDistance(point, p), 0
+                        ) / otherClusterPoints.length;
+                        minB = Math.min(minB, b);
+                    }
+                }
+
+                return (minB - a) / Math.max(a, minB);
+            });
+
+            return silhouettes.reduce((a, b) => a + b, 0) / silhouettes.length;
+        }
+
+        // Store cluster data in AgentDB
+        async function storeInAgentDB() {
+            if (!db) return;
+
+            try {
+                // Store cluster assignments as vectors
+                for (let i = 0; i < dataPoints.length; i++) {
+                    const embedding = [...dataPoints[i], clusterAssignments[i] / clusters.length];
+                    await db.insert({
+                        embedding,
+                        metadata: {
+                            cluster: clusterAssignments[i],
+                            x: dataPoints[i][0],
+                            y: dataPoints[i][1],
+                            iteration: currentIteration
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to store in AgentDB:', error);
+            }
+        }
+
+        // Run K-Means algorithm
+        async function runKMeans() {
+            const k = parseInt(document.getElementById('kValue').value);
+            const maxIter = parseInt(document.getElementById('iterations').value);
+
+            if (dataPoints.length < k) {
+                updateStatus('Need at least ' + k + ' points for K=' + k, 'error');
+                return;
+            }
+
+            updateStatus('Running K-Means clustering...', '');
+            converged = false;
+            currentIteration = 0;
+
+            initializeClusters(k);
+            updateLegend();
+
+            for (let iter = 0; iter < maxIter; iter++) {
+                assignClusters();
+                const changed = updateClusters();
+                currentIteration = iter + 1;
+
+                if (!changed) {
+                    converged = true;
+                    break;
+                }
+
+                if (iter % 5 === 0) {
+                    draw();
+                    updateMetrics();
+                    await new Promise(resolve => setTimeout(resolve, 50));
+                }
+            }
+
+            await storeInAgentDB();
+            draw();
+            updateMetrics();
+            updateStatus(
+                `Converged in ${currentIteration} iterations${!converged ? ' (max reached)' : ''}`,
+                'success'
+            );
+        }
+
+        // Draw visualization
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw cluster regions (Voronoi-like)
+            if (clusters.length > 0 && dataPoints.length > 0) {
+                const imageData = ctx.createImageData(canvas.width, canvas.height);
+                for (let x = 0; x < canvas.width; x += 2) {
+                    for (let y = 0; y < canvas.height; y += 2) {
+                        const point = [x / canvas.width, y / canvas.height];
+                        let minDist = Infinity;
+                        let nearestCluster = 0;
+                        clusters.forEach((center, idx) => {
+                            const dist = euclideanDistance(point, center);
+                            if (dist < minDist) {
+                                minDist = dist;
+                                nearestCluster = idx;
+                            }
+                        });
+                        const color = clusterColors[nearestCluster];
+                        const rgb = hslToRgb(color);
+                        for (let dx = 0; dx < 2; dx++) {
+                            for (let dy = 0; dy < 2; dy++) {
+                                const idx = ((y + dy) * canvas.width + (x + dx)) * 4;
+                                imageData.data[idx] = rgb[0];
+                                imageData.data[idx + 1] = rgb[1];
+                                imageData.data[idx + 2] = rgb[2];
+                                imageData.data[idx + 3] = 20; // Alpha
+                            }
+                        }
+                    }
+                }
+                ctx.putImageData(imageData, 0, 0);
+            }
+
+            // Draw data points
+            dataPoints.forEach((point, idx) => {
+                const x = point[0] * canvas.width;
+                const y = point[1] * canvas.height;
+                const cluster = clusterAssignments[idx] ?? -1;
+
+                ctx.beginPath();
+                ctx.arc(x, y, 5, 0, Math.PI * 2);
+                ctx.fillStyle = cluster >= 0 ? clusterColors[cluster] : 'hsl(0 0% 50%)';
+                ctx.fill();
+                ctx.strokeStyle = 'hsl(0 0% 90%)';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            });
+
+            // Draw cluster centers
+            clusters.forEach((center, idx) => {
+                const x = center[0] * canvas.width;
+                const y = center[1] * canvas.height;
+
+                // Draw X marker
+                ctx.strokeStyle = clusterColors[idx];
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(x - 10, y - 10);
+                ctx.lineTo(x + 10, y + 10);
+                ctx.moveTo(x + 10, y - 10);
+                ctx.lineTo(x - 10, y + 10);
+                ctx.stroke();
+
+                // Draw circle
+                ctx.beginPath();
+                ctx.arc(x, y, 12, 0, Math.PI * 2);
+                ctx.strokeStyle = clusterColors[idx];
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            });
+        }
+
+        // Update metrics display
+        function updateMetrics() {
+            document.getElementById('pointCount').textContent = dataPoints.length;
+            document.getElementById('iterationCount').textContent = currentIteration;
+
+            if (clusters.length > 0 && dataPoints.length > 0) {
+                const inertia = calculateInertia();
+                const silhouette = calculateSilhouette();
+                document.getElementById('inertia').textContent = inertia.toFixed(2);
+                document.getElementById('silhouette').textContent = silhouette.toFixed(3);
+            } else {
+                document.getElementById('inertia').textContent = '0.00';
+                document.getElementById('silhouette').textContent = '0.00';
+            }
+        }
+
+        // Update legend
+        function updateLegend() {
+            const legend = document.getElementById('legend');
+            legend.innerHTML = '';
+            clusters.forEach((_, idx) => {
+                const item = document.createElement('div');
+                item.className = 'legend-item';
+                item.innerHTML = `
+                    <div class="legend-color" style="background: ${clusterColors[idx]}"></div>
+                    <span>Cluster ${idx + 1}</span>
+                `;
+                legend.appendChild(item);
+            });
+        }
+
+        // Convert HSL to RGB
+        function hslToRgb(hsl) {
+            const match = hsl.match(/hsl\((\d+)\s+(\d+)%\s+(\d+)%\)/);
+            if (!match) return [0, 0, 0];
+
+            let h = parseInt(match[1]) / 360;
+            let s = parseInt(match[2]) / 100;
+            let l = parseInt(match[3]) / 100;
+
+            let r, g, b;
+            if (s === 0) {
+                r = g = b = l;
+            } else {
+                const hue2rgb = (p, q, t) => {
+                    if (t < 0) t += 1;
+                    if (t > 1) t -= 1;
+                    if (t < 1/6) return p + (q - p) * 6 * t;
+                    if (t < 1/2) return q;
+                    if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+                    return p;
+                };
+                const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+                const p = 2 * l - q;
+                r = hue2rgb(p, q, h + 1/3);
+                g = hue2rgb(p, q, h);
+                b = hue2rgb(p, q, h - 1/3);
+            }
+            return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+        }
+
+        // Event listeners
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            addPoint(x, y);
+        });
+
+        document.getElementById('kValue').addEventListener('input', (e) => {
+            document.getElementById('kDisplay').textContent = e.target.value;
+        });
+
+        document.getElementById('iterations').addEventListener('input', (e) => {
+            document.getElementById('iterationsDisplay').textContent = e.target.value;
+        });
+
+        document.getElementById('runClustering').addEventListener('click', runKMeans);
+
+        document.getElementById('generateRandom').addEventListener('click', () => {
+            generateRandomPoints();
+            updateStatus('Generated 50 random points', 'success');
+        });
+
+        document.getElementById('clearPoints').addEventListener('click', () => {
+            dataPoints = [];
+            clusterAssignments = [];
+            clusters = [];
+            currentIteration = 0;
+            draw();
+            updateMetrics();
+            updateStatus('All points cleared', 'success');
+        });
+
+        document.getElementById('resetClusters').addEventListener('click', () => {
+            clusterAssignments = [];
+            clusters = [];
+            currentIteration = 0;
+            draw();
+            updateMetrics();
+            updateStatus('Clusters reset', 'success');
+        });
+
+        // Initialize
+        initDB();
+        draw();
+    </script>
+</body>
+</html>

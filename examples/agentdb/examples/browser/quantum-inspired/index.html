@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum-Inspired Optimization - AgentDB WASM</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+            background: hsl(0 0% 12%);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            color: hsl(0 0% 95%);
+            margin-bottom: 2rem;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .subtitle {
+            opacity: 0.9;
+            font-size: 1rem;
+            color: hsl(0 0% 85%);
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1.5fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .card {
+            background: hsl(0 0% 15%);
+            border: 1px solid hsl(0 0% 25%);
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: 0 6px 24px hsl(222 20% 0% / 0.24);
+        }
+
+        .card h2 {
+            color: hsl(0 0% 95%);
+            margin-bottom: 1rem;
+            font-size: 1.3rem;
+        }
+
+        #canvas {
+            width: 100%;
+            height: 500px;
+            border: 2px solid hsl(0 0% 25%);
+            border-radius: 8px;
+            background: #000;
+        }
+
+        .description {
+            background: hsl(0 0% 18%);
+            border: 1px solid hsl(0 0% 25%);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            line-height: 1.6;
+            color: hsl(0 0% 85%);
+        }
+
+        .quantum-params {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .param-group {
+            background: hsl(0 0% 18%);
+            border: 1px solid hsl(0 0% 25%);
+            padding: 1rem;
+            border-radius: 8px;
+        }
+
+        .param-label {
+            font-size: 0.85rem;
+            color: hsl(0 0% 85%);
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .param-value {
+            font-size: 1.2rem;
+            color: hsl(195 100% 60%);
+            font-weight: bold;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            margin-top: 0.5rem;
+            accent-color: hsl(195 100% 60%);
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            background: hsl(195 100% 60%);
+            color: hsl(0 0% 12%);
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            width: 100%;
+            margin-bottom: 0.5rem;
+        }
+
+        .btn:hover {
+            background: hsl(195 100% 70%);
+            box-shadow: 0 0 20px hsl(195 100% 60% / 0.4);
+        }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .stat-item {
+            background: hsl(0 0% 18%);
+            border: 1px solid hsl(0 0% 25%);
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: hsl(0 0% 85%);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: hsl(195 100% 60%);
+        }
+
+        .superposition-visual {
+            background: hsl(0 0% 18%);
+            border: 1px solid hsl(0 0% 25%);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            height: 150px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .quantum-state {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: radial-gradient(circle, hsl(195 100% 60%) 0%, hsl(195 100% 40%) 100%);
+            animation: quantumFluctuation 2s infinite;
+            box-shadow: 0 0 20px hsl(195 100% 60%);
+        }
+
+        @keyframes quantumFluctuation {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.5); opacity: 0.5; }
+        }
+
+        .energy-landscape {
+            width: 100%;
+            height: 100px;
+            background: linear-gradient(to right, hsl(195 100% 20%) 0%, hsl(195 100% 60%) 50%, hsl(195 100% 20%) 100%);
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            position: relative;
+        }
+
+        .energy-marker {
+            position: absolute;
+            width: 4px;
+            height: 100%;
+            background: hsl(195 100% 60%);
+            transition: left 0.3s;
+            box-shadow: 0 0 10px hsl(195 100% 60%);
+        }
+
+        #log {
+            max-height: 200px;
+            overflow-y: auto;
+            background: hsl(0 0% 18%);
+            border: 1px solid hsl(0 0% 25%);
+            padding: 1rem;
+            border-radius: 8px;
+            font-family: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+            font-size: 0.85rem;
+            line-height: 1.6;
+        }
+
+        .log-entry {
+            margin-bottom: 0.5rem;
+            color: hsl(0 0% 85%);
+        }
+
+        .log-entry.success {
+            color: hsl(120 60% 60%);
+        }
+
+        .log-entry.info {
+            color: hsl(195 100% 60%);
+        }
+
+        .algorithm-select {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .algo-btn {
+            padding: 0.75rem;
+            background: hsl(0 0% 18%);
+            border: 2px solid hsl(0 0% 25%);
+            color: hsl(0 0% 95%);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .algo-btn:hover {
+            border-color: hsl(195 100% 60%);
+            background: hsl(0 0% 20%);
+        }
+
+        .algo-btn.active {
+            background: hsl(195 100% 60%);
+            color: hsl(0 0% 12%);
+            border-color: hsl(195 100% 60%);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>⚛️ Quantum-Inspired Optimization</h1>
+            <p class="subtitle">Superposition, Entanglement & Quantum Tunneling for Global Optimization</p>
+        </header>
+
+        <div class="main-grid">
+            <div class="card">
+                <h2>Quantum Search Space</h2>
+                <canvas id="canvas"></canvas>
+
+                <div class="algorithm-select">
+                    <button class="algo-btn active" onclick="setAlgorithm('qpso')">🌊 QPSO</button>
+                    <button class="algo-btn" onclick="setAlgorithm('qga')">🧬 Quantum GA</button>
+                    <button class="algo-btn" onclick="setAlgorithm('tunnel')">🚇 Tunneling</button>
+                    <button class="algo-btn" onclick="setAlgorithm('anneal')">❄️ Annealing</button>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                    <button class="btn" onclick="startOptimization()">⚛️ Start Quantum Search</button>
+                    <button class="btn" onclick="reset()">⟲ Reset</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Quantum Parameters</h2>
+
+                <div class="description">
+                    Quantum-inspired algorithms use principles from quantum mechanics (superposition, entanglement, tunneling) to escape local optima and find global solutions faster than classical methods.
+                </div>
+
+                <h3 style="margin-bottom: 0.5rem; color: #333;">Superposition States</h3>
+                <div class="superposition-visual" id="superposition">
+                    <!-- Quantum states rendered dynamically -->
+                </div>
+
+                <div class="quantum-params">
+                    <div class="param-group">
+                        <div class="param-label">Particles</div>
+                        <div class="param-value" id="particleCount">30</div>
+                        <input type="range" id="particleSlider" min="10" max="100" value="30" oninput="updateParam('particles')">
+                    </div>
+                    <div class="param-group">
+                        <div class="param-label">Quantum Potential</div>
+                        <div class="param-value" id="quantumPotential">0.7</div>
+                        <input type="range" id="potentialSlider" min="0" max="1" step="0.1" value="0.7" oninput="updateParam('potential')">
+                    </div>
+                    <div class="param-group">
+                        <div class="param-label">Tunneling Prob</div>
+                        <div class="param-value" id="tunnelingProb">0.2</div>
+                        <input type="range" id="tunnelingSlider" min="0" max="1" step="0.05" value="0.2" oninput="updateParam('tunneling')">
+                    </div>
+                    <div class="param-group">
+                        <div class="param-label">Entanglement</div>
+                        <div class="param-value" id="entanglement">0.5</div>
+                        <input type="range" id="entanglementSlider" min="0" max="1" step="0.1" value="0.5" oninput="updateParam('entanglement')">
+                    </div>
+                </div>
+
+                <h3 style="margin-bottom: 0.5rem; color: #333;">Energy Landscape</h3>
+                <div class="energy-landscape">
+                    <div class="energy-marker" id="energyMarker" style="left: 50%"></div>
+                </div>
+
+                <div class="stat-grid">
+                    <div class="stat-item">
+                        <div class="stat-label">Best Energy</div>
+                        <div class="stat-value" id="bestEnergy">∞</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Iterations</div>
+                        <div class="stat-value" id="iterations">0</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Tunneling Events</div>
+                        <div class="stat-value" id="tunnelingEvents">0</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Convergence</div>
+                        <div class="stat-value" id="convergence">0%</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>📊 Quantum Optimization Log</h2>
+            <div id="log"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { SQLiteVectorDB } from "https://unpkg.com/agentdb@1.0.7/dist/agentdb.min.js";
+
+        let agentDB = null;
+
+        async function initAgentDB() {
+            console.log('Initializing AgentDB v1.0.7 from CDN...');
+            agentDB = new SQLiteVectorDB({ memoryMode: true, backend: "wasm" });
+            await agentDB.initializeAsync();
+            console.log('✅ AgentDB WASM v1.0.7 initialized');
+        }
+
+        // Initialize on page load
+        initAgentDB();
+
+        // Quantum-Inspired Optimization with AgentDB
+        class QuantumOptimizationDB {
+            constructor() {
+                this.states = [];
+                this.bestState = null;
+                this.history = [];
+                this.entangledPairs = new Map();
+            }
+
+            initializeQuantumStates(count, bounds) {
+                this.states = [];
+                for (let i = 0; i < count; i++) {
+                    this.states.push({
+                        position: [
+                            Math.random() * (bounds.xMax - bounds.xMin) + bounds.xMin,
+                            Math.random() * (bounds.yMax - bounds.yMin) + bounds.yMin
+                        ],
+                        superposition: this.createSuperposition(),
+                        phase: Math.random() * Math.PI * 2,
+                        energy: Infinity,
+                        pBest: null
+                    });
+                }
+            }
+
+            createSuperposition() {
+                // Quantum state in superposition (complex amplitudes)
+                const states = [];
+                const numBasis = 4;
+
+                for (let i = 0; i < numBasis; i++) {
+                    states.push({
+                        amplitude: Math.random(),
+                        phase: Math.random() * Math.PI * 2
+                    });
+                }
+
+                // Normalize
+                const norm = Math.sqrt(states.reduce((sum, s) => sum + s.amplitude * s.amplitude, 0));
+                states.forEach(s => s.amplitude /= norm);
+
+                return states;
+            }
+
+            measureQuantumState(state) {
+                // Collapse superposition to classical state
+                const rand = Math.random();
+                let cumulative = 0;
+
+                for (let i = 0; i < state.superposition.length; i++) {
+                    cumulative += state.superposition[i].amplitude * state.superposition[i].amplitude;
+                    if (rand < cumulative) {
+                        return i;
+                    }
+                }
+
+                return state.superposition.length - 1;
+            }
+
+            quantumTunneling(state, targetEnergy, probability) {
+                // Quantum tunneling through energy barriers
+                if (Math.random() < probability) {
+                    const tunnelingVector = [
+                        (Math.random() - 0.5) * 2,
+                        (Math.random() - 0.5) * 2
+                    ];
+
+                    state.position[0] += tunnelingVector[0];
+                    state.position[1] += tunnelingVector[1];
+
+                    return true;
+                }
+                return false;
+            }
+
+            createEntanglement(state1, state2) {
+                // Create quantum entanglement between states
+                this.entangledPairs.set(state1, state2);
+                this.entangledPairs.set(state2, state1);
+
+                // Synchronize phases
+                const avgPhase = (state1.phase + state2.phase) / 2;
+                state1.phase = avgPhase;
+                state2.phase = avgPhase;
+            }
+
+            async QPSO(fitnessFunc, params, iterations) {
+                logMessage('🌊 Starting Quantum Particle Swarm Optimization...', 'info');
+
+                const { quantumPotential, entanglement } = params;
+                let gBest = { position: null, energy: Infinity };
+
+                for (let iter = 0; iter < iterations; iter++) {
+                    // Evaluate fitness
+                    this.states.forEach(state => {
+                        state.energy = fitnessFunc(state.position[0], state.position[1]);
+
+                        if (!state.pBest || state.energy < state.pBest.energy) {
+                            state.pBest = { position: [...state.position], energy: state.energy };
+                        }
+
+                        if (state.energy < gBest.energy) {
+                            gBest = { position: [...state.position], energy: state.energy };
+                        }
+                    });
+
+                    // Quantum PSO update
+                    this.states.forEach((state, idx) => {
+                        // Measure quantum state
+                        const measurement = this.measureQuantumState(state);
+
+                        // Calculate mean best position (mbest)
+                        const phi = Math.random();
+                        const mbest = [
+                            phi * state.pBest.position[0] + (1 - phi) * gBest.position[0],
+                            phi * state.pBest.position[1] + (1 - phi) * gBest.position[1]
+                        ];
+
+                        // Quantum update with potential well
+                        const u = Math.random();
+                        const sign = Math.random() < 0.5 ? 1 : -1;
+
+                        state.position[0] = mbest[0] + sign * quantumPotential *
+                            Math.abs(mbest[0] - state.position[0]) * Math.log(1 / u);
+                        state.position[1] = mbest[1] + sign * quantumPotential *
+                            Math.abs(mbest[1] - state.position[1]) * Math.log(1 / u);
+
+                        // Quantum tunneling
+                        if (this.quantumTunneling(state, gBest.energy, params.tunneling)) {
+                            stats.tunnelingEvents++;
+                        }
+
+                        // Create entanglement
+                        if (Math.random() < entanglement && idx < this.states.length - 1) {
+                            this.createEntanglement(state, this.states[idx + 1]);
+                        }
+
+                        // Update phase
+                        state.phase += Math.random() * 0.1;
+                    });
+
+                    // Update visualization
+                    if (iter % 5 === 0) {
+                        stats.iterations = iter;
+                        stats.bestEnergy = gBest.energy.toFixed(4);
+                        stats.convergence = Math.min(100, (iter / iterations) * 100).toFixed(0);
+                        updateStats();
+                    }
+
+                    // Async yield
+                    if (iter % 10 === 0) {
+                        await new Promise(resolve => setTimeout(resolve, 10));
+                    }
+                }
+
+                this.bestState = gBest;
+                logMessage(`✅ Optimization complete! Best energy: ${gBest.energy.toFixed(4)}`, 'success');
+                return gBest;
+            }
+
+            storeOptimizationRun(algorithm, result) {
+                const embedding = this.generateRunEmbedding(result);
+                this.history.push({
+                    algorithm,
+                    result,
+                    embedding,
+                    timestamp: Date.now()
+                });
+            }
+
+            generateRunEmbedding(result) {
+                const embedding = new Array(128).fill(0);
+                embedding[0] = result.energy;
+                embedding[1] = result.position[0];
+                embedding[2] = result.position[1];
+                embedding[3] = stats.tunnelingEvents;
+
+                for (let i = 4; i < embedding.length; i++) {
+                    embedding[i] = Math.sin(result.energy * i) * Math.cos(result.position[0] * i);
+                }
+
+                return embedding;
+            }
+        }
+
+        // Fitness function (Rastrigin function - multi-modal optimization)
+        function rastriginFunction(x, y) {
+            const A = 10;
+            return A * 2 + (x*x - A * Math.cos(2 * Math.PI * x)) +
+                   (y*y - A * Math.cos(2 * Math.PI * y));
+        }
+
+        // Global state
+        const db = new QuantumOptimizationDB();
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = canvas.offsetWidth;
+        canvas.height = canvas.offsetHeight;
+
+        let running = false;
+        let animationId = null;
+        let algorithm = 'qpso';
+        let params = {
+            particles: 30,
+            quantumPotential: 0.7,
+            tunneling: 0.2,
+            entanglement: 0.5
+        };
+
+        let stats = {
+            bestEnergy: '∞',
+            iterations: 0,
+            tunnelingEvents: 0,
+            convergence: 0
+        };
+
+        const bounds = { xMin: -5.12, xMax: 5.12, yMin: -5.12, yMax: 5.12 };
+
+        function drawLandscape() {
+            const width = canvas.width;
+            const height = canvas.height;
+
+            // Draw energy landscape
+            for (let x = 0; x < width; x += 5) {
+                for (let y = 0; y < height; y += 5) {
+                    const realX = (x / width) * (bounds.xMax - bounds.xMin) + bounds.xMin;
+                    const realY = (y / height) * (bounds.yMax - bounds.yMin) + bounds.yMin;
+                    const energy = rastriginFunction(realX, realY);
+
+                    const normalized = 1 - Math.min(energy / 100, 1);
+                    const hue = normalized * 240; // Blue to red
+                    ctx.fillStyle = `hsl(${hue}, 70%, 40%)`;
+                    ctx.fillRect(x, y, 5, 5);
+                }
+            }
+        }
+
+        function drawQuantumStates() {
+            db.states.forEach(state => {
+                const x = ((state.position[0] - bounds.xMin) / (bounds.xMax - bounds.xMin)) * canvas.width;
+                const y = ((state.position[1] - bounds.yMin) / (bounds.yMax - bounds.yMin)) * canvas.height;
+
+                // Draw quantum wave function
+                ctx.beginPath();
+                for (let angle = 0; angle < Math.PI * 2; angle += 0.1) {
+                    const radius = 10 + Math.sin(state.phase + angle * 4) * 3;
+                    const px = x + Math.cos(angle) * radius;
+                    const py = y + Math.sin(angle) * radius;
+
+                    if (angle === 0) ctx.moveTo(px, py);
+                    else ctx.lineTo(px, py);
+                }
+                ctx.closePath();
+                ctx.strokeStyle = 'rgba(0, 255, 255, 0.5)';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                ctx.fillStyle = 'rgba(0, 255, 255, 0.8)';
+                ctx.beginPath();
+                ctx.arc(x, y, 4, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // Draw best position
+            if (db.bestState) {
+                const x = ((db.bestState.position[0] - bounds.xMin) / (bounds.xMax - bounds.xMin)) * canvas.width;
+                const y = ((db.bestState.position[1] - bounds.yMin) / (bounds.yMax - bounds.yMin)) * canvas.height;
+
+                ctx.strokeStyle = '#00ff00';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(x, y, 15, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+        }
+
+        async function startOptimization() {
+            if (running) return;
+
+            running = true;
+            stats.tunnelingEvents = 0;
+
+            db.initializeQuantumStates(params.particles, bounds);
+
+            drawLandscape();
+
+            const result = await db.QPSO(rastriginFunction, params, 100);
+
+            db.storeOptimizationRun(algorithm, result);
+
+            running = false;
+            animate();
+        }
+
+        function animate() {
+            drawLandscape();
+            drawQuantumStates();
+            updateSuperpositionVisual();
+
+            if (running) {
+                animationId = requestAnimationFrame(animate);
+            }
+        }
+
+        function updateSuperpositionVisual() {
+            const container = document.getElementById('superposition');
+            container.innerHTML = '';
+
+            for (let i = 0; i < 5; i++) {
+                const state = document.createElement('div');
+                state.className = 'quantum-state';
+                state.style.left = `${20 + i * 15}%`;
+                state.style.animationDelay = `${i * 0.2}s`;
+                container.appendChild(state);
+            }
+        }
+
+        function reset() {
+            running = false;
+            if (animationId) cancelAnimationFrame(animationId);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawLandscape();
+            stats = { bestEnergy: '∞', iterations: 0, tunnelingEvents: 0, convergence: 0 };
+            updateStats();
+        }
+
+        function setAlgorithm(algo) {
+            algorithm = algo;
+            document.querySelectorAll('.algo-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            logMessage(`Algorithm changed to: ${algo.toUpperCase()}`, 'info');
+        }
+
+        function updateParam(type) {
+            switch(type) {
+                case 'particles':
+                    params.particles = parseInt(document.getElementById('particleSlider').value);
+                    document.getElementById('particleCount').textContent = params.particles;
+                    break;
+                case 'potential':
+                    params.quantumPotential = parseFloat(document.getElementById('potentialSlider').value);
+                    document.getElementById('quantumPotential').textContent = params.quantumPotential.toFixed(1);
+                    break;
+                case 'tunneling':
+                    params.tunneling = parseFloat(document.getElementById('tunnelingSlider').value);
+                    document.getElementById('tunnelingProb').textContent = params.tunneling.toFixed(2);
+                    break;
+                case 'entanglement':
+                    params.entanglement = parseFloat(document.getElementById('entanglementSlider').value);
+                    document.getElementById('entanglement').textContent = params.entanglement.toFixed(1);
+                    break;
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('bestEnergy').textContent = stats.bestEnergy;
+            document.getElementById('iterations').textContent = stats.iterations;
+            document.getElementById('tunnelingEvents').textContent = stats.tunnelingEvents;
+            document.getElementById('convergence').textContent = stats.convergence + '%';
+
+            // Update energy marker
+            if (stats.bestEnergy !== '∞') {
+                const normalized = 1 - Math.min(parseFloat(stats.bestEnergy) / 100, 1);
+                document.getElementById('energyMarker').style.left = (normalized * 100) + '%';
+            }
+        }
+
+        function logMessage(message, type = '') {
+            const log = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            const timestamp = new Date().toLocaleTimeString();
+            entry.textContent = `[${timestamp}] ${message}`;
+            log.insertBefore(entry, log.firstChild);
+
+            while (log.children.length > 20) {
+                log.removeChild(log.lastChild);
+            }
+        }
+
+        // Expose functions to window for onclick handlers
+        window.setAlgorithm = setAlgorithm;
+        window.startOptimization = startOptimization;
+
+        // Initialize
+        drawLandscape();
+        updateSuperpositionVisual();
+        logMessage('⚛️ Quantum optimization system initialized', 'success');
+        logMessage('Using Rastrigin function (highly multi-modal) for testing', 'info');
+    </script>
+</body>
+</html>

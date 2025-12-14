@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pattern-Based Learning - AgentDB</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+            background: hsl(0 0% 12%);
+            color: hsl(0 0% 95%);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container { max-width: 1200px; margin: 0 auto; }
+
+        header {
+            background: hsl(0 0% 15%);
+            border: 1px solid hsl(0 0% 25%);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 6px 24px hsl(222 20% 0% / 0.24);
+        }
+
+        h1 { color: hsl(195 100% 60%); margin-bottom: 0.5rem; font-weight: 600; letter-spacing: -0.005em; }
+        .subtitle { color: hsl(0 0% 85%); }
+
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem; }
+
+        .card {
+            background: hsl(0 0% 15%);
+            border: 1px solid hsl(0 0% 25%);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 6px 24px hsl(222 20% 0% / 0.24);
+        }
+
+        .card h2 { color: hsl(0 0% 95%); margin-bottom: 1rem; font-weight: 600; }
+
+        .task-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .task-btn {
+            padding: 2rem 1rem;
+            background: hsl(0 0% 18%);
+            border: 1px solid hsl(0 0% 25%);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+
+        .task-btn:hover {
+            border-color: hsl(195 100% 60%);
+            transform: translateY(-2px);
+        }
+
+        .task-btn .icon { font-size: 2rem; margin-bottom: 0.5rem; }
+        .task-btn .label { font-weight: 600; color: hsl(0 0% 95%); }
+
+        .pattern-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .pattern-item {
+            background: hsl(0 0% 18%);
+            border: 1px solid hsl(0 0% 25%);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            border-left: 4px solid hsl(195 100% 60%);
+        }
+
+        .pattern-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+
+        .pattern-title { font-weight: 600; color: hsl(0 0% 95%); }
+        .pattern-score {
+            background: hsl(195 100% 60%);
+            color: hsl(0 0% 10%);
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .pattern-details {
+            color: hsl(0 0% 85%);
+            font-size: 0.9rem;
+        }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .stat {
+            background: hsl(0 0% 18%);
+            border: 1px solid hsl(0 0% 25%);
+            padding: 1rem;
+            border-radius: 8px;
+        }
+
+        .stat-label { color: hsl(0 0% 85%); font-size: 0.9rem; }
+        .stat-value {
+            color: hsl(195 100% 60%);
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin-top: 0.25rem;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            background: hsl(195 100% 60%);
+            color: hsl(0 0% 10%);
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: opacity 0.2s ease;
+        }
+
+        .btn:hover { opacity: 0.85; }
+
+        .prediction-box {
+            background: hsl(195 100% 60% / 0.15);
+            border: 1px solid hsl(195 100% 60% / 0.3);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-top: 1rem;
+        }
+
+        .prediction-title {
+            font-weight: 600;
+            color: hsl(195 100% 60%);
+            margin-bottom: 0.5rem;
+        }
+
+        .prediction-text {
+            color: hsl(0 0% 92%);
+            line-height: 1.6;
+        }
+
+        .timeline {
+            position: relative;
+            padding-left: 2rem;
+            margin-top: 1rem;
+        }
+
+        .timeline-item {
+            position: relative;
+            padding-bottom: 1rem;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -1.5rem;
+            top: 0.5rem;
+            width: 10px;
+            height: 10px;
+            background: hsl(195 100% 60%);
+            border-radius: 50%;
+        }
+
+        .timeline-item::after {
+            content: '';
+            position: absolute;
+            left: -1.25rem;
+            top: 1rem;
+            width: 2px;
+            height: calc(100% - 0.5rem);
+            background: hsl(0 0% 25%);
+        }
+
+        .timeline-item:last-child::after { display: none; }
+
+        .timeline-time {
+            color: hsl(0 0% 85%);
+            font-size: 0.85rem;
+        }
+
+        .timeline-action {
+            color: hsl(0 0% 95%);
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎯 Pattern-Based Learning</h1>
+            <p class="subtitle">Learn from user behavior and predict next actions</p>
+        </header>
+
+        <div class="grid">
+            <div class="card">
+                <h2>Perform Tasks</h2>
+                <p style="color: #666; margin-bottom: 1rem;">
+                    Click on tasks below. The system will learn your patterns and predict your next action!
+                </p>
+
+                <div class="task-grid">
+                    <button class="task-btn" data-task="email">
+                        <div class="icon">📧</div>
+                        <div class="label">Check Email</div>
+                    </button>
+                    <button class="task-btn" data-task="calendar">
+                        <div class="icon">📅</div>
+                        <div class="label">View Calendar</div>
+                    </button>
+                    <button class="task-btn" data-task="notes">
+                        <div class="icon">📝</div>
+                        <div class="label">Take Notes</div>
+                    </button>
+                    <button class="task-btn" data-task="tasks">
+                        <div class="icon">✅</div>
+                        <div class="label">Manage Tasks</div>
+                    </button>
+                    <button class="task-btn" data-task="chat">
+                        <div class="icon">💬</div>
+                        <div class="label">Team Chat</div>
+                    </button>
+                    <button class="task-btn" data-task="files">
+                        <div class="icon">📁</div>
+                        <div class="label">Browse Files</div>
+                    </button>
+                </div>
+
+                <div id="prediction" class="prediction-box" style="display: none;">
+                    <div class="prediction-title">🔮 Next Action Prediction</div>
+                    <div class="prediction-text" id="predictionText"></div>
+                </div>
+
+                <div style="margin-top: 2rem;">
+                    <button class="btn" id="clearBtn">Clear History</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Learning Analytics</h2>
+
+                <div class="stat-grid">
+                    <div class="stat">
+                        <div class="stat-label">Actions Performed</div>
+                        <div class="stat-value" id="actionCount">0</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">Patterns Detected</div>
+                        <div class="stat-value" id="patternCount">0</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">Prediction Accuracy</div>
+                        <div class="stat-value" id="accuracy">-</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">Confidence Level</div>
+                        <div class="stat-value" id="confidence">-</div>
+                    </div>
+                </div>
+
+                <h3 style="margin-top: 1.5rem; margin-bottom: 0.5rem;">Recent Activity</h3>
+                <div class="timeline" id="timeline">
+                    <p style="color: #666; padding: 1rem;">No activity yet</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Discovered Patterns</h2>
+            <div class="pattern-list" id="patternList">
+                <p style="color: #666; text-align: center; padding: 2rem;">
+                    Perform some tasks to discover patterns!
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        /**
+         * Pattern-Based Learning Example
+         *
+         * This system learns from user interaction patterns:
+         * 1. Tracks task sequences and timing
+         * 2. Discovers frequent patterns using vector similarity
+         * 3. Predicts next actions based on current context
+         * 4. Adapts UI/UX based on learned behaviors
+         */
+
+        import { SQLiteVectorDB } from "https://unpkg.com/agentdb@1.0.7/dist/agentdb.min.js";
+
+        let db = null;
+        let actionHistory = [];
+        let patterns = [];
+        let predictions = [];
+
+        async function initDB() {
+            console.log('Initializing AgentDB v1.0.7 from CDN...');
+            db = new SQLiteVectorDB({ memoryMode: true, backend: "wasm" });
+            await db.initializeAsync();
+            console.log('✅ AgentDB WASM v1.0.7 initialized');
+
+            // Store helper for pattern management
+            db._patterns = [];
+            db.storePattern = async function(pattern) {
+                const embedding = generateSequenceEmbedding(pattern.sequence);
+
+                const patternDoc = {
+                    id: Date.now().toString(),
+                    sequence: pattern.sequence,
+                    embedding: embedding,
+                    frequency: pattern.frequency,
+                    avgDuration: pattern.avgDuration,
+                    confidence: pattern.confidence,
+                    lastSeen: Date.now()
+                };
+
+                this._patterns.push(patternDoc);
+
+                // Insert into AgentDB
+                await this.insert({
+                    id: patternDoc.id,
+                    embedding: embedding,
+                    metadata: {
+                        sequence: JSON.stringify(pattern.sequence),
+                        frequency: pattern.frequency,
+                        avgDuration: pattern.avgDuration,
+                        confidence: pattern.confidence,
+                        lastSeen: Date.now()
+                    }
+                });
+
+                return patternDoc;
+            };
+
+            db.findSimilarPatterns = async function(currentSequence, k = 3) {
+                if (currentSequence.length === 0) return [];
+
+                const queryEmbedding = generateSequenceEmbedding(currentSequence);
+
+                const results = await this.search(queryEmbedding, k);
+
+                return results.map(r => ({
+                    id: r.id,
+                    sequence: JSON.parse(r.metadata.sequence),
+                    frequency: r.metadata.frequency,
+                    avgDuration: r.metadata.avgDuration,
+                    confidence: r.metadata.confidence,
+                    lastSeen: r.metadata.lastSeen,
+                    similarity: r.similarity
+                }));
+            };
+        }
+
+        function generateSequenceEmbedding(sequence) {
+            // Generate embedding for action sequence
+            const embedding = new Array(128).fill(0);
+
+            sequence.forEach((action, index) => {
+                const actionHash = simpleHash(action);
+                const positionWeight = 1 / (index + 1); // Recent actions weighted more
+
+                for (let i = 0; i < embedding.length; i++) {
+                    embedding[i] += Math.sin(actionHash * (i + 1)) * positionWeight;
+                }
+            });
+
+            // Normalize
+            const norm = Math.sqrt(embedding.reduce((sum, val) => sum + val * val, 0));
+            return embedding.map(val => val / (norm || 1));
+        }
+
+        function simpleHash(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                hash = ((hash << 5) - hash) + str.charCodeAt(i);
+                hash = hash & hash;
+            }
+            return hash;
+        }
+
+        function cosineSimilarity(a, b) {
+            let dot = 0, normA = 0, normB = 0;
+            for (let i = 0; i < a.length; i++) {
+                dot += a[i] * b[i];
+                normA += a[i] * a[i];
+                normB += b[i] * b[i];
+            }
+            return dot / (Math.sqrt(normA) * Math.sqrt(normB));
+        }
+
+        async function handleTaskClick(task) {
+            const action = {
+                task: task,
+                timestamp: Date.now()
+            };
+
+            actionHistory.push(action);
+
+            // Update timeline
+            addToTimeline(task);
+
+            // Detect patterns (use last 5 actions)
+            if (actionHistory.length >= 3) {
+                await detectPatterns();
+            }
+
+            // Predict next action
+            if (actionHistory.length >= 2) {
+                await predictNextAction();
+            }
+
+            updateStats();
+        }
+
+        async function detectPatterns() {
+            const recentActions = actionHistory.slice(-5).map(a => a.task);
+
+            // Check for sequential patterns
+            for (let len = 2; len <= Math.min(recentActions.length, 4); len++) {
+                const sequence = recentActions.slice(-len);
+
+                // Count occurrences of this pattern in history
+                const occurrences = countPatternOccurrences(sequence);
+
+                if (occurrences >= 2) { // Pattern appeared at least twice
+                    const existing = patterns.find(p =>
+                        JSON.stringify(p.sequence) === JSON.stringify(sequence)
+                    );
+
+                    if (existing) {
+                        existing.frequency++;
+                        existing.lastSeen = Date.now();
+                    } else {
+                        const pattern = {
+                            sequence: sequence,
+                            frequency: occurrences,
+                            avgDuration: calculateAvgDuration(sequence),
+                            confidence: Math.min(occurrences / 10, 1)
+                        };
+
+                        patterns.push(pattern);
+                        await db.storePattern(pattern);
+                    }
+                }
+            }
+
+            renderPatterns();
+        }
+
+        function countPatternOccurrences(pattern) {
+            let count = 0;
+            const history = actionHistory.map(a => a.task);
+
+            for (let i = 0; i <= history.length - pattern.length; i++) {
+                const slice = history.slice(i, i + pattern.length);
+                if (JSON.stringify(slice) === JSON.stringify(pattern)) {
+                    count++;
+                }
+            }
+
+            return count;
+        }
+
+        function calculateAvgDuration(sequence) {
+            const occurrences = [];
+            const history = actionHistory.map(a => a.task);
+
+            for (let i = 0; i <= history.length - sequence.length; i++) {
+                const slice = history.slice(i, i + sequence.length);
+                if (JSON.stringify(slice) === JSON.stringify(sequence)) {
+                    const start = actionHistory[i].timestamp;
+                    const end = actionHistory[i + sequence.length - 1].timestamp;
+                    occurrences.push(end - start);
+                }
+            }
+
+            return occurrences.length > 0
+                ? occurrences.reduce((a, b) => a + b, 0) / occurrences.length
+                : 0;
+        }
+
+        async function predictNextAction() {
+            const recent = actionHistory.slice(-3).map(a => a.task);
+            const similar = await db.findSimilarPatterns(recent, 3);
+
+            if (similar.length > 0 && similar[0].similarity > 0.7) {
+                const topPattern = similar[0];
+                const matchLength = Math.min(recent.length, topPattern.sequence.length - 1);
+
+                // Find where current sequence matches pattern
+                let matchIndex = -1;
+                for (let i = 0; i <= topPattern.sequence.length - matchLength; i++) {
+                    const slice = topPattern.sequence.slice(i, i + matchLength);
+                    if (JSON.stringify(slice) === JSON.stringify(recent.slice(-matchLength))) {
+                        matchIndex = i;
+                        break;
+                    }
+                }
+
+                if (matchIndex >= 0 && matchIndex + matchLength < topPattern.sequence.length) {
+                    const nextTask = topPattern.sequence[matchIndex + matchLength];
+                    const confidence = (topPattern.similarity * topPattern.confidence * 100).toFixed(0);
+
+                    showPrediction(nextTask, confidence);
+                    return;
+                }
+            }
+
+            hidePrediction();
+        }
+
+        function showPrediction(task, confidence) {
+            const taskNames = {
+                email: 'Check Email 📧',
+                calendar: 'View Calendar 📅',
+                notes: 'Take Notes 📝',
+                tasks: 'Manage Tasks ✅',
+                chat: 'Team Chat 💬',
+                files: 'Browse Files 📁'
+            };
+
+            document.getElementById('prediction').style.display = 'block';
+            document.getElementById('predictionText').textContent =
+                `Based on your patterns, you might want to: ${taskNames[task]} (${confidence}% confidence)`;
+        }
+
+        function hidePrediction() {
+            document.getElementById('prediction').style.display = 'none';
+        }
+
+        function addToTimeline(task) {
+            const taskNames = {
+                email: 'Checked Email',
+                calendar: 'Viewed Calendar',
+                notes: 'Took Notes',
+                tasks: 'Managed Tasks',
+                chat: 'Used Team Chat',
+                files: 'Browsed Files'
+            };
+
+            const timeline = document.getElementById('timeline');
+
+            if (actionHistory.length === 1) {
+                timeline.innerHTML = '';
+            }
+
+            const item = document.createElement('div');
+            item.className = 'timeline-item';
+            item.innerHTML = `
+                <div class="timeline-time">${new Date().toLocaleTimeString()}</div>
+                <div class="timeline-action">${taskNames[task]}</div>
+            `;
+
+            timeline.insertBefore(item, timeline.firstChild);
+
+            // Keep only last 10 items
+            while (timeline.children.length > 10) {
+                timeline.removeChild(timeline.lastChild);
+            }
+        }
+
+        function renderPatterns() {
+            const listEl = document.getElementById('patternList');
+
+            if (patterns.length === 0) {
+                listEl.innerHTML = '<p style="color: #666; text-align: center; padding: 2rem;">Perform some tasks to discover patterns!</p>';
+                return;
+            }
+
+            const taskNames = {
+                email: '📧', calendar: '📅', notes: '📝',
+                tasks: '✅', chat: '💬', files: '📁'
+            };
+
+            const sorted = [...patterns].sort((a, b) => b.frequency - a.frequency);
+
+            listEl.innerHTML = sorted.map(pattern => `
+                <div class="pattern-item">
+                    <div class="pattern-header">
+                        <div class="pattern-title">
+                            ${pattern.sequence.map(t => taskNames[t]).join(' → ')}
+                        </div>
+                        <div class="pattern-score">${pattern.frequency}x</div>
+                    </div>
+                    <div class="pattern-details">
+                        Confidence: ${(pattern.confidence * 100).toFixed(0)}% •
+                        Avg. Duration: ${(pattern.avgDuration / 1000).toFixed(1)}s
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateStats() {
+            document.getElementById('actionCount').textContent = actionHistory.length;
+            document.getElementById('patternCount').textContent = patterns.length;
+
+            if (patterns.length > 0) {
+                const avgConfidence = patterns.reduce((sum, p) => sum + p.confidence, 0) / patterns.length;
+                document.getElementById('confidence').textContent = `${(avgConfidence * 100).toFixed(0)}%`;
+            }
+        }
+
+        function clearHistory() {
+            if (confirm('Clear all history and patterns?')) {
+                actionHistory = [];
+                patterns = [];
+                db.patterns = [];
+
+                document.getElementById('timeline').innerHTML = '<p style="color: #666; padding: 1rem;">No activity yet</p>';
+                document.getElementById('prediction').style.display = 'none';
+
+                renderPatterns();
+                updateStats();
+            }
+        }
+
+        // Event listeners
+        document.querySelectorAll('.task-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const task = btn.getAttribute('data-task');
+                handleTaskClick(task);
+            });
+        });
+
+        document.getElementById('clearBtn').addEventListener('click', clearHistory);
+
+        // Initialize
+        initDB();
+    </script>
+</body>
+</html>

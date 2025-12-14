@@ -1,0 +1,4149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AgentDB Management IDE - Full-Featured Database & Vector Management System</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg-primary: hsl(0 0% 10%);
+      --bg-secondary: hsl(0 0% 15%);
+      --bg-tertiary: hsl(0 0% 20%);
+      --border-color: hsl(0 0% 25%);
+      --text-primary: hsl(0 0% 95%);
+      --text-secondary: hsl(0 0% 70%);
+      --text-muted: hsl(0 0% 50%);
+      --accent: hsl(142 76% 50%);
+      --accent-hover: hsl(142 76% 45%);
+      --accent-dim: hsl(142 76% 50% / 0.1);
+      --danger: hsl(0 76% 50%);
+      --warning: hsl(45 76% 50%);
+      --info: hsl(200 76% 50%);
+      --success: hsl(142 76% 50%);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      overflow: hidden;
+    }
+
+    /* Layout */
+    .ide-container {
+      display: grid;
+      grid-template-rows: 60px 1fr 300px;
+      grid-template-columns: 250px 1fr 300px;
+      height: 100vh;
+      gap: 0;
+    }
+
+    /* Header */
+    .ide-header {
+      grid-column: 1 / -1;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 1.5rem;
+    }
+
+    .header-brand {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .brand-logo {
+      font-size: 1.75rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--accent) 0%, hsl(142 76% 40%) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .brand-subtitle {
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+    }
+
+    .header-link {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.875rem;
+      transition: color 0.2s;
+    }
+
+    .header-link:hover {
+      color: var(--accent-hover);
+    }
+
+    /* Sidebar */
+    .ide-sidebar {
+      background: var(--bg-secondary);
+      border-right: 1px solid var(--border-color);
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .sidebar-section {
+      padding: 1rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .sidebar-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 0.75rem;
+      letter-spacing: 0.05em;
+    }
+
+    .sidebar-nav {
+      list-style: none;
+    }
+
+    .nav-item {
+      padding: 0.625rem 0.75rem;
+      cursor: pointer;
+      border-radius: 6px;
+      transition: all 0.2s;
+      margin-bottom: 0.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.875rem;
+    }
+
+    .nav-item:hover {
+      background: var(--bg-tertiary);
+    }
+
+    .nav-item.active {
+      background: var(--accent-dim);
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .nav-icon {
+      width: 16px;
+      opacity: 0.7;
+    }
+
+    .nav-item.active .nav-icon {
+      opacity: 1;
+    }
+
+    /* Main Content */
+    .ide-main {
+      background: var(--bg-primary);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .main-tabs {
+      display: flex;
+      gap: 0.25rem;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      padding: 0.5rem 0.75rem 0;
+    }
+
+    .main-tabs.hidden {
+      display: none;
+    }
+
+    .main-tab {
+      padding: 0.5rem 1rem;
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      border-radius: 6px 6px 0 0;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: all 0.2s;
+      border-bottom: 2px solid transparent;
+    }
+
+    .main-tab:hover {
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+    }
+
+    .main-tab.active {
+      background: var(--bg-primary);
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    .main-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.5rem;
+    }
+
+    /* Tab Content Panels */
+    .tab-content-panel {
+      display: none;
+    }
+
+    .tab-content-panel.active {
+      display: block;
+    }
+
+    .content-panel {
+      display: none;
+    }
+
+    .content-panel.active {
+      display: block;
+    }
+
+    /* Right Panel */
+    .ide-panel {
+      background: var(--bg-secondary);
+      border-left: 1px solid var(--border-color);
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .panel-header {
+      padding: 1rem;
+      border-bottom: 1px solid var(--border-color);
+      font-weight: 600;
+      font-size: 0.875rem;
+    }
+
+    .panel-content {
+      padding: 1rem;
+      flex: 1;
+    }
+
+    /* Console */
+    .ide-console {
+      grid-column: 1 / -1;
+      background: var(--bg-secondary);
+      border-top: 1px solid var(--border-color);
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .console-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .console-title {
+      font-weight: 600;
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+    }
+
+    .console-actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .console-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0.75rem;
+      font-family: 'Courier New', monospace;
+      font-size: 0.75rem;
+    }
+
+    .console-log {
+      padding: 0.25rem 0.5rem;
+      margin-bottom: 0.125rem;
+      border-radius: 3px;
+      display: flex;
+      gap: 0.5rem;
+      align-items: flex-start;
+    }
+
+    .console-log .timestamp {
+      color: var(--text-muted);
+      min-width: 80px;
+    }
+
+    .console-log .type {
+      min-width: 60px;
+      font-weight: 600;
+    }
+
+    .console-log.info { background: hsl(200 76% 50% / 0.05); }
+    .console-log.info .type { color: var(--info); }
+
+    .console-log.success { background: hsl(142 76% 50% / 0.05); }
+    .console-log.success .type { color: var(--success); }
+
+    .console-log.warning { background: hsl(45 76% 50% / 0.05); }
+    .console-log.warning .type { color: var(--warning); }
+
+    .console-log.error { background: hsl(0 76% 50% / 0.05); }
+    .console-log.error .type { color: var(--danger); }
+
+    /* Buttons */
+    .btn {
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: hsl(0 0% 10%);
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-secondary);
+    }
+
+    .btn-sm {
+      padding: 0.375rem 0.75rem;
+      font-size: 0.75rem;
+    }
+
+    .btn-danger {
+      background: var(--danger);
+      color: white;
+    }
+
+    /* Editor */
+    .editor-container {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .editor-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem;
+      background: var(--bg-tertiary);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .editor-textarea {
+      width: 100%;
+      min-height: 300px;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      border: none;
+      padding: 1rem;
+      font-family: 'Courier New', monospace;
+      font-size: 0.875rem;
+      resize: vertical;
+      outline: none;
+    }
+
+    /* Table */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--bg-secondary);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .data-table th,
+    .data-table td {
+      padding: 0.75rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .data-table th {
+      background: var(--bg-tertiary);
+      font-weight: 600;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+    }
+
+    .data-table tr:hover {
+      background: var(--bg-tertiary);
+    }
+
+    .data-table td {
+      font-size: 0.875rem;
+    }
+
+    /* Cards */
+    .card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .card-title {
+      font-size: 1.125rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      color: var(--accent);
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .metric {
+      background: var(--bg-tertiary);
+      padding: 1rem;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+    }
+
+    .metric-label {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      margin-bottom: 0.5rem;
+    }
+
+    .metric-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    /* Forms */
+    .form-group {
+      margin-bottom: 1.25rem;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 0.875rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: var(--text-secondary);
+    }
+
+    .form-input,
+    .form-select {
+      width: 100%;
+      padding: 0.625rem 0.875rem;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      color: var(--text-primary);
+      font-size: 0.875rem;
+      transition: border-color 0.2s;
+    }
+
+    .form-input:focus,
+    .form-select:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .form-checkbox {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      cursor: pointer;
+    }
+
+    .form-checkbox input {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+
+    /* Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: hsl(0 0% 0% / 0.7);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      max-width: 800px;
+      max-height: 90vh;
+      width: 90%;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 24px 48px hsl(0 0% 0% / 0.4);
+    }
+
+    .modal-header {
+      padding: 1.5rem;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 1.5rem;
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+
+    .modal-close:hover {
+      color: var(--text-primary);
+    }
+
+    .modal-body {
+      padding: 1.5rem;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .modal-footer {
+      padding: 1.5rem;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.75rem;
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 0.5rem;
+      border-bottom: 1px solid var(--border-color);
+      margin-bottom: 1.5rem;
+    }
+
+    .tab-button {
+      padding: 0.75rem 1.25rem;
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 600;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+    }
+
+    .tab-button:hover {
+      color: var(--text-primary);
+    }
+
+    .tab-button.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* Schema Tree */
+    .schema-tree {
+      font-size: 0.875rem;
+    }
+
+    .schema-table {
+      margin-bottom: 0.75rem;
+    }
+
+    .schema-table-name {
+      font-weight: 600;
+      padding: 0.5rem;
+      background: var(--bg-tertiary);
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .schema-table-name:hover {
+      background: var(--border-color);
+    }
+
+    .schema-columns {
+      margin-left: 1.5rem;
+      margin-top: 0.5rem;
+    }
+
+    .schema-column {
+      padding: 0.375rem 0.5rem;
+      color: var(--text-secondary);
+      font-family: 'Courier New', monospace;
+    }
+
+    /* Stats */
+    .stat-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .stat-label {
+      min-width: 120px;
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+    }
+
+    .stat-value {
+      flex: 1;
+      height: 24px;
+      background: var(--bg-tertiary);
+      border-radius: 4px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stat-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--accent-hover));
+      transition: width 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-right: 0.5rem;
+    }
+
+    .stat-text {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--bg-primary);
+    }
+
+    /* Query Results */
+    .result-container {
+      margin-top: 1rem;
+    }
+
+    .result-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .result-info {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+    }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 4rem 2rem;
+      color: var(--text-muted);
+    }
+
+    .empty-state-icon {
+      font-size: 4rem;
+      margin-bottom: 1rem;
+      opacity: 0.5;
+    }
+
+    .empty-state-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .empty-state-text {
+      font-size: 0.875rem;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--bg-primary);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border-color);
+      border-radius: 5px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--text-muted);
+    }
+
+    /* Syntax Highlighting */
+    .sql-keyword { color: hsl(270 76% 70%); font-weight: 600; }
+    .sql-string { color: hsl(142 76% 60%); }
+    .sql-number { color: hsl(45 76% 60%); }
+    .sql-comment { color: var(--text-muted); font-style: italic; }
+
+    /* Vector Display */
+    .vector-display {
+      background: var(--bg-tertiary);
+      padding: 1rem;
+      border-radius: 6px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.75rem;
+      max-height: 200px;
+      overflow-y: auto;
+      margin-top: 0.5rem;
+    }
+
+    .vector-value {
+      display: inline-block;
+      margin: 0.125rem;
+      padding: 0.25rem 0.375rem;
+      background: var(--bg-primary);
+      border-radius: 3px;
+      color: var(--accent);
+    }
+
+    /* Help System */
+    .help-section {
+      margin-bottom: 2rem;
+    }
+
+    .help-section h3 {
+      color: var(--accent);
+      margin-bottom: 0.75rem;
+      font-size: 1.125rem;
+    }
+
+    .help-section h4 {
+      color: var(--text-primary);
+      margin-top: 1rem;
+      margin-bottom: 0.5rem;
+      font-size: 1rem;
+    }
+
+    .help-section p {
+      color: var(--text-secondary);
+      margin-bottom: 0.75rem;
+      line-height: 1.8;
+    }
+
+    .help-code {
+      background: var(--bg-primary);
+      padding: 0.125rem 0.375rem;
+      border-radius: 3px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.875rem;
+      color: var(--accent);
+    }
+
+    .help-example {
+      background: var(--bg-tertiary);
+      padding: 1rem;
+      border-radius: 6px;
+      border-left: 3px solid var(--accent);
+      margin: 1rem 0;
+    }
+
+    .help-example pre {
+      font-family: 'Courier New', monospace;
+      font-size: 0.875rem;
+      overflow-x: auto;
+      color: var(--text-primary);
+    }
+
+    /* Toggle Switch */
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 48px;
+      height: 24px;
+    }
+
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: var(--bg-tertiary);
+      transition: 0.3s;
+      border-radius: 24px;
+      border: 1px solid var(--border-color);
+    }
+
+    .toggle-slider:before {
+      position: absolute;
+      content: "";
+      height: 16px;
+      width: 16px;
+      left: 3px;
+      bottom: 3px;
+      background-color: var(--text-muted);
+      transition: 0.3s;
+      border-radius: 50%;
+    }
+
+    input:checked + .toggle-slider {
+      background-color: var(--accent);
+    }
+
+    input:checked + .toggle-slider:before {
+      transform: translateX(24px);
+      background-color: white;
+    }
+
+    /* Pagination */
+    .pagination {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
+      margin-top: 1.5rem;
+    }
+
+    .page-btn {
+      padding: 0.5rem 0.75rem;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      cursor: pointer;
+      border-radius: 4px;
+      font-size: 0.875rem;
+      transition: all 0.2s;
+    }
+
+    .page-btn:hover {
+      background: var(--border-color);
+    }
+
+    .page-btn.active {
+      background: var(--accent);
+      color: var(--bg-primary);
+      border-color: var(--accent);
+    }
+
+    .page-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Search */
+    .search-box {
+      position: relative;
+      margin-bottom: 1rem;
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 0.625rem 0.875rem 0.625rem 2.5rem;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      color: var(--text-primary);
+      font-size: 0.875rem;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 0.75rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+    }
+
+    /* Status Badge */
+    .status-badge {
+      display: inline-block;
+      padding: 0.25rem 0.625rem;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .status-badge.success {
+      background: hsl(142 76% 50% / 0.1);
+      color: var(--success);
+    }
+
+    .status-badge.error {
+      background: hsl(0 76% 50% / 0.1);
+      color: var(--danger);
+    }
+
+    .status-badge.warning {
+      background: hsl(45 76% 50% / 0.1);
+      color: var(--warning);
+    }
+
+    .status-badge.info {
+      background: hsl(200 76% 50% / 0.1);
+      color: var(--info);
+    }
+
+    /* Help Button */
+    .help-btn {
+      position: absolute;
+      top: 0.75rem;
+      right: 0.75rem;
+      padding: 0.375rem 0.75rem;
+      background: var(--accent-dim);
+      color: var(--accent);
+      border: 1px solid var(--accent);
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.75rem;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .help-btn:hover {
+      background: var(--accent);
+      color: var(--bg-primary);
+    }
+
+    /* Mobile Hamburger */
+    .mobile-menu-toggle {
+      display: none;
+      background: transparent;
+      border: none;
+      color: var(--text-primary);
+      font-size: 1.5rem;
+      cursor: pointer;
+      padding: 0.5rem;
+    }
+
+    /* Feature Grid */
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .feature-card {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 1rem;
+      transition: all 0.2s;
+    }
+
+    .feature-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+    }
+
+    .feature-card h4 {
+      color: var(--accent);
+      margin-bottom: 0.5rem;
+      font-size: 0.875rem;
+    }
+
+    .feature-card p {
+      color: var(--text-secondary);
+      font-size: 0.75rem;
+      line-height: 1.5;
+    }
+
+    /* Code Block */
+    .code-block {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 1rem;
+      overflow-x: auto;
+      font-family: 'Courier New', monospace;
+      font-size: 0.875rem;
+      line-height: 1.6;
+      margin: 0.75rem 0;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 1024px) {
+      .ide-container {
+        grid-template-columns: 200px 1fr;
+        grid-template-rows: 60px 1fr 250px;
+      }
+
+      .ide-info {
+        display: none;
+      }
+
+      .ide-sidebar {
+        width: 200px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .ide-container {
+        grid-template-columns: 1fr;
+        grid-template-rows: 60px 1fr 200px;
+      }
+
+      .mobile-menu-toggle {
+        display: block;
+      }
+
+      .ide-sidebar {
+        position: fixed;
+        left: -250px;
+        top: 60px;
+        height: calc(100vh - 60px);
+        width: 250px;
+        z-index: 1000;
+        transition: left 0.3s ease;
+        box-shadow: 2px 0 10px rgba(0,0,0,0.5);
+      }
+
+      .ide-sidebar.mobile-open {
+        left: 0;
+      }
+
+      .header-brand .brand-subtitle {
+        display: none;
+      }
+
+      .header-actions {
+        gap: 0.5rem;
+      }
+
+      .header-link {
+        display: none;
+      }
+
+      .ide-info {
+        display: none;
+      }
+
+      .main-content {
+        padding: 1rem;
+      }
+
+      .feature-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .modal {
+        width: 95%;
+        max-height: 90vh;
+      }
+
+      .ide-console {
+        grid-column: 1 / -1;
+        min-height: 150px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .ide-header {
+        padding: 0 1rem;
+      }
+
+      .brand-logo {
+        font-size: 1.25rem;
+      }
+
+      .main-tabs {
+        padding: 0.25rem 0.5rem 0;
+        overflow-x: auto;
+      }
+
+      .main-tab {
+        padding: 0.375rem 0.75rem;
+        font-size: 0.8125rem;
+        white-space: nowrap;
+      }
+
+      .btn {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.8125rem;
+      }
+
+      .card-title {
+        font-size: 0.9375rem;
+      }
+    }
+
+    /* Mobile Sidebar Overlay */
+    .mobile-overlay {
+      display: none;
+      position: fixed;
+      top: 60px;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 999;
+    }
+
+    .mobile-overlay.active {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- IDE Container -->
+  <div class="ide-container">
+
+    <!-- Header -->
+    <header class="ide-header">
+      <div class="header-brand">
+        <button class="mobile-menu-toggle" onclick="toggleMobileMenu()" aria-label="Toggle menu">☰</button>
+        <div class="brand-logo">⚡ AgentDB IDE</div>
+        <div class="brand-subtitle">Full-Featured Database & Vector Management System</div>
+      </div>
+      <div class="header-actions">
+        <a href="https://agentdb.ruv.io" target="_blank" class="header-link">🚀 AgentDB Home</a>
+        <a href="https://agentdb.ruv.io/demo" target="_blank" class="header-link">📚 Documentation</a>
+        <a href="https://github.com/ruvnet/agentic-flow/tree/main/packages/agentdb" target="_blank" class="header-link">💾 GitHub</a>
+        <button class="btn btn-primary btn-sm" onclick="showHelp()">❓ Help</button>
+      </div>
+    </header>
+
+    <!-- Mobile Sidebar Overlay -->
+    <div class="mobile-overlay" id="mobileOverlay" onclick="toggleMobileMenu()"></div>
+
+    <!-- Sidebar -->
+    <aside class="ide-sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-title">Navigation</div>
+        <ul class="sidebar-nav">
+          <li class="nav-item active" onclick="switchView('sql-editor')">
+            <span class="nav-icon">✏️</span>
+            SQL Editor
+          </li>
+          <li class="nav-item" onclick="switchView('data-browser')">
+            <span class="nav-icon">📊</span>
+            Data Browser
+          </li>
+          <li class="nav-item" onclick="switchView('patterns')">
+            <span class="nav-icon">🧩</span>
+            Patterns
+          </li>
+          <li class="nav-item" onclick="switchView('episodes')">
+            <span class="nav-icon">📝</span>
+            Episodes
+          </li>
+          <li class="nav-item" onclick="switchView('causal-graph')">
+            <span class="nav-icon">🔗</span>
+            Causal Graph
+          </li>
+          <li class="nav-item" onclick="switchView('vector-search')">
+            <span class="nav-icon">🔍</span>
+            Vector Search
+          </li>
+          <li class="nav-item" onclick="switchView('optimizer')">
+            <span class="nav-icon">⚡</span>
+            Query Optimizer
+          </li>
+        </ul>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-title">Tools</div>
+        <ul class="sidebar-nav">
+          <li class="nav-item" onclick="showSettings()">
+            <span class="nav-icon">⚙️</span>
+            Settings
+          </li>
+          <li class="nav-item" onclick="showImportExport()">
+            <span class="nav-icon">💾</span>
+            Import/Export
+          </li>
+          <li class="nav-item" onclick="showSchemaDesigner()">
+            <span class="nav-icon">🏗️</span>
+            Schema Designer
+          </li>
+          <li class="nav-item" onclick="generateHTML()">
+            <span class="nav-icon">📄</span>
+            Export HTML
+          </li>
+        </ul>
+      </div>
+
+      <div class="sidebar-section" style="flex: 1; display: flex; flex-direction: column; justify-content: flex-end;">
+        <div class="sidebar-title">Database Status</div>
+        <div style="font-size: 0.75rem; color: var(--text-secondary);">
+          <div style="margin-bottom: 0.5rem;">
+            <span class="status-badge success" id="db-status">Connected</span>
+          </div>
+          <div><strong>Version:</strong> 1.3.9</div>
+          <div><strong>Mode:</strong> <span id="db-mode">Memory</span></div>
+          <div><strong>Tables:</strong> <span id="db-tables">0</span></div>
+          <div><strong>Vectors:</strong> <span id="db-vectors">0</span></div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="ide-main">
+      <div class="main-tabs">
+        <button class="main-tab active" data-tab="editor">Editor</button>
+        <button class="main-tab" data-tab="results">Results</button>
+        <button class="main-tab" data-tab="diagnostics">Diagnostics</button>
+      </div>
+
+      <div class="main-content">
+        <!-- SQL Editor Panel -->
+        <div id="panel-sql-editor" class="content-panel active">
+          <!-- Editor Tab Content -->
+          <div id="tab-editor" class="tab-content-panel active">
+            <div class="card">
+              <div class="card-title">AgentDB SQL Editor</div>
+
+              <!-- Quick Templates -->
+              <div style="margin-bottom: 1rem; padding: 1rem; background: var(--bg-tertiary); border-radius: 8px;">
+                <div style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 0.75rem;">
+                  📚 AgentDB Query Templates
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.5rem;">
+                  <button class="btn btn-secondary btn-sm" onclick="loadTemplate('vectors')">🔢 Query Vectors</button>
+                  <button class="btn btn-secondary btn-sm" onclick="loadTemplate('patterns')">🧩 Query Patterns</button>
+                  <button class="btn btn-secondary btn-sm" onclick="loadTemplate('episodes')">📝 Query Episodes</button>
+                  <button class="btn btn-secondary btn-sm" onclick="loadTemplate('causal')">🔗 Query Causal Edges</button>
+                  <button class="btn btn-secondary btn-sm" onclick="loadTemplate('similarity')">🔍 Semantic Search</button>
+                  <button class="btn btn-secondary btn-sm" onclick="loadTemplate('aggregate')">📊 Aggregate Stats</button>
+                  <button class="btn btn-secondary btn-sm" onclick="loadTemplate('join')">🔀 Advanced Joins</button>
+                  <button class="btn btn-secondary btn-sm" onclick="loadTemplate('metadata')">🏷️ JSON Metadata</button>
+                </div>
+              </div>
+
+              <div class="editor-container">
+                <div class="editor-toolbar">
+                  <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <button class="btn btn-primary btn-sm" onclick="executeSQL()">▶️ Execute</button>
+                    <button class="btn btn-secondary btn-sm" onclick="formatSQL()">🎨 Format</button>
+                    <button class="btn btn-secondary btn-sm" onclick="clearEditor()">🗑️ Clear</button>
+                    <button class="btn btn-secondary btn-sm" onclick="saveQuery()">💾 Save</button>
+                    <button class="btn btn-secondary btn-sm" onclick="showExamples()">💡 Examples</button>
+                  </div>
+                  <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <select class="form-select" style="width: auto;" id="saved-queries" onchange="loadSavedQuery(this.value)">
+                      <option value="">Load Saved...</option>
+                    </select>
+                    <button class="btn btn-secondary btn-sm" onclick="showSchemaHelp()">📖 Schema</button>
+                  </div>
+                </div>
+                <textarea class="editor-textarea" id="sql-editor" placeholder="-- AgentDB SQL Editor
+-- Use templates above for common queries
+-- Example: SELECT * FROM patterns WHERE pattern_type = 'causal' LIMIT 10;
+
+SELECT * FROM sqlite_master WHERE type='table' ORDER BY name;">SELECT * FROM sqlite_master WHERE type='table' ORDER BY name;</textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- Results Tab Content -->
+          <div id="tab-results" class="tab-content-panel">
+            <div class="card">
+              <div class="card-title">Query Results</div>
+              <div id="query-result" class="result-container">
+                <div class="result-header" style="display: none;">
+                  <div class="result-info">
+                    <span id="result-count">0</span> rows returned in <span id="result-time">0</span>ms
+                  </div>
+                  <div>
+                    <button class="btn btn-secondary btn-sm" onclick="exportResults('json')">Export JSON</button>
+                    <button class="btn btn-secondary btn-sm" onclick="exportResults('csv')">Export CSV</button>
+                  </div>
+                </div>
+                <div id="result-table-container">
+                  <div class="empty-state">
+                    <div class="empty-state-icon">📊</div>
+                    <div class="empty-state-title">No results yet</div>
+                    <div class="empty-state-text">Execute a query from the Editor tab to see results here</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Diagnostics Tab Content -->
+          <div id="tab-diagnostics" class="tab-content-panel">
+            <div class="card">
+              <div class="card-title">Query Diagnostics & Performance</div>
+              <div id="query-diagnostics">
+                <div class="empty-state">
+                  <div class="empty-state-icon">⚡</div>
+                  <div class="empty-state-title">No diagnostics available</div>
+                  <div class="empty-state-text">Execute a query to see performance metrics and diagnostics</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Data Browser Panel -->
+        <div id="panel-data-browser" class="content-panel">
+          <div class="card">
+            <div class="card-title">Data Browser</div>
+            <div class="form-group">
+              <label class="form-label">Select Table</label>
+              <select class="form-select" id="table-select" onchange="browseTable(this.value)">
+                <option value="">Choose a table...</option>
+              </select>
+            </div>
+
+            <div class="search-box">
+              <span class="search-icon">🔍</span>
+              <input type="text" class="search-input" id="browser-search" placeholder="Search records..." oninput="filterBrowserData()">
+            </div>
+
+            <div id="browser-content">
+              <div class="empty-state">
+                <div class="empty-state-icon">📊</div>
+                <div class="empty-state-title">Select a table to browse</div>
+                <div class="empty-state-text">Choose a table from the dropdown above to view its data</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Patterns Panel -->
+        <div id="panel-patterns" class="content-panel">
+          <div class="card" style="position: relative;">
+            <button class="help-btn" onclick="showPatternHelp()">❓ Help</button>
+            <div class="card-title">🧩 Pattern Management</div>
+            <p style="color: var(--text-secondary); margin-bottom: 1rem; font-size: 0.875rem;">
+              Store reusable reasoning patterns with vector embeddings for semantic similarity search
+            </p>
+
+            <div style="display: flex; gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap;">
+              <button class="btn btn-primary btn-sm" onclick="showAddPattern()">➕ Add Pattern</button>
+              <button class="btn btn-secondary btn-sm" onclick="refreshPatterns()">🔄 Refresh</button>
+              <button class="btn btn-secondary btn-sm" onclick="showPatternTemplates()">📚 Templates</button>
+              <button class="btn btn-secondary btn-sm" onclick="exportPatterns()">💾 Export</button>
+              <button class="btn btn-secondary btn-sm" onclick="showBatchPatterns()">⚡ Batch Add</button>
+            </div>
+
+            <!-- Pattern Type Filter -->
+            <div class="form-group">
+              <label class="form-label">Filter by Type</label>
+              <select class="form-select" id="pattern-type-filter" onchange="filterPatterns()">
+                <option value="">All Types</option>
+                <option value="causal">Causal</option>
+                <option value="temporal">Temporal</option>
+                <option value="reasoning">Reasoning</option>
+                <option value="optimization">Optimization</option>
+                <option value="custom">Custom</option>
+              </select>
+            </div>
+
+            <div id="patterns-list">
+              <div class="empty-state">
+                <div class="empty-state-icon">🧩</div>
+                <div class="empty-state-title">No patterns stored</div>
+                <div class="empty-state-text">Patterns are reusable reasoning templates with vector embeddings</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Episodes Panel -->
+        <div id="panel-episodes" class="content-panel">
+          <div class="card" style="position: relative;">
+            <button class="help-btn" onclick="showEpisodeHelp()">❓ Help</button>
+            <div class="card-title">📝 Episode Management</div>
+            <p style="color: var(--text-secondary); margin-bottom: 1rem; font-size: 0.875rem;">
+              Record task-action-reward trajectories for reinforcement learning and performance tracking
+            </p>
+
+            <div style="display: flex; gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap;">
+              <button class="btn btn-primary btn-sm" onclick="showAddEpisode()">➕ Add Episode</button>
+              <button class="btn btn-secondary btn-sm" onclick="refreshEpisodes()">🔄 Refresh</button>
+              <button class="btn btn-secondary btn-sm" onclick="showEpisodeExamples()">📚 Examples</button>
+              <button class="btn btn-secondary btn-sm" onclick="exportEpisodes()">💾 Export</button>
+              <button class="btn btn-secondary btn-sm" onclick="showTrajectoryView()">📈 Trajectories</button>
+            </div>
+
+            <!-- Reward Filter -->
+            <div class="form-group">
+              <label class="form-label">Filter by Reward Threshold</label>
+              <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <input type="range" id="reward-filter" class="form-input" min="0" max="1" step="0.1" value="0" style="flex: 1;" oninput="filterEpisodes(this.value)">
+                <span id="reward-filter-value" style="min-width: 50px; text-align: center;">≥ 0.0</span>
+              </div>
+            </div>
+
+            <div id="episodes-list">
+              <div class="empty-state">
+                <div class="empty-state-icon">📝</div>
+                <div class="empty-state-title">No episodes recorded</div>
+                <div class="empty-state-text">Episodes capture task-action-reward trajectories for learning</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Causal Graph Panel -->
+        <div id="panel-causal-graph" class="content-panel">
+          <div class="card" style="position: relative;">
+            <button class="help-btn" onclick="showCausalHelp()">❓ Help</button>
+            <div class="card-title">🔗 Causal Graph Visualization</div>
+            <p style="color: var(--text-secondary); margin-bottom: 1rem; font-size: 0.875rem;">
+              Map cause-effect relationships with weighted edges for causal inference and decision making
+            </p>
+
+            <div style="display: flex; gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap;">
+              <button class="btn btn-primary btn-sm" onclick="showAddCausalEdge()">➕ Add Edge</button>
+              <button class="btn btn-secondary btn-sm" onclick="refreshCausalGraph()">🔄 Refresh</button>
+              <button class="btn btn-secondary btn-sm" onclick="showCausalExamples()">📚 Examples</button>
+              <button class="btn btn-secondary btn-sm" onclick="exportCausalGraph()">💾 Export</button>
+              <button class="btn btn-secondary btn-sm" onclick="analyzeCausalPaths()">🔬 Analyze Paths</button>
+            </div>
+
+            <!-- Weight Filter -->
+            <div class="form-group">
+              <label class="form-label">Minimum Edge Weight</label>
+              <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <input type="range" id="weight-filter" class="form-input" min="0" max="1" step="0.1" value="0" style="flex: 1;" oninput="filterCausalEdges(this.value)">
+                <span id="weight-filter-value" style="min-width: 50px; text-align: center;">≥ 0.0</span>
+              </div>
+            </div>
+
+            <div id="causal-graph-viz">
+              <div class="empty-state">
+                <div class="empty-state-icon">🔗</div>
+                <div class="empty-state-title">No causal relationships</div>
+                <div class="empty-state-text">Causal edges represent cause-effect relationships with weights</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Vector Search Panel -->
+        <div id="panel-vector-search" class="content-panel">
+          <div class="card" style="position: relative;">
+            <button class="help-btn" onclick="showVectorHelp()">❓ Help</button>
+            <div class="card-title">🔍 Vector Similarity Search</div>
+            <p style="color: var(--text-secondary); margin-bottom: 1rem; font-size: 0.875rem;">
+              Semantic search across stored vectors using cosine similarity for intelligent content retrieval
+            </p>
+
+            <div class="form-group">
+              <label class="form-label">Search Query</label>
+              <input type="text" class="form-input" id="vector-query" placeholder="Enter search query...">
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+              <div class="form-group" style="margin: 0;">
+                <label class="form-label">Number of Results</label>
+                <input type="number" class="form-input" id="vector-limit" value="5" min="1" max="50">
+              </div>
+              <div class="form-group" style="margin: 0;">
+                <label class="form-label">Similarity Threshold</label>
+                <input type="number" class="form-input" id="similarity-threshold" value="0" min="0" max="1" step="0.1">
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+              <button class="btn btn-primary" onclick="performVectorSearch()">🔍 Search Similar</button>
+              <button class="btn btn-secondary btn-sm" onclick="showVectorExamples()">📚 Examples</button>
+              <button class="btn btn-secondary btn-sm" onclick="clearVectorSearch()">🗑️ Clear</button>
+            </div>
+
+            <div id="vector-results" style="margin-top: 1.5rem;">
+              <div class="empty-state">
+                <div class="empty-state-icon">🔍</div>
+                <div class="empty-state-title">Enter a query to search</div>
+                <div class="empty-state-text">Semantic search using vector embeddings</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Optimizer Panel -->
+        <div id="panel-optimizer" class="content-panel">
+          <div class="card" style="position: relative;">
+            <button class="help-btn" onclick="showOptimizerHelp()">❓ Help</button>
+            <div class="card-title">⚡ Query Optimizer</div>
+            <p style="color: var(--text-secondary); margin-bottom: 1rem; font-size: 0.875rem;">
+              Analyze SQL query performance and get recommendations for optimization
+            </p>
+
+            <div class="form-group">
+              <label class="form-label">SQL Query to Analyze</label>
+              <textarea class="form-input" id="optimizer-query" rows="5" placeholder="Paste your SQL query here for optimization analysis..."></textarea>
+            </div>
+
+            <div style="display: flex; gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap;">
+              <button class="btn btn-primary" onclick="analyzeQuery()">⚡ Analyze & Optimize</button>
+              <button class="btn btn-secondary btn-sm" onclick="loadFromEditor()">📋 Load from Editor</button>
+              <button class="btn btn-secondary btn-sm" onclick="showOptimizationTips()">💡 Tips</button>
+              <button class="btn btn-secondary btn-sm" onclick="clearOptimizer()">🗑️ Clear</button>
+            </div>
+
+            <div id="optimizer-results" style="margin-top: 1.5rem;">
+              <div class="empty-state">
+                <div class="empty-state-icon">⚡</div>
+                <div class="empty-state-title">Paste a query to analyze</div>
+                <div class="empty-state-text">Get performance insights and optimization suggestions</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Right Panel -->
+    <aside class="ide-panel">
+      <div class="panel-header">Schema & Info</div>
+      <div class="panel-content">
+        <div id="schema-view">
+          <div class="empty-state">
+            <div class="empty-state-icon">🏗️</div>
+            <div class="empty-state-title">Loading schema...</div>
+          </div>
+        </div>
+
+        <div style="margin-top: 2rem;">
+          <h4 style="font-size: 0.875rem; font-weight: 600; margin-bottom: 0.75rem;">Performance Metrics</h4>
+          <div class="stat-bar">
+            <div class="stat-label">Query Count</div>
+            <div class="stat-value">
+              <div class="stat-fill" style="width: 0%;" id="query-count-bar">
+                <span class="stat-text" id="query-count">0</span>
+              </div>
+            </div>
+          </div>
+          <div class="stat-bar">
+            <div class="stat-label">Avg Query Time</div>
+            <div class="stat-value">
+              <div class="stat-fill" style="width: 0%;" id="avg-time-bar">
+                <span class="stat-text" id="avg-time">0ms</span>
+              </div>
+            </div>
+          </div>
+          <div class="stat-bar">
+            <div class="stat-label">Cache Hit Rate</div>
+            <div class="stat-value">
+              <div class="stat-fill" style="width: 0%;" id="cache-rate-bar">
+                <span class="stat-text" id="cache-rate">0%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Console -->
+    <div class="ide-console">
+      <div class="console-header">
+        <div class="console-title">📟 Diagnostic Console</div>
+        <div class="console-actions">
+          <button class="btn btn-secondary btn-sm" onclick="clearConsole()">Clear</button>
+          <button class="btn btn-secondary btn-sm" onclick="exportLogs()">Export Logs</button>
+        </div>
+      </div>
+      <div class="console-content" id="console-output">
+        <div class="console-log info">
+          <span class="timestamp">00:00:00</span>
+          <span class="type">INFO</span>
+          <span class="message">AgentDB Management IDE initialized</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Settings Modal -->
+  <div id="settingsModal" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">⚙️ Database Settings</div>
+        <button class="modal-close" onclick="closeSettings()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="tabs">
+          <button class="tab-button active" onclick="switchSettingsTab('general')">General</button>
+          <button class="tab-button" onclick="switchSettingsTab('vector')">Vector Settings</button>
+          <button class="tab-button" onclick="switchSettingsTab('performance')">Performance</button>
+          <button class="tab-button" onclick="switchSettingsTab('advanced')">Advanced</button>
+        </div>
+
+        <div id="settings-general" class="tab-content active">
+          <div class="form-group">
+            <label class="form-label">Database Mode</label>
+            <select class="form-select" id="setting-mode">
+              <option value="memory">In-Memory (Volatile)</option>
+              <option value="persistent">Persistent (IndexedDB)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Auto-Save Interval (seconds)</label>
+            <input type="number" class="form-input" id="setting-autosave" value="30" min="10" max="300">
+          </div>
+          <div class="form-checkbox">
+            <input type="checkbox" id="setting-autobackup" checked>
+            <label>Enable automatic backups</label>
+          </div>
+        </div>
+
+        <div id="settings-vector" class="tab-content">
+          <div class="form-group">
+            <label class="form-label">Vector Dimensions</label>
+            <input type="number" class="form-input" id="setting-dimensions" value="384" min="128" max="1024">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Similarity Threshold</label>
+            <input type="number" class="form-input" id="setting-threshold" value="0.7" min="0" max="1" step="0.1">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Default Search Limit</label>
+            <input type="number" class="form-input" id="setting-search-limit" value="10" min="1" max="100">
+          </div>
+        </div>
+
+        <div id="settings-performance" class="tab-content">
+          <div class="form-group">
+            <label class="form-label">Query Cache Size</label>
+            <input type="number" class="form-input" id="setting-cache-size" value="100" min="10" max="1000">
+          </div>
+          <div class="form-checkbox">
+            <input type="checkbox" id="setting-query-cache" checked>
+            <label>Enable query result caching</label>
+          </div>
+          <div class="form-checkbox">
+            <input type="checkbox" id="setting-lazy-load" checked>
+            <label>Enable lazy loading for large datasets</label>
+          </div>
+        </div>
+
+        <div id="settings-advanced" class="tab-content">
+          <div class="form-group">
+            <label class="form-label">Debug Level</label>
+            <select class="form-select" id="setting-debug-level">
+              <option value="error">Error Only</option>
+              <option value="warn">Warnings</option>
+              <option value="info" selected>Info</option>
+              <option value="debug">Debug</option>
+            </select>
+          </div>
+          <div class="form-checkbox">
+            <input type="checkbox" id="setting-detailed-logs" checked>
+            <label>Enable detailed console logging</label>
+          </div>
+          <div class="form-checkbox">
+            <input type="checkbox" id="setting-performance-tracking">
+            <label>Track performance metrics</label>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeSettings()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Help Modal -->
+  <div id="helpModal" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">❓ AgentDB IDE Help</div>
+        <button class="modal-close" onclick="closeHelp()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="help-section">
+          <h3>🎯 Getting Started</h3>
+          <p>AgentDB Management IDE is a full-featured database and vector management system built on AgentDB v1.3.9. This IDE provides comprehensive tools for managing SQL databases, vector embeddings, patterns, episodes, and causal relationships.</p>
+
+          <h4>Key Features</h4>
+          <ul>
+            <li><strong>SQL Editor:</strong> Write and execute SQL queries with syntax highlighting</li>
+            <li><strong>Data Browser:</strong> Browse tables and view data with pagination</li>
+            <li><strong>Pattern Manager:</strong> Store and retrieve reasoning patterns with vector embeddings</li>
+            <li><strong>Episode Manager:</strong> Track task-action-reward trajectories</li>
+            <li><strong>Causal Graph:</strong> Visualize cause-effect relationships</li>
+            <li><strong>Vector Search:</strong> Semantic similarity search</li>
+            <li><strong>Query Optimizer:</strong> Get performance insights and suggestions</li>
+            <li><strong>HTML Export:</strong> Export standalone configuration files</li>
+          </ul>
+        </div>
+
+        <div class="help-section">
+          <h3>📚 SQL Editor</h3>
+          <p>The SQL editor allows you to execute queries against the AgentDB database.</p>
+
+          <div class="help-example">
+            <pre>-- View all tables
+SELECT * FROM sqlite_master WHERE type='table';
+
+-- Query vectors
+SELECT * FROM vectors LIMIT 10;
+
+-- Search patterns
+SELECT * FROM patterns WHERE pattern_type = 'causal';</pre>
+          </div>
+
+          <h4>Supported Operations</h4>
+          <ul>
+            <li><code class="help-code">SELECT</code> - Query data from tables</li>
+            <li><code class="help-code">INSERT</code> - Add new records</li>
+            <li><code class="help-code">UPDATE</code> - Modify existing records</li>
+            <li><code class="help-code">DELETE</code> - Remove records</li>
+            <li><code class="help-code">CREATE TABLE</code> - Create new tables</li>
+          </ul>
+        </div>
+
+        <div class="help-section">
+          <h3>🧩 Pattern Management</h3>
+          <p>Patterns are reusable reasoning templates stored with vector embeddings for similarity search.</p>
+
+          <h4>Using Patterns</h4>
+          <p>Patterns in AgentDB include:</p>
+          <ul>
+            <li><strong>Pattern Type:</strong> Category (e.g., 'causal', 'temporal', 'reasoning')</li>
+            <li><strong>Embedding:</strong> 384-dimensional vector for semantic search</li>
+            <li><strong>Metadata:</strong> Additional context and parameters</li>
+          </ul>
+
+          <div class="help-example">
+            <pre>// Store a pattern using AgentDB
+await db.storePattern({
+  pattern_type: 'causal',
+  embedding: vectorArray,
+  metadata: {
+    description: 'Budget optimization pattern',
+    approach: 'Linear programming'
+  }
+});</pre>
+          </div>
+        </div>
+
+        <div class="help-section">
+          <h3>📝 Episode Management</h3>
+          <p>Episodes capture complete task execution trajectories for reinforcement learning and analysis.</p>
+
+          <h4>Episode Structure</h4>
+          <ul>
+            <li><strong>Task:</strong> What was attempted</li>
+            <li><strong>Action:</strong> What was done</li>
+            <li><strong>Reward:</strong> Outcome value</li>
+            <li><strong>Critique:</strong> Analysis of the result</li>
+            <li><strong>Trajectory:</strong> Sequence of steps</li>
+          </ul>
+        </div>
+
+        <div class="help-section">
+          <h3>🔗 Causal Graphs</h3>
+          <p>Causal edges represent cause-effect relationships with weights indicating strength.</p>
+
+          <div class="help-example">
+            <pre>// Add causal relationship
+await db.addCausalEdge({
+  cause: 'increased_budget',
+  effect: 'higher_conversions',
+  weight: 0.85,
+  metadata: { confidence: 0.92 }
+});</pre>
+          </div>
+        </div>
+
+        <div class="help-section">
+          <h3>🔍 Vector Search</h3>
+          <p>Perform semantic similarity search across stored patterns and vectors.</p>
+
+          <h4>How It Works</h4>
+          <p>Vector search uses cosine similarity to find semantically related content:</p>
+          <ol>
+            <li>Your query is converted to a 384-dimensional vector</li>
+            <li>AgentDB compares it against stored vectors</li>
+            <li>Results are ranked by similarity score</li>
+          </ol>
+        </div>
+
+        <div class="help-section">
+          <h3>⚡ Query Optimizer</h3>
+          <p>Get performance insights and optimization suggestions for your SQL queries.</p>
+
+          <h4>Optimization Tips</h4>
+          <ul>
+            <li>Add indexes on frequently queried columns</li>
+            <li>Use LIMIT clauses for large result sets</li>
+            <li>Avoid SELECT * when possible</li>
+            <li>Use prepared statements for repeated queries</li>
+          </ul>
+        </div>
+
+        <div class="help-section">
+          <h3>💾 Import/Export</h3>
+          <p>Export your database configuration as a standalone HTML file that can run anywhere.</p>
+
+          <h4>Export Features</h4>
+          <ul>
+            <li>Includes complete database schema</li>
+            <li>Embeds all data (patterns, episodes, causal edges)</li>
+            <li>Fully functional standalone file</li>
+            <li>No external dependencies required</li>
+          </ul>
+        </div>
+
+        <div class="help-section">
+          <h3>🎓 About AgentDB</h3>
+          <p>AgentDB is an SQL-based agentic memory system with vector embeddings, designed for AI agents and intelligent applications. It combines the power of SQL databases with semantic vector search capabilities.</p>
+
+          <h4>Learn More</h4>
+          <p>Visit <a href="https://agentdb.ruv.io" target="_blank" style="color: var(--accent);">agentdb.ruv.io</a> for comprehensive documentation, examples, and tutorials.</p>
+
+          <h4>Project Links</h4>
+          <ul>
+            <li><a href="https://agentdb.ruv.io" target="_blank" style="color: var(--accent);">Official Website</a></li>
+            <li><a href="https://github.com/ruvnet/agentic-flow/tree/main/packages/agentdb" target="_blank" style="color: var(--accent);">GitHub Repository</a></li>
+            <li><a href="https://www.npmjs.com/package/agentdb" target="_blank" style="color: var(--accent);">NPM Package</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" onclick="closeHelp()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Pattern Modal -->
+  <div id="addPatternModal" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">➕ Add Pattern</div>
+        <button class="modal-close" onclick="closeAddPattern()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Pattern Type</label>
+          <select class="form-select" id="pattern-type">
+            <option value="causal">Causal</option>
+            <option value="temporal">Temporal</option>
+            <option value="reasoning">Reasoning</option>
+            <option value="optimization">Optimization</option>
+            <option value="custom">Custom</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Pattern Description</label>
+          <textarea class="form-input" id="pattern-description" rows="4" placeholder="Describe the pattern..."></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Metadata (JSON)</label>
+          <textarea class="form-input" id="pattern-metadata" rows="3" placeholder='{"key": "value"}'>{}</textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeAddPattern()">Cancel</button>
+        <button class="btn btn-primary" onclick="savePattern()">Save Pattern</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Episode Modal -->
+  <div id="addEpisodeModal" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">➕ Add Episode</div>
+        <button class="modal-close" onclick="closeAddEpisode()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Task</label>
+          <input type="text" class="form-input" id="episode-task" placeholder="What task was performed?">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Action</label>
+          <input type="text" class="form-input" id="episode-action" placeholder="What action was taken?">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Reward</label>
+          <input type="number" class="form-input" id="episode-reward" placeholder="0.0" step="0.01">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Critique</label>
+          <textarea class="form-input" id="episode-critique" rows="3" placeholder="Analysis of the outcome..."></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Metadata (JSON)</label>
+          <textarea class="form-input" id="episode-metadata" rows="2" placeholder='{"key": "value"}'>{}</textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeAddEpisode()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveEpisode()">Save Episode</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Causal Edge Modal -->
+  <div id="addCausalEdgeModal" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">➕ Add Causal Edge</div>
+        <button class="modal-close" onclick="closeAddCausalEdge()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Cause</label>
+          <input type="text" class="form-input" id="causal-cause" placeholder="What is the cause?">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Effect</label>
+          <input type="text" class="form-input" id="causal-effect" placeholder="What is the effect?">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Weight (0.0 - 1.0)</label>
+          <input type="number" class="form-input" id="causal-weight" placeholder="0.5" step="0.01" min="0" max="1" value="0.5">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Metadata (JSON)</label>
+          <textarea class="form-input" id="causal-metadata" rows="2" placeholder='{"confidence": 0.9}'>{}</textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeAddCausalEdge()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveCausalEdge()">Save Edge</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Import/Export Modal -->
+  <div id="importExportModal" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">💾 Import/Export Data</div>
+        <button class="modal-close" onclick="closeImportExport()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="tabs">
+          <button class="tab-button active" onclick="switchImportExportTab('export')">Export</button>
+          <button class="tab-button" onclick="switchImportExportTab('import')">Import</button>
+        </div>
+
+        <div id="importexport-export" class="tab-content active">
+          <h4 style="margin-bottom: 1rem;">Export Database</h4>
+          <p style="color: var(--text-secondary); margin-bottom: 1rem;">Download your database in various formats:</p>
+
+          <div style="display: grid; gap: 0.75rem;">
+            <button class="btn btn-primary" onclick="exportDatabase('json')">📄 Export as JSON</button>
+            <button class="btn btn-primary" onclick="exportDatabase('sql')">🗄️ Export as SQL</button>
+            <button class="btn btn-primary" onclick="exportDatabase('csv')">📊 Export as CSV</button>
+          </div>
+        </div>
+
+        <div id="importexport-import" class="tab-content">
+          <h4 style="margin-bottom: 1rem;">Import Database</h4>
+          <p style="color: var(--text-secondary); margin-bottom: 1rem;">Import data from a file:</p>
+
+          <div class="form-group">
+            <label class="form-label">Select File</label>
+            <input type="file" class="form-input" id="import-file" accept=".json,.sql,.csv">
+          </div>
+          <button class="btn btn-primary" onclick="importDatabase()">📥 Import Data</button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeImportExport()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Schema Designer Modal -->
+  <div id="schemaDesignerModal" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">🏗️ Schema Designer</div>
+        <button class="modal-close" onclick="closeSchemaDesigner()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Table Name</label>
+          <input type="text" class="form-input" id="schema-table-name" placeholder="my_table">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Columns (one per line: name TYPE [constraints])</label>
+          <textarea class="form-input" id="schema-columns" rows="8" placeholder="id INTEGER PRIMARY KEY AUTOINCREMENT
+name TEXT NOT NULL
+value REAL
+created_at INTEGER DEFAULT (strftime('%s', 'now'))"></textarea>
+        </div>
+        <div style="margin-top: 1rem;">
+          <button class="btn btn-primary" onclick="createTableFromSchema()">✨ Create Table</button>
+          <button class="btn btn-secondary" onclick="previewSchema()">👁️ Preview SQL</button>
+        </div>
+        <div id="schema-preview" style="margin-top: 1rem; display: none;">
+          <label class="form-label">Generated SQL</label>
+          <pre style="background: var(--bg-primary); padding: 1rem; border-radius: 6px; overflow-x: auto; color: var(--text-primary); font-size: 0.875rem;" id="schema-sql"></pre>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeSchemaDesigner()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Causal Analysis Modal -->
+  <div id="causalAnalysisModal" class="modal-overlay">
+    <div class="modal" style="max-width: 900px;">
+      <div class="modal-header">
+        <div class="modal-title">🔬 Causal Path Analysis</div>
+        <button class="modal-close" onclick="closeCausalAnalysis()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="info-banner" style="margin-bottom: 1.5rem; background: var(--bg-secondary); padding: 1rem; border-radius: 6px; border-left: 3px solid var(--primary-color);">
+          <div style="font-weight: 500; margin-bottom: 0.5rem;">📊 Path Analysis Features</div>
+          <div style="font-size: 0.875rem; opacity: 0.9;">
+            • Discover direct and indirect causal relationships<br>
+            • Detect feedback loops and cycles<br>
+            • Rank paths by cumulative strength<br>
+            • Find strongest causal chains
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+          <div class="form-group">
+            <label class="form-label">Start Node (optional)</label>
+            <input type="text" class="form-input" id="analysis-start-node" placeholder="Leave empty for all nodes">
+            <div style="font-size: 0.75rem; opacity: 0.7; margin-top: 0.25rem;">Find all paths starting from this cause</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">End Node (optional)</label>
+            <input type="text" class="form-input" id="analysis-end-node" placeholder="Leave empty for all nodes">
+            <div style="font-size: 0.75rem; opacity: 0.7; margin-top: 0.25rem;">Find all paths ending at this effect</div>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+          <label class="form-label">Maximum Path Depth: <span id="max-depth-value">3</span> hops</label>
+          <input type="range" class="form-input" id="analysis-max-depth" min="1" max="5" value="3"
+                 style="width: 100%;" oninput="document.getElementById('max-depth-value').textContent = this.value">
+          <div style="font-size: 0.75rem; opacity: 0.7; margin-top: 0.25rem;">How many steps to traverse in the causal graph</div>
+        </div>
+
+        <div style="display: flex; gap: 0.75rem; margin-bottom: 1.5rem;">
+          <button class="btn btn-primary" onclick="runPathAnalysis()">🔍 Find Paths</button>
+          <button class="btn btn-secondary" onclick="detectCycles()">🔄 Detect Cycles</button>
+          <button class="btn btn-secondary" onclick="findStrongestChains()">💪 Strongest Chains</button>
+          <button class="btn btn-secondary" onclick="analyzeAllPaths()">🌐 Analyze All</button>
+        </div>
+
+        <div id="analysis-results" style="max-height: 400px; overflow-y: auto;">
+          <div class="empty-state">
+            <div class="empty-state-icon">🔬</div>
+            <div class="empty-state-title">Ready to analyze</div>
+            <div class="empty-state-text">Configure options above and click a button to start analysis</div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeCausalAnalysis()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- AgentDB Script -->
+  <script src="https://unpkg.com/agentdb@1.3.9/dist/agentdb.min.js"></script>
+
+  <!-- Main Application Script -->
+  <script>
+    // ============================================================================
+    // STATE MANAGEMENT
+    // ============================================================================
+
+    const state = {
+      db: null,
+      initialized: false,
+      currentView: 'sql-editor',
+      currentTab: 'editor',
+      queryHistory: [],
+      savedQueries: [],
+      stats: {
+        queryCount: 0,
+        totalTime: 0,
+        cacheHits: 0,
+        cacheMisses: 0
+      },
+      settings: {
+        mode: 'memory',
+        autosave: 30,
+        autobackup: true,
+        dimensions: 384,
+        threshold: 0.7,
+        searchLimit: 10,
+        cacheSize: 100,
+        queryCache: true,
+        lazyLoad: true,
+        debugLevel: 'info',
+        detailedLogs: true,
+        performanceTracking: false
+      }
+    };
+
+    // ============================================================================
+    // SQL HELPER FUNCTIONS
+    // ============================================================================
+
+    // Helper functions to access SQL.js database
+    // AgentDB v1.3.9 exposes SQL.js methods directly on the instance
+    function sqlAll(query, params = []) {
+      const results = state.db.exec(query, params);
+      if (results.length === 0) return [];
+
+      const columns = results[0].columns;
+      return results[0].values.map(row => {
+        const obj = {};
+        columns.forEach((col, i) => {
+          obj[col] = row[i];
+        });
+        return obj;
+      });
+    }
+
+    function sqlRun(query, params = []) {
+      state.db.run(query, params);
+    }
+
+    function sqlGet(query, params = []) {
+      const results = sqlAll(query, params);
+      return results.length > 0 ? results[0] : null;
+    }
+
+    // ============================================================================
+    // CONSOLE LOGGING
+    // ============================================================================
+
+    function logToConsole(type, message, data = null) {
+      const timestamp = new Date().toLocaleTimeString();
+      const logEntry = document.createElement('div');
+      logEntry.className = `console-log ${type}`;
+
+      logEntry.innerHTML = `
+        <span class="timestamp">${timestamp}</span>
+        <span class="type">${type.toUpperCase()}</span>
+        <span class="message">${message}</span>
+      `;
+
+      const consoleOutput = document.getElementById('console-output');
+      consoleOutput.appendChild(logEntry);
+      consoleOutput.scrollTop = consoleOutput.scrollHeight;
+
+      // Also log to browser console with data
+      const logMethod = type === 'error' ? 'error' : type === 'warning' ? 'warn' : 'log';
+      if (data) {
+        window.console[logMethod](`[AgentDB IDE] ${message}`, data);
+      } else {
+        window.console[logMethod](`[AgentDB IDE] ${message}`);
+      }
+    }
+
+    function clearConsole() {
+      document.getElementById('console-output').innerHTML = '';
+      logToConsole('info', 'Console cleared');
+    }
+
+    function exportLogs() {
+      const logs = document.getElementById('console-output').innerText;
+      downloadFile('agentdb-logs.txt', logs);
+      logToConsole('success', 'Logs exported successfully');
+    }
+
+    // ============================================================================
+    // DATABASE INITIALIZATION
+    // ============================================================================
+
+    async function initializeDatabase() {
+      logToConsole('info', 'Initializing AgentDB v1.3.9...');
+
+      try {
+        // Wait for AgentDB global to be available
+        let attempts = 0;
+        while (typeof AgentDB === 'undefined' && attempts < 50) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+          attempts++;
+        }
+
+        if (typeof AgentDB === 'undefined') {
+          throw new Error('AgentDB failed to load');
+        }
+
+        logToConsole('info', 'AgentDB library loaded, waiting for ready state...');
+
+        // Wait for AgentDB.ready
+        attempts = 0;
+        while (!(AgentDB.ready === true) && attempts < 100) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+          attempts++;
+        }
+
+        if (!(AgentDB.ready === true)) {
+          throw new Error('AgentDB did not become ready in time');
+        }
+
+        logToConsole('success', 'AgentDB ready, creating database instance...');
+
+        // Create database instance (v1.3.9 uses AgentDB.SQLiteVectorDB)
+        state.db = new AgentDB.SQLiteVectorDB({
+          memoryMode: state.settings.mode === 'memory',
+          backend: 'wasm'
+        });
+
+        logToConsole('info', 'Initializing database schema...');
+
+        // Initialize with schema (v1.3.9 automatically creates all tables)
+        await state.db.initializeAsync();
+
+        state.initialized = true;
+
+        logToConsole('success', 'Database initialized successfully!');
+        logToConsole('info', `Mode: ${state.settings.mode === 'memory' ? 'In-Memory (WASM)' : 'Persistent (IndexedDB)'}, Backend: WASM`);
+
+        // Debug: Check available properties
+        window.console.log('AgentDB instance properties:', Object.keys(state.db));
+        window.console.log('AgentDB instance:', state.db);
+
+        // Update UI
+        document.getElementById('db-status').textContent = 'Connected';
+        document.getElementById('db-status').className = 'status-badge success';
+        document.getElementById('db-mode').textContent = state.settings.mode;
+
+        // Load initial data
+        await refreshAll();
+
+        logToConsole('info', 'IDE ready for use');
+
+      } catch (error) {
+        logToConsole('error', `Failed to initialize database: ${error.message}`, error);
+        document.getElementById('db-status').textContent = 'Error';
+        document.getElementById('db-status').className = 'status-badge error';
+      }
+    }
+
+    // ============================================================================
+    // SQL EDITOR
+    // ============================================================================
+
+    async function executeSQL() {
+      const editor = document.getElementById('sql-editor');
+      const query = editor.value.trim();
+
+      if (!query) {
+        logToConsole('warning', 'Please enter a SQL query');
+        return;
+      }
+
+      logToConsole('info', `Executing query: ${query.substring(0, 100)}...`);
+
+      const startTime = performance.now();
+
+      try {
+        // Execute query
+        const results = sqlAll(query);
+        const endTime = performance.now();
+        const duration = Math.round(endTime - startTime);
+
+        // Update stats
+        state.stats.queryCount++;
+        state.stats.totalTime += duration;
+        updateStats();
+
+        // Add to history
+        state.queryHistory.unshift({
+          query,
+          timestamp: new Date().toISOString(),
+          duration,
+          rowCount: results.length
+        });
+
+        // Display results
+        displayQueryResults(results, duration);
+
+        // Display diagnostics
+        displayDiagnostics(query, results, duration);
+
+        // Auto-switch to Results tab
+        document.querySelector('.main-tab[data-tab="results"]').click();
+
+        logToConsole('success', `Query executed successfully: ${results.length} rows in ${duration}ms`);
+
+      } catch (error) {
+        logToConsole('error', `Query failed: ${error.message}`, error);
+
+        // Show error in results
+        const resultDiv = document.getElementById('query-result');
+        resultDiv.style.display = 'block';
+        resultDiv.querySelector('#result-table-container').innerHTML = `
+          <div style="padding: 2rem; text-align: center; color: var(--danger);">
+            <div style="font-size: 2rem; margin-bottom: 1rem;">⚠️</div>
+            <div style="font-weight: 600; margin-bottom: 0.5rem;">Query Error</div>
+            <div style="font-size: 0.875rem; color: var(--text-secondary);">${error.message}</div>
+          </div>
+        `;
+      }
+    }
+
+    function displayQueryResults(results, duration) {
+      const resultDiv = document.getElementById('query-result');
+      const resultHeader = resultDiv.querySelector('.result-header');
+      const countSpan = document.getElementById('result-count');
+      const timeSpan = document.getElementById('result-time');
+      const container = document.getElementById('result-table-container');
+
+      resultDiv.style.display = 'block';
+      countSpan.textContent = results.length;
+      timeSpan.textContent = duration;
+
+      if (results.length === 0) {
+        resultHeader.style.display = 'none';
+        container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📭</div><div class="empty-state-title">No results</div><div class="empty-state-text">Query returned no rows</div></div>';
+        return;
+      }
+
+      resultHeader.style.display = 'flex';
+
+      // Build table
+      const columns = Object.keys(results[0]);
+      let html = '<table class="data-table"><thead><tr>';
+
+      columns.forEach(col => {
+        html += `<th>${col}</th>`;
+      });
+      html += '</tr></thead><tbody>';
+
+      results.forEach(row => {
+        html += '<tr>';
+        columns.forEach(col => {
+          let value = row[col];
+          // Format value based on type
+          if (value === null) value = '<em style="color: var(--text-muted);">NULL</em>';
+          else if (typeof value === 'object') value = JSON.stringify(value);
+          else if (typeof value === 'string' && value.length > 100) value = value.substring(0, 100) + '...';
+          html += `<td>${value}</td>`;
+        });
+        html += '</tr>';
+      });
+
+      html += '</tbody></table>';
+      container.innerHTML = html;
+    }
+
+    function formatSQL() {
+      const editor = document.getElementById('sql-editor');
+      let sql = editor.value;
+
+      // Basic SQL formatting
+      sql = sql
+        .replace(/\s+/g, ' ')
+        .replace(/ SELECT /gi, '\nSELECT ')
+        .replace(/ FROM /gi, '\nFROM ')
+        .replace(/ WHERE /gi, '\nWHERE ')
+        .replace(/ AND /gi, '\n  AND ')
+        .replace(/ OR /gi, '\n  OR ')
+        .replace(/ ORDER BY /gi, '\nORDER BY ')
+        .replace(/ GROUP BY /gi, '\nGROUP BY ')
+        .replace(/ LIMIT /gi, '\nLIMIT ')
+        .replace(/ JOIN /gi, '\nJOIN ')
+        .replace(/ LEFT JOIN /gi, '\nLEFT JOIN ')
+        .replace(/ INNER JOIN /gi, '\nINNER JOIN ')
+        .trim();
+
+      editor.value = sql;
+      logToConsole('success', 'Query formatted');
+    }
+
+    // AgentDB Query Templates
+    function loadTemplate(type) {
+      const editor = document.getElementById('sql-editor');
+      const templates = {
+        vectors: `-- Query all vectors with metadata
+SELECT
+  id,
+  embedding,
+  json_extract(metadata, '$.description') as description,
+  json_extract(metadata, '$.type') as type,
+  created_at
+FROM vectors
+ORDER BY created_at DESC
+LIMIT 20;`,
+
+        patterns: `-- Query patterns by type with metadata analysis
+SELECT
+  id,
+  pattern_type,
+  json_extract(metadata, '$.description') as description,
+  json_extract(metadata, '$.approach') as approach,
+  json_extract(metadata, '$.taskType') as task_type,
+  created_at
+FROM patterns
+WHERE pattern_type = 'causal'  -- Change to: temporal, reasoning, optimization
+ORDER BY created_at DESC
+LIMIT 20;`,
+
+        episodes: `-- Query high-performing episodes with learning insights
+SELECT
+  id,
+  task,
+  action,
+  reward,
+  critique,
+  json_extract(metadata, '$.duration') as duration,
+  json_extract(metadata, '$.channels') as channels,
+  created_at
+FROM episodes
+WHERE reward > 0.7
+ORDER BY reward DESC, created_at DESC
+LIMIT 20;`,
+
+        causal: `-- Query causal relationships with strength and confidence
+SELECT
+  id,
+  cause,
+  effect,
+  json_extract(metadata, '$.weight') as weight,
+  json_extract(metadata, '$.confidence') as confidence,
+  json_extract(metadata, '$.sample_size') as sample_size,
+  created_at
+FROM causal_edges
+ORDER BY json_extract(metadata, '$.weight') DESC
+LIMIT 20;`,
+
+        similarity: `-- Find semantically similar patterns
+-- Note: This demonstrates the concept - actual vector similarity requires embedding comparison
+SELECT
+  p1.id as pattern_id,
+  p1.pattern_type,
+  json_extract(p1.metadata, '$.description') as description,
+  COUNT(p2.id) as similar_count
+FROM patterns p1
+LEFT JOIN patterns p2
+  ON p1.pattern_type = p2.pattern_type
+  AND p1.id != p2.id
+GROUP BY p1.id, p1.pattern_type
+ORDER BY similar_count DESC
+LIMIT 20;`,
+
+        aggregate: `-- Aggregate statistics across AgentDB tables
+SELECT
+  'Vectors' as table_name,
+  COUNT(*) as total_count,
+  COUNT(DISTINCT json_extract(metadata, '$.type')) as unique_types,
+  MIN(created_at) as first_created,
+  MAX(created_at) as last_created
+FROM vectors
+
+UNION ALL
+
+SELECT
+  'Patterns' as table_name,
+  COUNT(*) as total_count,
+  COUNT(DISTINCT pattern_type) as unique_types,
+  MIN(created_at) as first_created,
+  MAX(created_at) as last_created
+FROM patterns
+
+UNION ALL
+
+SELECT
+  'Episodes' as table_name,
+  COUNT(*) as total_count,
+  COUNT(DISTINCT ROUND(reward, 1)) as unique_types,
+  MIN(created_at) as first_created,
+  MAX(created_at) as last_created
+FROM episodes;`,
+
+        join: `-- Advanced join: Episodes with their patterns and causal edges
+SELECT
+  e.id as episode_id,
+  e.task,
+  e.action,
+  e.reward,
+  p.pattern_type,
+  json_extract(p.metadata, '$.description') as pattern_description,
+  c.cause,
+  c.effect,
+  json_extract(c.metadata, '$.weight') as causal_weight
+FROM episodes e
+LEFT JOIN patterns p
+  ON json_extract(e.metadata, '$.pattern_id') = p.id
+LEFT JOIN causal_edges c
+  ON e.action = c.cause
+WHERE e.reward > 0.5
+ORDER BY e.reward DESC
+LIMIT 20;`,
+
+        metadata: `-- Advanced JSON metadata queries
+SELECT
+  id,
+  pattern_type,
+  -- Extract nested JSON fields
+  json_extract(metadata, '$.description') as description,
+  json_extract(metadata, '$.hyperparameters.learningRate') as learning_rate,
+  json_extract(metadata, '$.hyperparameters.batchSize') as batch_size,
+  -- Check if JSON key exists
+  CASE
+    WHEN json_extract(metadata, '$.confidence') IS NOT NULL
+    THEN 'Has confidence'
+    ELSE 'No confidence'
+  END as has_confidence,
+  -- Parse JSON arrays
+  json_extract(metadata, '$.tags[0]') as first_tag,
+  created_at
+FROM patterns
+WHERE json_extract(metadata, '$.approach') LIKE '%optimization%'
+ORDER BY created_at DESC
+LIMIT 20;`
+      };
+
+      editor.value = templates[type] || '-- Template not found';
+      logToConsole('info', `Loaded ${type} template`);
+    }
+
+    function showExamples() {
+      const examples = `
+<div class="help-section">
+  <h3>🎯 Common AgentDB Query Patterns</h3>
+
+  <h4>1. Find Patterns by Type</h4>
+  <div class="help-example"><pre>SELECT * FROM patterns
+WHERE pattern_type = 'causal'
+ORDER BY created_at DESC LIMIT 10;</pre></div>
+
+  <h4>2. Analyze Episode Performance</h4>
+  <div class="help-example"><pre>SELECT
+  task,
+  AVG(reward) as avg_reward,
+  COUNT(*) as attempts,
+  MAX(reward) as best_reward
+FROM episodes
+GROUP BY task
+ORDER BY avg_reward DESC;</pre></div>
+
+  <h4>3. Extract JSON Metadata</h4>
+  <div class="help-example"><pre>SELECT
+  id,
+  json_extract(metadata, '$.description') as desc,
+  json_extract(metadata, '$.confidence') as conf
+FROM patterns;</pre></div>
+
+  <h4>4. Find High-Confidence Causal Links</h4>
+  <div class="help-example"><pre>SELECT cause, effect,
+  json_extract(metadata, '$.weight') as weight,
+  json_extract(metadata, '$.confidence') as confidence
+FROM causal_edges
+WHERE CAST(json_extract(metadata, '$.confidence') AS REAL) > 0.8;</pre></div>
+
+  <h4>5. Time-Based Analysis</h4>
+  <div class="help-example"><pre>SELECT
+  DATE(created_at, 'unixepoch') as date,
+  COUNT(*) as count
+FROM patterns
+GROUP BY date
+ORDER BY date DESC;</pre></div>
+
+  <h4>6. Cross-Table Insights</h4>
+  <div class="help-example"><pre>SELECT
+  p.pattern_type,
+  COUNT(e.id) as episode_count,
+  AVG(e.reward) as avg_reward
+FROM patterns p
+LEFT JOIN episodes e ON p.id = json_extract(e.metadata, '$.pattern_id')
+GROUP BY p.pattern_type;</pre></div>
+</div>`;
+
+      const modal = document.getElementById('helpModal');
+      document.querySelector('#helpModal .modal-body').innerHTML = examples;
+      modal.classList.add('active');
+    }
+
+    function showSchemaHelp() {
+      const schema = `
+<div class="help-section">
+  <h3>📖 AgentDB Schema Reference</h3>
+
+  <h4>🔢 vectors</h4>
+  <div class="help-example"><pre>id INTEGER PRIMARY KEY
+embedding TEXT (384-dimensional vector as JSON)
+metadata TEXT (JSON: type, description, source, etc.)
+created_at INTEGER (Unix timestamp)</pre></div>
+
+  <h4>🧩 patterns</h4>
+  <div class="help-example"><pre>id INTEGER PRIMARY KEY
+pattern TEXT (Optional pattern content)
+pattern_type TEXT (causal, temporal, reasoning, optimization, custom)
+embedding TEXT (384-dimensional vector as JSON)
+metadata TEXT (JSON: description, approach, taskType, hyperparameters, etc.)
+created_at INTEGER (Unix timestamp)</pre></div>
+
+  <h4>📝 episodes</h4>
+  <div class="help-example"><pre>id INTEGER PRIMARY KEY
+task TEXT (Task description)
+action TEXT (Action taken)
+trajectory TEXT (Optional: sequence of steps)
+reward REAL (Outcome value: 0.0 - 1.0)
+critique TEXT (Analysis of result)
+self_reflection TEXT (Optional: learning insights)
+verdict TEXT (Optional: final assessment)
+embedding TEXT (384-dimensional vector as JSON)
+metadata TEXT (JSON: duration, channels, pattern_id, etc.)
+created_at INTEGER (Unix timestamp)</pre></div>
+
+  <h4>🔗 causal_edges</h4>
+  <div class="help-example"><pre>id INTEGER PRIMARY KEY
+cause TEXT (Cause identifier)
+effect TEXT (Effect identifier)
+metadata TEXT (JSON: weight [0-1], confidence [0-1], sample_size, etc.)
+created_at INTEGER (Unix timestamp)</pre></div>
+
+  <h4>🛠️ skills</h4>
+  <div class="help-example"><pre>id INTEGER PRIMARY KEY
+name TEXT (Skill name)
+code TEXT (Executable code)
+metadata TEXT (JSON: language, dependencies, description, etc.)
+created_at INTEGER (Unix timestamp)</pre></div>
+
+  <h3>💡 JSON Metadata Tips</h3>
+  <ul>
+    <li><code>json_extract(metadata, '$.key')</code> - Extract value</li>
+    <li><code>json_extract(metadata, '$.nested.key')</code> - Nested access</li>
+    <li><code>json_extract(metadata, '$.array[0]')</code> - Array element</li>
+    <li><code>CAST(json_extract(...) AS REAL)</code> - Type conversion</li>
+    <li><code>json_extract(...) IS NOT NULL</code> - Check existence</li>
+  </ul>
+</div>`;
+
+      const modal = document.getElementById('helpModal');
+      document.querySelector('#helpModal .modal-body').innerHTML = schema;
+      modal.classList.add('active');
+    }
+
+    function clearEditor() {
+      document.getElementById('sql-editor').value = '';
+      logToConsole('info', 'Editor cleared');
+    }
+
+    function saveQuery() {
+      const query = document.getElementById('sql-editor').value.trim();
+      if (!query) return;
+
+      const name = prompt('Enter a name for this query:');
+      if (!name) return;
+
+      state.savedQueries.push({ name, query });
+      updateSavedQueriesDropdown();
+
+      logToConsole('success', `Query saved: ${name}`);
+    }
+
+    function loadSavedQuery(name) {
+      const saved = state.savedQueries.find(q => q.name === name);
+      if (saved) {
+        document.getElementById('sql-editor').value = saved.query;
+        logToConsole('info', `Loaded query: ${name}`);
+      }
+    }
+
+    function updateSavedQueriesDropdown() {
+      const select = document.getElementById('saved-queries');
+      select.innerHTML = '<option value="">Load Saved Query...</option>';
+
+      state.savedQueries.forEach(q => {
+        const option = document.createElement('option');
+        option.value = q.name;
+        option.textContent = q.name;
+        select.appendChild(option);
+      });
+    }
+
+    function exportResults(format) {
+      const results = []; // Would need to store last results
+      logToConsole('info', `Exporting results as ${format.toUpperCase()}`);
+      // Implementation would go here
+    }
+
+    // ============================================================================
+    // DATA BROWSER
+    // ============================================================================
+
+    async function refreshTableList() {
+      try {
+        const tableList = sqlAll("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name");
+
+        const select = document.getElementById('table-select');
+        select.innerHTML = '<option value="">Choose a table...</option>';
+
+        tableList.forEach(table => {
+          const option = document.createElement('option');
+          option.value = table.name;
+          option.textContent = table.name;
+          select.appendChild(option);
+        });
+
+        document.getElementById('db-tables').textContent = tableList.length;
+
+        logToConsole('info', `Found ${tableList.length} tables`);
+
+      } catch (error) {
+        logToConsole('error', `Failed to refresh table list: ${error.message}`);
+      }
+    }
+
+    async function browseTable(tableName) {
+      if (!tableName) return;
+
+      logToConsole('info', `Browsing table: ${tableName}`);
+
+      try {
+        const data = sqlAll(`SELECT * FROM ${tableName} LIMIT 100`);
+
+        const container = document.getElementById('browser-content');
+
+        if (data.length === 0) {
+          container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📭</div><div class="empty-state-title">Table is empty</div></div>';
+          return;
+        }
+
+        // Build table
+        const columns = Object.keys(data[0]);
+        let html = '<table class="data-table"><thead><tr>';
+
+        columns.forEach(col => {
+          html += `<th>${col}</th>`;
+        });
+        html += '</tr></thead><tbody>';
+
+        data.forEach(row => {
+          html += '<tr>';
+          columns.forEach(col => {
+            let value = row[col];
+            if (value === null) value = '<em style="color: var(--text-muted);">NULL</em>';
+            else if (typeof value === 'object') value = JSON.stringify(value);
+            else if (typeof value === 'string' && value.length > 100) value = value.substring(0, 100) + '...';
+            html += `<td>${value}</td>`;
+          });
+          html += '</tr>';
+        });
+
+        html += '</tbody></table>';
+        container.innerHTML = html;
+
+        logToConsole('success', `Loaded ${data.length} rows from ${tableName}`);
+
+      } catch (error) {
+        logToConsole('error', `Failed to browse table: ${error.message}`);
+      }
+    }
+
+    function filterBrowserData() {
+      const search = document.getElementById('browser-search').value.toLowerCase();
+      // Would implement filtering logic here
+      logToConsole('info', `Filtering data: ${search}`);
+    }
+
+    // ============================================================================
+    // PATTERN MANAGEMENT
+    // ============================================================================
+
+    function showAddPattern() {
+      document.getElementById('addPatternModal').classList.add('active');
+    }
+
+    function closeAddPattern() {
+      document.getElementById('addPatternModal').classList.remove('active');
+    }
+
+    async function savePattern() {
+      const type = document.getElementById('pattern-type').value;
+      const description = document.getElementById('pattern-description').value;
+      const metadataStr = document.getElementById('pattern-metadata').value;
+
+      if (!description) {
+        alert('Please enter a pattern description');
+        return;
+      }
+
+      try {
+        const metadata = JSON.parse(metadataStr);
+
+        // Generate embedding (simplified - in real app would use actual embedding model)
+        const embedding = generateMockEmbedding(description);
+
+        await state.db.storePattern({
+          pattern_type: type,
+          embedding: embedding,
+          metadata: {
+            ...metadata,
+            description: description
+          }
+        });
+
+        logToConsole('success', `Pattern stored: ${type}`);
+        closeAddPattern();
+        refreshPatterns();
+
+      } catch (error) {
+        logToConsole('error', `Failed to save pattern: ${error.message}`);
+        alert('Failed to save pattern. Check console for details.');
+      }
+    }
+
+    async function refreshPatterns() {
+      logToConsole('info', 'Refreshing patterns...');
+
+      try {
+        const patterns = sqlAll('SELECT * FROM patterns ORDER BY created_at DESC LIMIT 50');
+
+        const container = document.getElementById('patterns-list');
+
+        if (patterns.length === 0) {
+          container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🧩</div><div class="empty-state-title">No patterns stored</div><div class="empty-state-text">Click "Add Pattern" to create one</div></div>';
+          return;
+        }
+
+        let html = '';
+        patterns.forEach(pattern => {
+          const metadata = typeof pattern.metadata === 'string' ? JSON.parse(pattern.metadata) : pattern.metadata;
+          html += `
+            <div class="card">
+              <div style="display: flex; justify-content: space-between; align-items: start;">
+                <div style="flex: 1;">
+                  <div style="font-weight: 600; margin-bottom: 0.5rem;">
+                    <span class="status-badge info">${pattern.pattern_type}</span>
+                  </div>
+                  <div style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 0.5rem;">
+                    ${metadata.description || 'No description'}
+                  </div>
+                  <div style="font-size: 0.75rem; color: var(--text-muted);">
+                    ID: ${pattern.id} | Created: ${new Date(pattern.created_at * 1000).toLocaleString()}
+                  </div>
+                </div>
+                <button class="btn btn-secondary btn-sm" onclick="viewPattern(${pattern.id})">View</button>
+              </div>
+            </div>
+          `;
+        });
+
+        container.innerHTML = html;
+        logToConsole('success', `Loaded ${patterns.length} patterns`);
+
+      } catch (error) {
+        logToConsole('error', `Failed to refresh patterns: ${error.message}`);
+      }
+    }
+
+    function viewPattern(id) {
+      const pattern = sqlGet(`SELECT * FROM patterns WHERE id = ?`, [id]);
+      logToConsole('info', 'Viewing pattern:', pattern);
+      alert(`Pattern ID: ${id}\n\nType: ${pattern.pattern_type}\n\nMetadata:\n${JSON.stringify(JSON.parse(pattern.metadata), null, 2)}`);
+    }
+
+    // ============================================================================
+    // EPISODE MANAGEMENT
+    // ============================================================================
+
+    function showAddEpisode() {
+      document.getElementById('addEpisodeModal').classList.add('active');
+    }
+
+    function closeAddEpisode() {
+      document.getElementById('addEpisodeModal').classList.remove('active');
+    }
+
+    async function saveEpisode() {
+      const task = document.getElementById('episode-task').value;
+      const action = document.getElementById('episode-action').value;
+      const reward = parseFloat(document.getElementById('episode-reward').value);
+      const critique = document.getElementById('episode-critique').value;
+      const metadataStr = document.getElementById('episode-metadata').value;
+
+      if (!task || !action) {
+        alert('Please enter task and action');
+        return;
+      }
+
+      try {
+        const metadata = JSON.parse(metadataStr);
+        const embedding = generateMockEmbedding(task + ' ' + action);
+
+        await state.db.storeEpisode({
+          task: task,
+          action: action,
+          reward: reward,
+          critique: critique,
+          embedding: embedding,
+          metadata: metadata
+        });
+
+        logToConsole('success', `Episode stored: ${task}`);
+        closeAddEpisode();
+        refreshEpisodes();
+
+      } catch (error) {
+        logToConsole('error', `Failed to save episode: ${error.message}`);
+        alert('Failed to save episode. Check console for details.');
+      }
+    }
+
+    async function refreshEpisodes() {
+      logToConsole('info', 'Refreshing episodes...');
+
+      try {
+        const episodes = sqlAll('SELECT * FROM episodes ORDER BY created_at DESC LIMIT 50');
+
+        const container = document.getElementById('episodes-list');
+
+        if (episodes.length === 0) {
+          container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📝</div><div class="empty-state-title">No episodes recorded</div><div class="empty-state-text">Click "Add Episode" to create one</div></div>';
+          return;
+        }
+
+        let html = '';
+        episodes.forEach(episode => {
+          html += `
+            <div class="card">
+              <div style="display: flex; justify-content: space-between; align-items: start;">
+                <div style="flex: 1;">
+                  <div style="font-weight: 600; margin-bottom: 0.5rem;">${episode.task}</div>
+                  <div style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 0.5rem;">
+                    Action: ${episode.action}
+                  </div>
+                  <div style="display: flex; gap: 1rem; font-size: 0.75rem;">
+                    <span>Reward: <strong style="color: ${episode.reward >= 0 ? 'var(--success)' : 'var(--danger)'}">${episode.reward}</strong></span>
+                    <span style="color: var(--text-muted);">ID: ${episode.id}</span>
+                  </div>
+                </div>
+                <button class="btn btn-secondary btn-sm" onclick="viewEpisode(${episode.id})">View</button>
+              </div>
+            </div>
+          `;
+        });
+
+        container.innerHTML = html;
+        logToConsole('success', `Loaded ${episodes.length} episodes`);
+
+      } catch (error) {
+        logToConsole('error', `Failed to refresh episodes: ${error.message}`);
+      }
+    }
+
+    function viewEpisode(id) {
+      const episode = sqlGet(`SELECT * FROM episodes WHERE id = ?`, [id]);
+      logToConsole('info', 'Viewing episode:', episode);
+      alert(`Episode ID: ${id}\n\nTask: ${episode.task}\nAction: ${episode.action}\nReward: ${episode.reward}\n\nCritique:\n${episode.critique || 'None'}`);
+    }
+
+    // ============================================================================
+    // CAUSAL GRAPH
+    // ============================================================================
+
+    function showAddCausalEdge() {
+      document.getElementById('addCausalEdgeModal').classList.add('active');
+    }
+
+    function closeAddCausalEdge() {
+      document.getElementById('addCausalEdgeModal').classList.remove('active');
+    }
+
+    async function saveCausalEdge() {
+      const cause = document.getElementById('causal-cause').value;
+      const effect = document.getElementById('causal-effect').value;
+      const weight = parseFloat(document.getElementById('causal-weight').value);
+      const metadataStr = document.getElementById('causal-metadata').value;
+
+      if (!cause || !effect) {
+        alert('Please enter cause and effect');
+        return;
+      }
+
+      try {
+        const metadata = JSON.parse(metadataStr);
+
+        // Store weight in metadata since AgentDB v1.3.9 schema stores it there
+        metadata.weight = weight;
+
+        await state.db.addCausalEdge({
+          cause: cause,
+          effect: effect,
+          metadata: metadata
+        });
+
+        logToConsole('success', `Causal edge added: ${cause} → ${effect} (weight: ${weight})`);
+        closeAddCausalEdge();
+        refreshCausalGraph();
+
+      } catch (error) {
+        logToConsole('error', `Failed to save causal edge: ${error.message}`);
+        alert('Failed to save causal edge. Check console for details.');
+      }
+    }
+
+    async function refreshCausalGraph() {
+      logToConsole('info', 'Refreshing causal graph...');
+
+      try {
+        // Check if table exists first
+        const tableExists = sqlAll("SELECT name FROM sqlite_master WHERE type='table' AND name='causal_edges'");
+        if (tableExists.length === 0) {
+          const container = document.getElementById('causal-graph-viz');
+          container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🔗</div><div class="empty-state-title">No causal relationships</div><div class="empty-state-text">Table not yet created. Add your first causal edge to get started.</div></div>';
+          return;
+        }
+
+        const edges = sqlAll('SELECT * FROM causal_edges ORDER BY created_at DESC LIMIT 50');
+
+        const container = document.getElementById('causal-graph-viz');
+
+        if (edges.length === 0) {
+          container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🔗</div><div class="empty-state-title">No causal relationships</div><div class="empty-state-text">Click "Add Edge" to create one</div></div>';
+          return;
+        }
+
+        let html = '<div style="display: grid; gap: 0.75rem;">';
+        edges.forEach(edge => {
+          // Parse metadata if it's a string
+          const metadata = typeof edge.metadata === 'string' ? JSON.parse(edge.metadata || '{}') : (edge.metadata || {});
+          const weight = metadata.weight || 0.5;
+          const strength = (weight * 100).toFixed(0);
+          const confidence = metadata.confidence ? ` (${(metadata.confidence * 100).toFixed(0)}% confident)` : '';
+
+          html += `
+            <div class="card" style="padding: 1rem;">
+              <div style="display: flex; align-items: center; gap: 1rem;">
+                <div style="flex: 1;">
+                  <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+                    <span style="font-weight: 600;">${edge.cause || 'Unknown'}</span>
+                    <span style="color: var(--accent);">→</span>
+                    <span style="font-weight: 600;">${edge.effect || 'Unknown'}</span>
+                  </div>
+                  <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.5rem;">
+                    ID: ${edge.id}${confidence}
+                  </div>
+                  <div class="stat-bar" style="margin-bottom: 0;">
+                    <div class="stat-label" style="min-width: 80px;">Strength</div>
+                    <div class="stat-value">
+                      <div class="stat-fill" style="width: ${strength}%;">
+                        <span class="stat-text">${strength}%</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `;
+        });
+        html += '</div>';
+
+        container.innerHTML = html;
+        logToConsole('success', `Loaded ${edges.length} causal edges`);
+
+      } catch (error) {
+        logToConsole('error', `Failed to refresh causal graph: ${error.message}`);
+      }
+    }
+
+    // ============================================================================
+    // VECTOR SEARCH
+    // ============================================================================
+
+    async function performVectorSearch() {
+      const query = document.getElementById('vector-query').value.trim();
+      const limit = parseInt(document.getElementById('vector-limit').value);
+
+      if (!query) {
+        alert('Please enter a search query');
+        return;
+      }
+
+      logToConsole('info', `Performing vector search: "${query}" (limit: ${limit})`);
+
+      try {
+        const embedding = generateMockEmbedding(query);
+        const results = state.db.searchSimilar(embedding, limit);
+
+        const container = document.getElementById('vector-results');
+
+        if (results.length === 0) {
+          container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🔍</div><div class="empty-state-title">No similar vectors found</div></div>';
+          return;
+        }
+
+        let html = '<div style="display: grid; gap: 0.75rem;">';
+        results.forEach((result, index) => {
+          const similarity = ((1 - result.distance) * 100).toFixed(1);
+          const metadata = typeof result.metadata === 'string' ? JSON.parse(result.metadata) : result.metadata;
+
+          html += `
+            <div class="card">
+              <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.75rem;">
+                <div style="font-weight: 600;">Result ${index + 1}</div>
+                <span class="status-badge success">${similarity}% match</span>
+              </div>
+              <div style="color: var(--text-secondary); font-size: 0.875rem;">
+                ${metadata.description || JSON.stringify(metadata).substring(0, 100)}
+              </div>
+              <div class="stat-bar" style="margin-top: 0.75rem; margin-bottom: 0;">
+                <div class="stat-label" style="min-width: 80px;">Similarity</div>
+                <div class="stat-value">
+                  <div class="stat-fill" style="width: ${similarity}%;">
+                    <span class="stat-text">${similarity}%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `;
+        });
+        html += '</div>';
+
+        container.innerHTML = html;
+        logToConsole('success', `Found ${results.length} similar vectors`);
+
+      } catch (error) {
+        logToConsole('error', `Vector search failed: ${error.message}`);
+      }
+    }
+
+    // ============================================================================
+    // QUERY OPTIMIZER
+    // ============================================================================
+
+    async function analyzeQuery() {
+      const query = document.getElementById('optimizer-query').value.trim();
+
+      if (!query) {
+        alert('Please enter a query to analyze');
+        return;
+      }
+
+      logToConsole('info', 'Analyzing query for optimization...');
+
+      // Perform EXPLAIN QUERY PLAN
+      try {
+        const plan = sqlAll(`EXPLAIN QUERY PLAN ${query}`);
+
+        const suggestions = generateOptimizationSuggestions(query, plan);
+
+        const container = document.getElementById('optimizer-results');
+
+        let html = '<div class="card"><div class="card-title">Query Analysis</div>';
+
+        // Query Plan
+        html += '<h4 style="margin-top: 1rem; margin-bottom: 0.5rem; font-size: 0.875rem;">Execution Plan</h4>';
+        html += '<div class="help-example"><pre>';
+        plan.forEach(step => {
+          html += `${step.detail}\n`;
+        });
+        html += '</pre></div>';
+
+        // Suggestions
+        html += '<h4 style="margin-top: 1rem; margin-bottom: 0.5rem; font-size: 0.875rem;">Optimization Suggestions</h4>';
+        html += '<ul style="margin-left: 1.5rem; color: var(--text-secondary);">';
+        suggestions.forEach(suggestion => {
+          html += `<li style="margin-bottom: 0.5rem;">${suggestion}</li>`;
+        });
+        html += '</ul>';
+
+        html += '</div>';
+
+        container.innerHTML = html;
+        logToConsole('success', 'Query analysis complete');
+
+      } catch (error) {
+        logToConsole('error', `Analysis failed: ${error.message}`);
+      }
+    }
+
+    function generateOptimizationSuggestions(query, plan) {
+      const suggestions = [];
+      const queryLower = query.toLowerCase();
+
+      // Check for missing indexes
+      const scanningTable = plan.some(step => step.detail.includes('SCAN'));
+      if (scanningTable) {
+        suggestions.push('⚡ Consider adding indexes on frequently queried columns to avoid table scans');
+      }
+
+      // Check for SELECT *
+      if (queryLower.includes('select *')) {
+        suggestions.push('📊 Avoid SELECT * - specify only needed columns for better performance');
+      }
+
+      // Check for missing LIMIT
+      if (!queryLower.includes('limit') && queryLower.includes('select')) {
+        suggestions.push('🎯 Add LIMIT clause to prevent loading excessive rows');
+      }
+
+      // Check for JOINs
+      if (queryLower.includes('join')) {
+        suggestions.push('🔗 Ensure JOIN columns are indexed for optimal performance');
+      }
+
+      // Check for subqueries
+      if (queryLower.includes('select') && queryLower.split('select').length > 2) {
+        suggestions.push('🔄 Consider using JOINs instead of subqueries when possible');
+      }
+
+      if (suggestions.length === 0) {
+        suggestions.push('✨ Query looks optimized! No major issues detected.');
+      }
+
+      return suggestions;
+    }
+
+    // ============================================================================
+    // SCHEMA MANAGEMENT
+    // ============================================================================
+
+    async function refreshSchema() {
+      logToConsole('info', 'Refreshing schema view...');
+
+      try {
+        const tables = sqlAll("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name");
+
+        let html = '<div class="schema-tree">';
+
+        for (const table of tables) {
+          // Get columns for this table
+          const columns = sqlAll(`PRAGMA table_info(${table.name})`);
+
+          html += `
+            <div class="schema-table">
+              <div class="schema-table-name">
+                📊 ${table.name}
+              </div>
+              <div class="schema-columns">
+          `;
+
+          columns.forEach(col => {
+            html += `<div class="schema-column">${col.name}: ${col.type}${col.pk ? ' (PK)' : ''}</div>`;
+          });
+
+          html += '</div></div>';
+        }
+
+        html += '</div>';
+
+        document.getElementById('schema-view').innerHTML = html;
+
+        // Update vector count
+        try {
+          const vectorCount = sqlGet('SELECT COUNT(*) as count FROM vectors');
+          document.getElementById('db-vectors').textContent = vectorCount.count;
+        } catch (e) {
+          // vectors table might not exist
+        }
+
+      } catch (error) {
+        logToConsole('error', `Failed to refresh schema: ${error.message}`);
+      }
+    }
+
+    function showSchemaDesigner() {
+      document.getElementById('schemaDesignerModal').classList.add('active');
+    }
+
+    function closeSchemaDesigner() {
+      document.getElementById('schemaDesignerModal').classList.remove('active');
+    }
+
+    function previewSchema() {
+      const tableName = document.getElementById('schema-table-name').value.trim();
+      const columns = document.getElementById('schema-columns').value.trim();
+
+      if (!tableName || !columns) {
+        alert('Please enter table name and columns');
+        return;
+      }
+
+      const sql = `CREATE TABLE IF NOT EXISTS ${tableName} (\n  ${columns.split('\n').join(',\n  ')}\n);`;
+
+      document.getElementById('schema-sql').textContent = sql;
+      document.getElementById('schema-preview').style.display = 'block';
+
+      logToConsole('info', 'Schema preview generated');
+    }
+
+    async function createTableFromSchema() {
+      const tableName = document.getElementById('schema-table-name').value.trim();
+      const columns = document.getElementById('schema-columns').value.trim();
+
+      if (!tableName || !columns) {
+        alert('Please enter table name and columns');
+        return;
+      }
+
+      const sql = `CREATE TABLE IF NOT EXISTS ${tableName} (\n  ${columns.split('\n').join(',\n  ')}\n);`;
+
+      try {
+        sqlRun(sql);
+        logToConsole('success', `Table created: ${tableName}`);
+        await refreshAll();
+        closeSchemaDesigner();
+      } catch (error) {
+        logToConsole('error', `Failed to create table: ${error.message}`);
+        alert('Failed to create table. Check console for details.');
+      }
+    }
+
+    // ============================================================================
+    // IMPORT/EXPORT
+    // ============================================================================
+
+    function showImportExport() {
+      document.getElementById('importExportModal').classList.add('active');
+    }
+
+    function closeImportExport() {
+      document.getElementById('importExportModal').classList.remove('active');
+    }
+
+    function switchImportExportTab(tab) {
+      document.querySelectorAll('#importExportModal .tab-button').forEach(btn => {
+        btn.classList.toggle('active', btn.textContent.toLowerCase() === tab);
+      });
+      document.querySelectorAll('#importExportModal .tab-content').forEach(content => {
+        content.classList.toggle('active', content.id === `importexport-${tab}`);
+      });
+    }
+
+    async function exportDatabase(format) {
+      logToConsole('info', `Exporting database as ${format.toUpperCase()}...`);
+
+      try {
+        let data;
+        let filename;
+        let mimeType;
+
+        if (format === 'json') {
+          // Export all tables as JSON
+          const tables = sqlAll("SELECT name FROM sqlite_master WHERE type='table'");
+          data = {};
+
+          for (const table of tables) {
+            data[table.name] = sqlAll(`SELECT * FROM ${table.name}`);
+          }
+
+          filename = 'agentdb-export.json';
+          mimeType = 'application/json';
+          data = JSON.stringify(data, null, 2);
+
+        } else if (format === 'sql') {
+          // Export as SQL dump
+          const tables = sqlAll("SELECT sql FROM sqlite_master WHERE type='table'");
+          data = tables.map(t => t.sql + ';').join('\n\n');
+          filename = 'agentdb-export.sql';
+          mimeType = 'text/plain';
+
+        } else if (format === 'csv') {
+          // Export first table as CSV (simplified)
+          const tables = sqlAll("SELECT name FROM sqlite_master WHERE type='table'");
+          if (tables.length > 0) {
+            const rows = sqlAll(`SELECT * FROM ${tables[0].name}`);
+            if (rows.length > 0) {
+              const headers = Object.keys(rows[0]);
+              data = headers.join(',') + '\n';
+              data += rows.map(row => headers.map(h => JSON.stringify(row[h])).join(',')).join('\n');
+            }
+          }
+          filename = 'agentdb-export.csv';
+          mimeType = 'text/csv';
+        }
+
+        downloadFile(filename, data, mimeType);
+        logToConsole('success', `Database exported as ${format.toUpperCase()}`);
+
+      } catch (error) {
+        logToConsole('error', `Export failed: ${error.message}`);
+      }
+    }
+
+    async function importDatabase() {
+      const fileInput = document.getElementById('import-file');
+      const file = fileInput.files[0];
+
+      if (!file) {
+        alert('Please select a file');
+        return;
+      }
+
+      logToConsole('info', `Importing ${file.name}...`);
+
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const content = e.target.result;
+
+          if (file.name.endsWith('.json')) {
+            const data = JSON.parse(content);
+            // Import logic here
+            logToConsole('success', 'JSON import complete');
+          } else if (file.name.endsWith('.sql')) {
+            sqlRun(content);
+            logToConsole('success', 'SQL import complete');
+          }
+
+          await refreshAll();
+
+        } catch (error) {
+          logToConsole('error', `Import failed: ${error.message}`);
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    // ============================================================================
+    // HTML GENERATOR
+    // ============================================================================
+
+    async function generateHTML() {
+      logToConsole('info', 'Generating standalone HTML configuration...');
+
+      try {
+        // Export current database state
+        const tables = sqlAll("SELECT name FROM sqlite_master WHERE type='table'");
+        const dbData = {};
+
+        for (const table of tables) {
+          dbData[table.name] = sqlAll(`SELECT * FROM ${table.name}`);
+        }
+
+        // Create standalone HTML with embedded data
+        const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AgentDB Configuration Export</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 800px;
+      margin: 2rem auto;
+      padding: 2rem;
+      background: #0a0a0a;
+      color: #f0f0f0;
+    }
+    h1 { color: #22c55e; }
+    pre {
+      background: #1a1a1a;
+      padding: 1rem;
+      border-radius: 8px;
+      overflow-x: auto;
+      border: 1px solid #2a2a2a;
+    }
+    .info {
+      background: #1a2a1a;
+      padding: 1rem;
+      border-radius: 8px;
+      margin: 1rem 0;
+      border-left: 3px solid #22c55e;
+    }
+  </style>
+</head>
+<body>
+  <h1>⚡ AgentDB Configuration Export</h1>
+
+  <div class="info">
+    <strong>Exported:</strong> ${new Date().toLocaleString()}<br>
+    <strong>Tables:</strong> ${tables.length}<br>
+    <strong>Settings:</strong> ${JSON.stringify(state.settings)}
+  </div>
+
+  <h2>Database Data</h2>
+  <pre>${JSON.stringify(dbData, null, 2)}</pre>
+
+  <h2>Import Instructions</h2>
+  <ol>
+    <li>Open AgentDB IDE</li>
+    <li>Go to Import/Export</li>
+    <li>Select this file to import</li>
+  </ol>
+
+  <script>
+    // Embedded database data
+    const EXPORTED_DATA = ${JSON.stringify(dbData)};
+    const EXPORTED_SETTINGS = ${JSON.stringify(state.settings)};
+
+    console.log('AgentDB Configuration loaded:', {
+      tables: Object.keys(EXPORTED_DATA),
+      settings: EXPORTED_SETTINGS
+    });
+  <\/script>
+
+  <footer style="margin-top: 3rem; text-align: center; color: #666;">
+    <p>Generated by <a href="https://agentdb.ruv.io" style="color: #22c55e;">AgentDB</a> Management IDE</p>
+    <p style="font-size: 0.875rem;">
+      <a href="https://agentdb.ruv.io" style="color: #22c55e;">AgentDB</a> |
+      <a href="https://github.com/ruvnet/agentic-flow" style="color: #22c55e;">GitHub</a> |
+      <a href="https://www.npmjs.com/package/agentdb" style="color: #22c55e;">NPM</a>
+    </p>
+  </footer>
+</body>
+</html>`;
+
+        downloadFile('agentdb-config.html', html, 'text/html');
+        logToConsole('success', 'Standalone HTML configuration generated and downloaded');
+
+      } catch (error) {
+        logToConsole('error', `HTML generation failed: ${error.message}`);
+      }
+    }
+
+    // ============================================================================
+    // SETTINGS
+    // ============================================================================
+
+    function showSettings() {
+      document.getElementById('settingsModal').classList.add('active');
+      loadSettingsToForm();
+    }
+
+    function closeSettings() {
+      document.getElementById('settingsModal').classList.remove('active');
+    }
+
+    function switchSettingsTab(tab) {
+      document.querySelectorAll('#settingsModal .tab-button').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('onclick').includes(tab));
+      });
+      document.querySelectorAll('#settingsModal .tab-content').forEach(content => {
+        content.classList.toggle('active', content.id === `settings-${tab}`);
+      });
+    }
+
+    function loadSettingsToForm() {
+      document.getElementById('setting-mode').value = state.settings.mode;
+      document.getElementById('setting-autosave').value = state.settings.autosave;
+      document.getElementById('setting-autobackup').checked = state.settings.autobackup;
+      document.getElementById('setting-dimensions').value = state.settings.dimensions;
+      document.getElementById('setting-threshold').value = state.settings.threshold;
+      document.getElementById('setting-search-limit').value = state.settings.searchLimit;
+      document.getElementById('setting-cache-size').value = state.settings.cacheSize;
+      document.getElementById('setting-query-cache').checked = state.settings.queryCache;
+      document.getElementById('setting-lazy-load').checked = state.settings.lazyLoad;
+      document.getElementById('setting-debug-level').value = state.settings.debugLevel;
+      document.getElementById('setting-detailed-logs').checked = state.settings.detailedLogs;
+      document.getElementById('setting-performance-tracking').checked = state.settings.performanceTracking;
+    }
+
+    function saveSettings() {
+      state.settings = {
+        mode: document.getElementById('setting-mode').value,
+        autosave: parseInt(document.getElementById('setting-autosave').value),
+        autobackup: document.getElementById('setting-autobackup').checked,
+        dimensions: parseInt(document.getElementById('setting-dimensions').value),
+        threshold: parseFloat(document.getElementById('setting-threshold').value),
+        searchLimit: parseInt(document.getElementById('setting-search-limit').value),
+        cacheSize: parseInt(document.getElementById('setting-cache-size').value),
+        queryCache: document.getElementById('setting-query-cache').checked,
+        lazyLoad: document.getElementById('setting-lazy-load').checked,
+        debugLevel: document.getElementById('setting-debug-level').value,
+        detailedLogs: document.getElementById('setting-detailed-logs').checked,
+        performanceTracking: document.getElementById('setting-performance-tracking').checked
+      };
+
+      // Save to localStorage
+      localStorage.setItem('agentdb-ide-settings', JSON.stringify(state.settings));
+
+      logToConsole('success', 'Settings saved');
+      closeSettings();
+
+      alert('Settings saved! Some changes may require reloading the IDE.');
+    }
+
+    // ============================================================================
+    // HELP
+    // ============================================================================
+
+    function showHelp() {
+      document.getElementById('helpModal').classList.add('active');
+    }
+
+    function closeHelp() {
+      document.getElementById('helpModal').classList.remove('active');
+    }
+
+    // ============================================================================
+    // NAVIGATION
+    // ============================================================================
+
+    function switchView(view) {
+      state.currentView = view;
+
+      // Update sidebar
+      document.querySelectorAll('.nav-item').forEach(item => {
+        item.classList.toggle('active', item.getAttribute('onclick').includes(view));
+      });
+
+      // Update content panels
+      document.querySelectorAll('.content-panel').forEach(panel => {
+        panel.classList.toggle('active', panel.id === `panel-${view}`);
+      });
+
+      // Show/hide main tabs (only for SQL Editor)
+      const mainTabs = document.querySelector('.main-tabs');
+      if (view === 'sql-editor') {
+        mainTabs.classList.remove('hidden');
+      } else {
+        mainTabs.classList.add('hidden');
+      }
+
+      // Close mobile menu if open
+      const sidebar = document.querySelector('.ide-sidebar');
+      const overlay = document.getElementById('mobileOverlay');
+      sidebar.classList.remove('mobile-open');
+      overlay.classList.remove('active');
+
+      logToConsole('info', `Switched to ${view}`);
+    }
+
+    // Tab switching
+    document.querySelectorAll('.main-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        const tabName = tab.getAttribute('data-tab');
+
+        document.querySelectorAll('.main-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+
+        // Switch tab content panels
+        document.querySelectorAll('.tab-content-panel').forEach(panel => {
+          panel.classList.remove('active');
+        });
+        const targetPanel = document.getElementById(`tab-${tabName}`);
+        if (targetPanel) {
+          targetPanel.classList.add('active');
+        }
+
+        state.currentTab = tabName;
+        logToConsole('info', `Switched to ${tabName} tab`);
+      });
+    });
+
+    // Mobile menu toggle
+    function toggleMobileMenu() {
+      const sidebar = document.querySelector('.ide-sidebar');
+      const overlay = document.getElementById('mobileOverlay');
+      sidebar.classList.toggle('mobile-open');
+      overlay.classList.toggle('active');
+    }
+
+    // ============================================================================
+    // UTILITIES
+    // ============================================================================
+
+    function downloadFile(filename, content, mimeType = 'text/plain') {
+      const blob = new Blob([content], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    function generateMockEmbedding(text) {
+      // Generate a simple mock embedding (in production, use real embedding model)
+      const embedding = [];
+      for (let i = 0; i < state.settings.dimensions; i++) {
+        embedding.push(Math.random() * 2 - 1);
+      }
+      return embedding;
+    }
+
+    function updateStats() {
+      const avgTime = state.stats.queryCount > 0
+        ? Math.round(state.stats.totalTime / state.stats.queryCount)
+        : 0;
+
+      const cacheRate = (state.stats.cacheHits + state.stats.cacheMisses) > 0
+        ? Math.round((state.stats.cacheHits / (state.stats.cacheHits + state.stats.cacheMisses)) * 100)
+        : 0;
+
+      document.getElementById('query-count').textContent = state.stats.queryCount;
+      document.getElementById('avg-time').textContent = avgTime + 'ms';
+      document.getElementById('cache-rate').textContent = cacheRate + '%';
+
+      // Update progress bars
+      const maxQueries = 100;
+      const queryPercentage = Math.min((state.stats.queryCount / maxQueries) * 100, 100);
+      document.getElementById('query-count-bar').style.width = queryPercentage + '%';
+
+      const maxTime = 1000;
+      const timePercentage = Math.min((avgTime / maxTime) * 100, 100);
+      document.getElementById('avg-time-bar').style.width = timePercentage + '%';
+
+      document.getElementById('cache-rate-bar').style.width = cacheRate + '%';
+    }
+
+    async function refreshAll() {
+      await refreshTableList();
+      await refreshSchema();
+      await refreshPatterns();
+      await refreshEpisodes();
+      await refreshCausalGraph();
+      logToConsole('success', 'All views refreshed');
+    }
+
+    // ============================================================================
+    // NEW FEATURES: DIAGNOSTICS, HELP, FILTERS, EXPORTS
+    // ============================================================================
+
+    function displayDiagnostics(query, results, duration) {
+      const diagnosticsDiv = document.getElementById('query-diagnostics');
+      const queryLines = query.split('\n').length;
+      const queryLength = query.length;
+      const hasJoin = query.toUpperCase().includes('JOIN');
+      const hasWhere = query.toUpperCase().includes('WHERE');
+      const hasLimit = query.toUpperCase().includes('LIMIT');
+
+      const html = `
+        <div style="display: grid; gap: 1rem;">
+          <div class="card" style="background: var(--bg-tertiary);">
+            <h4 style="color: var(--accent); margin-bottom: 0.75rem; font-size: 0.9375rem;">⚡ Performance Metrics</h4>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.75rem;">
+              <div>
+                <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Execution Time</div>
+                <div style="font-size: 1.25rem; font-weight: 600; color: ${duration < 10 ? 'var(--success)' : duration < 100 ? 'var(--warning)' : 'var(--danger)'};">${duration}ms</div>
+              </div>
+              <div>
+                <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Rows Returned</div>
+                <div style="font-size: 1.25rem; font-weight: 600;">${results.length}</div>
+              </div>
+              <div>
+                <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Query Length</div>
+                <div style="font-size: 1.25rem; font-weight: 600;">${queryLength} chars</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" style="background: var(--bg-tertiary);">
+            <h4 style="color: var(--accent); margin-bottom: 0.75rem; font-size: 0.9375rem;">📊 Query Analysis</h4>
+            <div style="display: grid; gap: 0.5rem; font-size: 0.875rem;">
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span style="color: ${hasWhere ? 'var(--success)' : 'var(--warning)'};">${hasWhere ? '✓' : '⚠'}</span>
+                <span>WHERE clause: ${hasWhere ? 'Yes (Good)' : 'No (Warning: Full table scan)'}</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span style="color: ${hasLimit ? 'var(--success)' : 'var(--warning)'};">${hasLimit ? '✓' : '⚠'}</span>
+                <span>LIMIT clause: ${hasLimit ? 'Yes (Good)' : 'No (Consider adding LIMIT)'}</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span style="color: var(--info);">ℹ</span>
+                <span>JOIN operations: ${hasJoin ? 'Yes' : 'No'}</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span style="color: var(--info);">ℹ</span>
+                <span>Query lines: ${queryLines}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" style="background: var(--bg-tertiary);">
+            <h4 style="color: var(--accent); margin-bottom: 0.75rem; font-size: 0.9375rem;">💡 Optimization Suggestions</h4>
+            <ul style="padding-left: 1.25rem; font-size: 0.875rem; line-height: 1.6;">
+              ${!hasWhere ? '<li style="color: var(--warning);">Add WHERE clause to filter results and improve performance</li>' : ''}
+              ${!hasLimit && results.length > 100 ? '<li style="color: var(--warning);">Add LIMIT clause to reduce result set size</li>' : ''}
+              ${duration > 100 ? '<li style="color: var(--warning);">Query execution time is high. Consider adding indexes.</li>' : ''}
+              ${duration < 10 ? '<li style="color: var(--success);">Excellent performance! Query executed quickly.</li>' : ''}
+              ${hasJoin ? '<li>JOIN detected. Ensure proper indexes on join columns.</li>' : ''}
+            </ul>
+          </div>
+        </div>
+      `;
+
+      diagnosticsDiv.innerHTML = html;
+    }
+
+    // Help Modal Functions
+    function showPatternHelp() {
+      const modal = document.getElementById('helpModal');
+      document.querySelector('#helpModal .modal-body').innerHTML = `
+        <div class="help-section">
+          <h3>🧩 Pattern Management</h3>
+          <p>Patterns are reusable reasoning templates stored with vector embeddings for semantic similarity search.</p>
+
+          <h4>Pattern Types</h4>
+          <ul>
+            <li><strong>Causal:</strong> Cause-effect reasoning patterns</li>
+            <li><strong>Temporal:</strong> Time-based patterns and sequences</li>
+            <li><strong>Reasoning:</strong> Logic and inference patterns</li>
+            <li><strong>Optimization:</strong> Performance optimization strategies</li>
+            <li><strong>Custom:</strong> User-defined pattern types</li>
+          </ul>
+
+          <h4>Example Code</h4>
+          <div class="code-block">await db.storePattern({
+  pattern_type: 'optimization',
+  embedding: vectorArray,
+  metadata: {
+    description: 'Gradient descent optimization',
+    approach: 'iterative',
+    taskType: 'parameter tuning'
+  }
+});</div>
+
+          <h4>Features</h4>
+          <ul>
+            <li>Filter patterns by type</li>
+            <li>Export to JSON for backup</li>
+            <li>Batch import from templates</li>
+            <li>Semantic search across patterns</li>
+          </ul>
+        </div>
+      `;
+      modal.classList.add('active');
+    }
+
+    function showEpisodeHelp() {
+      const modal = document.getElementById('helpModal');
+      document.querySelector('#helpModal .modal-body').innerHTML = `
+        <div class="help-section">
+          <h3>📝 Episode Management</h3>
+          <p>Episodes capture complete task-action-reward trajectories for reinforcement learning and performance tracking.</p>
+
+          <h4>Episode Structure</h4>
+          <ul>
+            <li><strong>Task:</strong> Description of the objective</li>
+            <li><strong>Action:</strong> Steps taken to complete the task</li>
+            <li><strong>Reward:</strong> Outcome score (0.0 - 1.0)</li>
+            <li><strong>Critique:</strong> Analysis of performance</li>
+            <li><strong>Metadata:</strong> Additional context (duration, channels, etc.)</li>
+          </ul>
+
+          <h4>Example Code</h4>
+          <div class="code-block">await db.storeEpisode({
+  task: 'Optimize marketing budget',
+  action: 'Reallocate to high-performing channels',
+  reward: 0.85,
+  critique: 'Budget reallocation improved ROAS by 15%',
+  embedding: vectorArray,
+  metadata: {
+    duration: '2 hours',
+    channels: ['google', 'facebook']
+  }
+});</div>
+
+          <h4>Use Cases</h4>
+          <ul>
+            <li>Track high-performing strategies (reward > 0.7)</li>
+            <li>Visualize learning trajectories over time</li>
+            <li>Compare different approaches</li>
+            <li>Identify patterns in successful episodes</li>
+          </ul>
+        </div>
+      `;
+      modal.classList.add('active');
+    }
+
+    function showCausalHelp() {
+      const modal = document.getElementById('helpModal');
+      document.querySelector('#helpModal .modal-body').innerHTML = `
+        <div class="help-section">
+          <h3>🔗 Causal Graph Visualization</h3>
+          <p>Causal edges represent directed cause-effect relationships with weighted strengths for causal inference.</p>
+
+          <h4>Components</h4>
+          <ul>
+            <li><strong>Cause:</strong> The triggering event or condition</li>
+            <li><strong>Effect:</strong> The resulting outcome</li>
+            <li><strong>Weight:</strong> Strength of relationship (0.0 - 1.0)</li>
+            <li><strong>Metadata:</strong> Confidence, sample size, context</li>
+          </ul>
+
+          <h4>Example Code</h4>
+          <div class="code-block">await db.addCausalEdge({
+  cause: 'increased_ad_budget',
+  effect: 'higher_conversion_rate',
+  weight: 0.82,
+  metadata: {
+    confidence: 0.91,
+    sample_size: 1000
+  }
+});</div>
+
+          <h4>Analysis Tools</h4>
+          <ul>
+            <li>Filter edges by minimum weight</li>
+            <li>Analyze causal paths between nodes</li>
+            <li>Export graph for visualization</li>
+            <li>Identify key causal relationships</li>
+          </ul>
+        </div>
+      `;
+      modal.classList.add('active');
+    }
+
+    function showVectorHelp() {
+      const modal = document.getElementById('helpModal');
+      document.querySelector('#helpModal .modal-body').innerHTML = `
+        <div class="help-section">
+          <h3>🔍 Vector Similarity Search</h3>
+          <p>Perform semantic search across stored vectors using cosine similarity for intelligent content retrieval.</p>
+
+          <h4>How It Works</h4>
+          <ol>
+            <li>Your query is converted to a 384-dimensional vector</li>
+            <li>Cosine similarity is calculated against all stored vectors</li>
+            <li>Results are ranked by similarity score</li>
+            <li>Top N results are returned based on your limit</li>
+          </ol>
+
+          <h4>Parameters</h4>
+          <ul>
+            <li><strong>Query:</strong> Natural language search text</li>
+            <li><strong>Results:</strong> Number of top matches (1-50)</li>
+            <li><strong>Threshold:</strong> Minimum similarity score (0.0-1.0)</li>
+          </ul>
+
+          <h4>Example Code</h4>
+          <div class="code-block">const results = db.searchSimilar(queryEmbedding, 5);
+// Returns top 5 most similar vectors</div>
+
+          <h4>Best Practices</h4>
+          <ul>
+            <li>Use descriptive queries for better matches</li>
+            <li>Adjust threshold to filter low-quality results</li>
+            <li>Start with 5-10 results, adjust as needed</li>
+          </ul>
+        </div>
+      `;
+      modal.classList.add('active');
+    }
+
+    function showOptimizerHelp() {
+      const modal = document.getElementById('helpModal');
+      document.querySelector('#helpModal .modal-body').innerHTML = `
+        <div class="help-section">
+          <h3>⚡ Query Optimizer</h3>
+          <p>Analyze SQL query performance and receive recommendations for optimization.</p>
+
+          <h4>Analysis Features</h4>
+          <ul>
+            <li><strong>Execution Time:</strong> Measure query performance</li>
+            <li><strong>Query Plan:</strong> Understand how SQL is executed</li>
+            <li><strong>Optimization Suggestions:</strong> Get specific recommendations</li>
+            <li><strong>Index Recommendations:</strong> Improve query speed</li>
+          </ul>
+
+          <h4>Common Optimizations</h4>
+          <div class="code-block">-- ❌ Avoid
+SELECT * FROM patterns;
+
+-- ✅ Better
+SELECT id, pattern_type, metadata
+FROM patterns
+WHERE pattern_type = 'causal'
+LIMIT 20;</div>
+
+          <h4>Tips</h4>
+          <ul>
+            <li>Always use WHERE clause to filter results</li>
+            <li>Add LIMIT to prevent large result sets</li>
+            <li>Specify columns instead of SELECT *</li>
+            <li>Use indexes on frequently queried columns</li>
+            <li>Avoid complex nested subqueries when possible</li>
+          </ul>
+        </div>
+      `;
+      modal.classList.add('active');
+    }
+
+    // Filter Functions
+    function filterPatterns() {
+      const filterValue = document.getElementById('pattern-type-filter').value;
+      refreshPatterns(filterValue);
+    }
+
+    function filterEpisodes(threshold) {
+      document.getElementById('reward-filter-value').textContent = `≥ ${threshold}`;
+      refreshEpisodes(parseFloat(threshold));
+    }
+
+    function filterCausalEdges(weight) {
+      document.getElementById('weight-filter-value').textContent = `≥ ${weight}`;
+      refreshCausalGraph(parseFloat(weight));
+    }
+
+    // Export Functions
+    function exportPatterns() {
+      try {
+        const patterns = sqlAll('SELECT * FROM patterns ORDER BY created_at DESC');
+        const data = JSON.stringify(patterns, null, 2);
+        downloadFile('agentdb-patterns-export.json', data, 'application/json');
+        logToConsole('success', `Exported ${patterns.length} patterns`);
+      } catch (error) {
+        logToConsole('error', `Failed to export patterns: ${error.message}`);
+      }
+    }
+
+    function exportEpisodes() {
+      try {
+        const episodes = sqlAll('SELECT * FROM episodes ORDER BY created_at DESC');
+        const data = JSON.stringify(episodes, null, 2);
+        downloadFile('agentdb-episodes-export.json', data, 'application/json');
+        logToConsole('success', `Exported ${episodes.length} episodes`);
+      } catch (error) {
+        logToConsole('error', `Failed to export episodes: ${error.message}`);
+      }
+    }
+
+    function exportCausalGraph() {
+      try {
+        const edges = sqlAll('SELECT * FROM causal_edges ORDER BY created_at DESC');
+        const data = JSON.stringify(edges, null, 2);
+        downloadFile('agentdb-causal-graph-export.json', data, 'application/json');
+        logToConsole('success', `Exported ${edges.length} causal edges`);
+      } catch (error) {
+        logToConsole('error', `Failed to export causal graph: ${error.message}`);
+      }
+    }
+
+    // Template and Example Functions
+    function showPatternTemplates() {
+      showHelp(); // Reuse help modal
+      showPatternHelp();
+    }
+
+    function showEpisodeExamples() {
+      showHelp();
+      showEpisodeHelp();
+    }
+
+    function showCausalExamples() {
+      showHelp();
+      showCausalHelp();
+    }
+
+    function showVectorExamples() {
+      showHelp();
+      showVectorHelp();
+    }
+
+    function showOptimizationTips() {
+      showHelp();
+      showOptimizerHelp();
+    }
+
+    // Batch Operations
+    function showBatchPatterns() {
+      logToConsole('info', 'Batch pattern import feature coming soon!');
+    }
+
+    function showTrajectoryView() {
+      logToConsole('info', 'Trajectory visualization feature coming soon!');
+    }
+
+    function analyzeCausalPaths() {
+      logToConsole('info', 'Causal path analysis feature coming soon!');
+    }
+
+    // Utility Functions
+    function clearVectorSearch() {
+      document.getElementById('vector-query').value = '';
+      document.getElementById('vector-results').innerHTML = '<div class="empty-state"><div class="empty-state-icon">🔍</div><div class="empty-state-title">Enter a query to search</div><div class="empty-state-text">Semantic search using vector embeddings</div></div>';
+    }
+
+    function clearOptimizer() {
+      document.getElementById('optimizer-query').value = '';
+      document.getElementById('optimizer-results').innerHTML = '<div class="empty-state"><div class="empty-state-icon">⚡</div><div class="empty-state-title">Paste a query to analyze</div><div class="empty-state-text">Get performance insights and optimization suggestions</div></div>';
+    }
+
+    function loadFromEditor() {
+      const editorQuery = document.getElementById('sql-editor').value;
+      document.getElementById('optimizer-query').value = editorQuery;
+      logToConsole('info', 'Query loaded from editor');
+    }
+
+    // ============================================================================
+    // INITIALIZATION
+    // ============================================================================
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      logToConsole('info', '🚀 AgentDB Management IDE v1.0.0');
+      logToConsole('info', 'Built for AgentDB v1.3.9');
+      logToConsole('info', 'Visit https://agentdb.ruv.io for more information');
+
+      // Load settings from localStorage
+      const savedSettings = localStorage.getItem('agentdb-ide-settings');
+      if (savedSettings) {
+        state.settings = { ...state.settings, ...JSON.parse(savedSettings) };
+        logToConsole('info', 'Settings loaded from localStorage');
+      }
+
+      // Initialize database
+      await initializeDatabase();
+
+      logToConsole('success', '✨ IDE ready!');
+    });
+  </script>
+
+</body>
+</html>

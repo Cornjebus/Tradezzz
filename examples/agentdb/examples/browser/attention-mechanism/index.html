@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attention Mechanism - AgentDB WASM Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', 'Droid Sans Mono', monospace;
+            background: hsl(0 0% 12%);
+            color: hsl(0 0% 90%);
+            padding: 2rem;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            margin-bottom: 2rem;
+            border-bottom: 2px solid hsl(195 100% 60%);
+            padding-bottom: 1rem;
+        }
+
+        h1 {
+            color: hsl(195 100% 60%);
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            color: hsl(0 0% 70%);
+            font-size: 0.9rem;
+        }
+
+        .demo-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .panel {
+            background: hsl(0 0% 16%);
+            border: 1px solid hsl(0 0% 25%);
+            border-radius: 8px;
+            padding: 1.5rem;
+        }
+
+        .panel h2 {
+            color: hsl(195 100% 60%);
+            font-size: 1.3rem;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid hsl(0 0% 25%);
+            padding-bottom: 0.5rem;
+        }
+
+        .control-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            color: hsl(195 100% 60%);
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        textarea, select {
+            width: 100%;
+            background: hsl(0 0% 10%);
+            border: 1px solid hsl(0 0% 25%);
+            border-radius: 6px;
+            padding: 0.75rem;
+            color: hsl(0 0% 90%);
+            font-family: inherit;
+            font-size: 0.9rem;
+            resize: vertical;
+        }
+
+        textarea:focus, select:focus {
+            outline: none;
+            border-color: hsl(195 100% 60%);
+        }
+
+        button {
+            background: hsl(195 100% 60%);
+            color: hsl(0 0% 12%);
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        button:hover {
+            background: hsl(195 100% 70%);
+            transform: translateY(-1px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            background: hsl(0 0% 35%);
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .canvas-container {
+            background: hsl(0 0% 8%);
+            border-radius: 6px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+
+        .output-box {
+            background: hsl(0 0% 10%);
+            border: 1px solid hsl(0 0% 25%);
+            border-radius: 6px;
+            padding: 1rem;
+            margin-top: 1rem;
+            min-height: 100px;
+        }
+
+        .output-text {
+            color: hsl(195 100% 60%);
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        .sequence-display {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .token {
+            background: hsl(0 0% 20%);
+            color: hsl(195 100% 60%);
+            padding: 0.5rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            border: 1px solid hsl(0 0% 30%);
+        }
+
+        .token.active {
+            background: hsl(195 100% 60%);
+            color: hsl(0 0% 12%);
+            font-weight: 600;
+        }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .metric {
+            background: hsl(0 0% 10%);
+            padding: 1rem;
+            border-radius: 6px;
+            border-left: 3px solid hsl(195 100% 60%);
+        }
+
+        .metric-label {
+            color: hsl(0 0% 60%);
+            font-size: 0.8rem;
+            margin-bottom: 0.3rem;
+        }
+
+        .metric-value {
+            color: hsl(195 100% 60%);
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .use-cases {
+            grid-column: 1 / -1;
+        }
+
+        .use-case-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .use-case {
+            background: hsl(0 0% 10%);
+            padding: 1rem;
+            border-radius: 6px;
+            border-left: 3px solid hsl(195 100% 60%);
+        }
+
+        .use-case h3 {
+            color: hsl(195 100% 60%);
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .use-case p {
+            color: hsl(0 0% 70%);
+            font-size: 0.85rem;
+        }
+
+        .example-btn {
+            background: hsl(0 0% 25%);
+            color: hsl(195 100% 60%);
+            padding: 0.5rem 1rem;
+            font-size: 0.85rem;
+        }
+
+        .example-btn:hover {
+            background: hsl(0 0% 30%);
+        }
+
+        @media (max-width: 1024px) {
+            .demo-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎯 Attention Mechanism</h1>
+            <p class="subtitle">Sequence-to-sequence model with attention weights visualization using AgentDB WASM</p>
+        </header>
+
+        <div class="demo-grid">
+            <div class="panel">
+                <h2>📝 Input Sequence</h2>
+
+                <div class="control-group">
+                    <label for="task-type">Task Type</label>
+                    <select id="task-type">
+                        <option value="translation">Machine Translation</option>
+                        <option value="summarization">Text Summarization</option>
+                        <option value="captioning">Image Captioning</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label for="input-text">Input Text</label>
+                    <textarea id="input-text" rows="4" placeholder="Enter your text here...">The quick brown fox jumps over the lazy dog</textarea>
+                </div>
+
+                <div>
+                    <button id="process-btn">🚀 Process</button>
+                    <button id="clear-btn">🗑️ Clear</button>
+                </div>
+
+                <div style="margin-top: 1rem;">
+                    <label>Example Inputs:</label>
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem;">
+                        <button class="example-btn" data-example="translation">Translation Example</button>
+                        <button class="example-btn" data-example="summarization">Summary Example</button>
+                        <button class="example-btn" data-example="captioning">Caption Example</button>
+                    </div>
+                </div>
+
+                <div class="metrics">
+                    <div class="metric">
+                        <div class="metric-label">Input Tokens</div>
+                        <div class="metric-value" id="input-tokens">0</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Output Tokens</div>
+                        <div class="metric-value" id="output-tokens">0</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Attention Heads</div>
+                        <div class="metric-value" id="attention-heads">8</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Processing Time</div>
+                        <div class="metric-value" id="process-time">0ms</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>📤 Output Sequence</h2>
+                <div class="output-box">
+                    <div class="output-text" id="output-text">Output will appear here...</div>
+                </div>
+
+                <label style="margin-top: 1rem;">Input Tokens:</label>
+                <div class="sequence-display" id="input-tokens-display"></div>
+
+                <label style="margin-top: 1rem;">Output Tokens:</label>
+                <div class="sequence-display" id="output-tokens-display"></div>
+            </div>
+
+            <div class="panel">
+                <h2>🔥 Attention Heatmap</h2>
+                <div class="canvas-container">
+                    <canvas id="heatmap-canvas" width="600" height="600"></canvas>
+                </div>
+                <div style="color: hsl(0 0% 70%); font-size: 0.85rem; margin-top: 0.5rem;">
+                    Rows: Output tokens | Columns: Input tokens | Brightness: Attention weight
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>📊 Alignment Matrix</h2>
+                <div class="canvas-container">
+                    <canvas id="alignment-canvas" width="600" height="400"></canvas>
+                </div>
+                <div style="color: hsl(0 0% 70%); font-size: 0.85rem; margin-top: 0.5rem;">
+                    Visualization of which input tokens contribute to each output token
+                </div>
+            </div>
+
+            <div class="panel use-cases">
+                <h2>💡 Use Cases</h2>
+                <div class="use-case-grid">
+                    <div class="use-case">
+                        <h3>Machine Translation</h3>
+                        <p>Translate text between languages while maintaining context and semantic meaning through attention.</p>
+                    </div>
+                    <div class="use-case">
+                        <h3>Image Captioning</h3>
+                        <p>Generate descriptive captions for images by attending to relevant visual features.</p>
+                    </div>
+                    <div class="use-case">
+                        <h3>Text Summarization</h3>
+                        <p>Create concise summaries by focusing attention on the most important parts of the text.</p>
+                    </div>
+                    <div class="use-case">
+                        <h3>Question Answering</h3>
+                        <p>Extract relevant information from context by attending to key phrases that answer questions.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { SQLiteVectorDB } from "https://unpkg.com/agentdb@1.0.7/dist/agentdb.min.js";
+
+        let db = null;
+        let attentionWeights = [];
+
+        // Example inputs
+        const examples = {
+            translation: "The artificial intelligence model processes natural language efficiently",
+            summarization: "Artificial intelligence has revolutionized the way we process and analyze data. Machine learning algorithms can now understand context, generate text, and make predictions with remarkable accuracy. The attention mechanism is a key component that allows models to focus on relevant information.",
+            captioning: "A golden retriever playing fetch in a sunny park with children laughing nearby"
+        };
+
+        // Initialize AgentDB WASM
+        async function initDB() {
+            console.log('Initializing AgentDB v1.0.7 from CDN...');
+            db = new SQLiteVectorDB({ memoryMode: true, backend: "wasm" });
+            await db.initializeAsync();
+            console.log('✅ AgentDB WASM v1.0.7 initialized');
+            return db;
+        }
+
+        // Tokenize text
+        function tokenize(text) {
+            return text.toLowerCase().replace(/[^\w\s]/g, '').split(/\s+/).filter(t => t.length > 0);
+        }
+
+        // Simple embedding function
+        function embed(token, dim = 64) {
+            const embedding = new Array(dim).fill(0);
+            for (let i = 0; i < token.length; i++) {
+                const charCode = token.charCodeAt(i);
+                embedding[i % dim] += charCode / 1000;
+            }
+            return embedding;
+        }
+
+        // Calculate attention weights (simplified)
+        function calculateAttention(inputTokens, outputTokens) {
+            const weights = [];
+
+            for (let i = 0; i < outputTokens.length; i++) {
+                const outputEmb = embed(outputTokens[i]);
+                const tokenWeights = [];
+
+                for (let j = 0; j < inputTokens.length; j++) {
+                    const inputEmb = embed(inputTokens[j]);
+
+                    // Dot product similarity
+                    let similarity = 0;
+                    for (let k = 0; k < outputEmb.length; k++) {
+                        similarity += outputEmb[k] * inputEmb[k];
+                    }
+
+                    tokenWeights.push(similarity);
+                }
+
+                // Softmax normalization
+                const max = Math.max(...tokenWeights);
+                const exp = tokenWeights.map(w => Math.exp(w - max));
+                const sum = exp.reduce((a, b) => a + b, 0);
+                const normalized = exp.map(w => w / sum);
+
+                weights.push(normalized);
+            }
+
+            return weights;
+        }
+
+        // Process sequence
+        async function processSequence() {
+            const startTime = performance.now();
+            const taskType = document.getElementById('task-type').value;
+            const inputText = document.getElementById('input-text').value.trim();
+
+            if (!inputText) {
+                alert('Please enter input text');
+                return;
+            }
+
+            const inputTokens = tokenize(inputText);
+
+            // Generate output based on task type
+            let outputTokens;
+            switch (taskType) {
+                case 'translation':
+                    outputTokens = inputTokens.map(t => t.split('').reverse().join('')); // Simple reverse
+                    break;
+                case 'summarization':
+                    outputTokens = inputTokens.slice(0, Math.ceil(inputTokens.length / 2)); // First half
+                    break;
+                case 'captioning':
+                    outputTokens = ['image', 'shows', ...inputTokens.slice(0, 4)]; // Simple caption
+                    break;
+            }
+
+            // Calculate attention
+            attentionWeights = calculateAttention(inputTokens, outputTokens);
+
+            // Store attention weights in AgentDB
+            for (let i = 0; i < attentionWeights.length; i++) {
+                await db.insert({
+                    embedding: attentionWeights[i],
+                    metadata: {
+                        type: 'attention',
+                        outputToken: outputTokens[i],
+                        inputTokens: inputTokens
+                    }
+                });
+            }
+
+            const endTime = performance.now();
+
+            // Update UI
+            document.getElementById('input-tokens').textContent = inputTokens.length;
+            document.getElementById('output-tokens').textContent = outputTokens.length;
+            document.getElementById('process-time').textContent = Math.round(endTime - startTime) + 'ms';
+            document.getElementById('output-text').textContent = outputTokens.join(' ');
+
+            // Render token displays
+            renderTokens('input-tokens-display', inputTokens);
+            renderTokens('output-tokens-display', outputTokens);
+
+            // Render visualizations
+            renderHeatmap(inputTokens, outputTokens);
+            renderAlignment(inputTokens, outputTokens);
+        }
+
+        // Render tokens
+        function renderTokens(elementId, tokens) {
+            const container = document.getElementById(elementId);
+            container.innerHTML = '';
+
+            tokens.forEach((token, i) => {
+                const div = document.createElement('div');
+                div.className = 'token';
+                div.textContent = token;
+                container.appendChild(div);
+            });
+        }
+
+        // Render heatmap
+        function renderHeatmap(inputTokens, outputTokens) {
+            const canvas = document.getElementById('heatmap-canvas');
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width;
+            const height = canvas.height;
+
+            ctx.fillStyle = 'hsl(0 0% 8%)';
+            ctx.fillRect(0, 0, width, height);
+
+            const cellWidth = width / inputTokens.length;
+            const cellHeight = height / outputTokens.length;
+
+            for (let i = 0; i < outputTokens.length; i++) {
+                for (let j = 0; j < inputTokens.length; j++) {
+                    const weight = attentionWeights[i][j];
+                    const brightness = Math.floor(weight * 255);
+
+                    // Use cyan color for attention
+                    ctx.fillStyle = `rgb(0, ${brightness}, ${brightness})`;
+                    ctx.fillRect(
+                        j * cellWidth,
+                        i * cellHeight,
+                        cellWidth - 1,
+                        cellHeight - 1
+                    );
+                }
+            }
+
+            // Draw grid
+            ctx.strokeStyle = 'hsl(0 0% 25%)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= inputTokens.length; i++) {
+                ctx.beginPath();
+                ctx.moveTo(i * cellWidth, 0);
+                ctx.lineTo(i * cellWidth, height);
+                ctx.stroke();
+            }
+            for (let i = 0; i <= outputTokens.length; i++) {
+                ctx.beginPath();
+                ctx.moveTo(0, i * cellHeight);
+                ctx.lineTo(width, i * cellHeight);
+                ctx.stroke();
+            }
+
+            // Draw labels
+            ctx.fillStyle = 'hsl(195 100% 60%)';
+            ctx.font = '12px monospace';
+            ctx.textAlign = 'center';
+
+            inputTokens.forEach((token, i) => {
+                ctx.save();
+                ctx.translate((i + 0.5) * cellWidth, height - 5);
+                ctx.rotate(-Math.PI / 4);
+                ctx.fillText(token.substring(0, 8), 0, 0);
+                ctx.restore();
+            });
+
+            ctx.textAlign = 'right';
+            outputTokens.forEach((token, i) => {
+                ctx.fillText(token.substring(0, 8), width - 5, (i + 0.5) * cellHeight + 4);
+            });
+        }
+
+        // Render alignment
+        function renderAlignment(inputTokens, outputTokens) {
+            const canvas = document.getElementById('alignment-canvas');
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width;
+            const height = canvas.height;
+
+            ctx.fillStyle = 'hsl(0 0% 8%)';
+            ctx.fillRect(0, 0, width, height);
+
+            const margin = 40;
+            const graphWidth = width - 2 * margin;
+            const graphHeight = height - 2 * margin;
+
+            // Draw axes
+            ctx.strokeStyle = 'hsl(0 0% 40%)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(margin, margin);
+            ctx.lineTo(margin, height - margin);
+            ctx.lineTo(width - margin, height - margin);
+            ctx.stroke();
+
+            // Draw alignment connections
+            for (let i = 0; i < outputTokens.length; i++) {
+                const maxWeight = Math.max(...attentionWeights[i]);
+                const maxIndex = attentionWeights[i].indexOf(maxWeight);
+
+                const x1 = margin + (maxIndex / (inputTokens.length - 1)) * graphWidth;
+                const y1 = height - margin;
+                const x2 = margin + (i / (outputTokens.length - 1)) * graphWidth;
+                const y2 = margin;
+
+                ctx.strokeStyle = `hsla(195, 100%, 60%, ${maxWeight})`;
+                ctx.lineWidth = maxWeight * 3 + 1;
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+            }
+
+            // Draw points
+            ctx.fillStyle = 'hsl(195 100% 60%)';
+            inputTokens.forEach((_, i) => {
+                const x = margin + (i / (inputTokens.length - 1)) * graphWidth;
+                const y = height - margin;
+                ctx.beginPath();
+                ctx.arc(x, y, 4, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            outputTokens.forEach((_, i) => {
+                const x = margin + (i / (outputTokens.length - 1)) * graphWidth;
+                const y = margin;
+                ctx.beginPath();
+                ctx.arc(x, y, 4, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // Labels
+            ctx.fillStyle = 'hsl(0 0% 70%)';
+            ctx.font = '12px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText('Input Tokens', width / 2, height - 10);
+
+            ctx.save();
+            ctx.translate(15, height / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText('Output Tokens', 0, 0);
+            ctx.restore();
+        }
+
+        // Event listeners
+        document.getElementById('process-btn').addEventListener('click', processSequence);
+
+        document.getElementById('clear-btn').addEventListener('click', () => {
+            document.getElementById('input-text').value = '';
+            document.getElementById('output-text').textContent = 'Output will appear here...';
+            document.getElementById('input-tokens-display').innerHTML = '';
+            document.getElementById('output-tokens-display').innerHTML = '';
+            document.getElementById('input-tokens').textContent = '0';
+            document.getElementById('output-tokens').textContent = '0';
+            document.getElementById('process-time').textContent = '0ms';
+            attentionWeights = [];
+
+            const canvas1 = document.getElementById('heatmap-canvas');
+            const ctx1 = canvas1.getContext('2d');
+            ctx1.fillStyle = 'hsl(0 0% 8%)';
+            ctx1.fillRect(0, 0, canvas1.width, canvas1.height);
+
+            const canvas2 = document.getElementById('alignment-canvas');
+            const ctx2 = canvas2.getContext('2d');
+            ctx2.fillStyle = 'hsl(0 0% 8%)';
+            ctx2.fillRect(0, 0, canvas2.width, canvas2.height);
+        });
+
+        document.querySelectorAll('.example-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const example = e.target.dataset.example;
+                document.getElementById('input-text').value = examples[example];
+                document.getElementById('task-type').value = example;
+            });
+        });
+
+        // Initialize
+        initDB();
+    </script>
+</body>
+</html>

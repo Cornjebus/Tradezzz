@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Evolutionary Algorithm Optimizer - AgentDB WASM Demo</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Courier New', monospace;
+      background: hsl(0 0% 12%);
+      color: hsl(0 0% 90%);
+      padding: 2rem;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 2rem;
+      padding-bottom: 1rem;
+      border-bottom: 2px solid hsl(195 100% 60%);
+    }
+
+    h1 {
+      color: hsl(195 100% 60%);
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .subtitle {
+      color: hsl(0 0% 60%);
+      font-size: 0.9rem;
+    }
+
+    .demo-grid {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    .control-panel {
+      background: hsl(0 0% 16%);
+      padding: 1.5rem;
+      border-radius: 8px;
+      border: 1px solid hsl(0 0% 20%);
+      height: fit-content;
+    }
+
+    .control-section {
+      margin-bottom: 1.5rem;
+    }
+
+    .control-section h3 {
+      color: hsl(195 100% 60%);
+      font-size: 0.9rem;
+      margin-bottom: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .control-group {
+      margin-bottom: 1rem;
+    }
+
+    label {
+      display: block;
+      color: hsl(0 0% 70%);
+      font-size: 0.85rem;
+      margin-bottom: 0.3rem;
+    }
+
+    input[type="number"],
+    input[type="range"],
+    select {
+      width: 100%;
+      background: hsl(0 0% 12%);
+      border: 1px solid hsl(0 0% 30%);
+      color: hsl(0 0% 90%);
+      padding: 0.5rem;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+    }
+
+    input[type="range"] {
+      padding: 0;
+    }
+
+    .value-display {
+      color: hsl(195 100% 60%);
+      font-weight: bold;
+      margin-left: 0.5rem;
+    }
+
+    button {
+      width: 100%;
+      padding: 0.8rem;
+      background: hsl(195 100% 60%);
+      color: hsl(0 0% 12%);
+      border: none;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: 0.5rem;
+    }
+
+    button:hover {
+      background: hsl(195 100% 70%);
+      transform: translateY(-1px);
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    button.secondary {
+      background: hsl(0 0% 25%);
+      color: hsl(0 0% 90%);
+    }
+
+    button.secondary:hover {
+      background: hsl(0 0% 30%);
+    }
+
+    .visualization {
+      background: hsl(0 0% 16%);
+      padding: 1.5rem;
+      border-radius: 8px;
+      border: 1px solid hsl(0 0% 20%);
+    }
+
+    canvas {
+      width: 100%;
+      height: 400px;
+      background: hsl(0 0% 12%);
+      border: 1px solid hsl(0 0% 20%);
+      border-radius: 4px;
+      margin-bottom: 1rem;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .stat-card {
+      background: hsl(0 0% 12%);
+      padding: 1rem;
+      border-radius: 4px;
+      border: 1px solid hsl(0 0% 20%);
+    }
+
+    .stat-label {
+      color: hsl(0 0% 60%);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 0.3rem;
+    }
+
+    .stat-value {
+      color: hsl(195 100% 60%);
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+
+    .info-section {
+      background: hsl(0 0% 16%);
+      padding: 1.5rem;
+      border-radius: 8px;
+      border: 1px solid hsl(0 0% 20%);
+      margin-bottom: 2rem;
+    }
+
+    .info-section h3 {
+      color: hsl(195 100% 60%);
+      margin-bottom: 1rem;
+    }
+
+    .info-section p {
+      color: hsl(0 0% 70%);
+      margin-bottom: 0.5rem;
+      font-size: 0.9rem;
+    }
+
+    .use-cases {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-top: 1rem;
+    }
+
+    .use-case-tag {
+      background: hsl(195 100% 60% / 0.2);
+      color: hsl(195 100% 60%);
+      padding: 0.3rem 0.8rem;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      border: 1px solid hsl(195 100% 60% / 0.3);
+    }
+
+    .log {
+      background: hsl(0 0% 12%);
+      padding: 1rem;
+      border-radius: 4px;
+      border: 1px solid hsl(0 0% 20%);
+      max-height: 150px;
+      overflow-y: auto;
+      font-size: 0.8rem;
+      margin-top: 1rem;
+    }
+
+    .log-entry {
+      color: hsl(0 0% 70%);
+      margin-bottom: 0.3rem;
+    }
+
+    .log-entry.success {
+      color: hsl(120 60% 60%);
+    }
+
+    .log-entry.error {
+      color: hsl(0 60% 60%);
+    }
+
+    .best-solution {
+      background: hsl(195 100% 60% / 0.1);
+      border: 1px solid hsl(195 100% 60% / 0.3);
+      padding: 1rem;
+      border-radius: 4px;
+      margin-top: 1rem;
+    }
+
+    .best-solution h4 {
+      color: hsl(195 100% 60%);
+      margin-bottom: 0.5rem;
+      font-size: 0.9rem;
+    }
+
+    .chromosome {
+      color: hsl(0 0% 90%);
+      font-size: 0.85rem;
+      word-break: break-all;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🧬 Evolutionary Algorithm Optimizer</h1>
+      <p class="subtitle">Genetic algorithm optimization with AgentDB WASM for population storage</p>
+    </header>
+
+    <div class="info-section">
+      <h3>About This Demo</h3>
+      <p>This demo implements a genetic algorithm to find the maximum of the function: f(x,y) = 15*sin(x) + 10*cos(y) - 0.1*(x² + y²)</p>
+      <p>The algorithm evolves a population of solutions through selection, crossover, and mutation, storing population data in AgentDB WASM.</p>
+      <div class="use-cases">
+        <div class="use-case-tag">Neural Architecture Search</div>
+        <div class="use-case-tag">Game AI Evolution</div>
+        <div class="use-case-tag">Parameter Optimization</div>
+        <div class="use-case-tag">Hyperparameter Tuning</div>
+        <div class="use-case-tag">Resource Allocation</div>
+      </div>
+    </div>
+
+    <div class="demo-grid">
+      <div class="control-panel">
+        <div class="control-section">
+          <h3>Algorithm Parameters</h3>
+
+          <div class="control-group">
+            <label>Population Size: <span class="value-display" id="popSizeDisplay">50</span></label>
+            <input type="range" id="popSize" min="20" max="200" value="50" step="10">
+          </div>
+
+          <div class="control-group">
+            <label>Mutation Rate: <span class="value-display" id="mutationDisplay">0.15</span></label>
+            <input type="range" id="mutation" min="0" max="1" value="0.15" step="0.05">
+          </div>
+
+          <div class="control-group">
+            <label>Crossover Rate: <span class="value-display" id="crossoverDisplay">0.80</span></label>
+            <input type="range" id="crossover" min="0" max="1" value="0.80" step="0.05">
+          </div>
+
+          <div class="control-group">
+            <label>Elite Size: <span class="value-display" id="eliteDisplay">5</span></label>
+            <input type="range" id="elite" min="1" max="20" value="5" step="1">
+          </div>
+
+          <div class="control-group">
+            <label>Max Generations: <span class="value-display" id="maxGenDisplay">100</span></label>
+            <input type="number" id="maxGen" min="10" max="500" value="100">
+          </div>
+        </div>
+
+        <div class="control-section">
+          <h3>Visualization</h3>
+          <div class="control-group">
+            <label>Chart Type:</label>
+            <select id="chartType">
+              <option value="fitness">Fitness Evolution</option>
+              <option value="diversity">Genetic Diversity</option>
+              <option value="convergence">Convergence Rate</option>
+            </select>
+          </div>
+        </div>
+
+        <button id="startBtn">Start Evolution</button>
+        <button id="pauseBtn" class="secondary" disabled>Pause</button>
+        <button id="resetBtn" class="secondary">Reset</button>
+      </div>
+
+      <div class="visualization">
+        <canvas id="chart"></canvas>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-label">Generation</div>
+            <div class="stat-value" id="generation">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Best Fitness</div>
+            <div class="stat-value" id="bestFitness">0.00</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Avg Fitness</div>
+            <div class="stat-value" id="avgFitness">0.00</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Diversity</div>
+            <div class="stat-value" id="diversity">0.00</div>
+          </div>
+        </div>
+
+        <div class="best-solution">
+          <h4>Best Solution</h4>
+          <div class="chromosome" id="bestChromosome">No solution yet</div>
+          <div style="margin-top: 0.5rem; color: hsl(0 0% 70%); font-size: 0.85rem;">
+            x: <span id="bestX">-</span>, y: <span id="bestY">-</span>
+          </div>
+        </div>
+
+        <div class="log" id="log">
+          <div class="log-entry">System initialized. Ready to evolve...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { SQLiteVectorDB } from "https://unpkg.com/agentdb@1.0.7/dist/agentdb.min.js";
+
+    let db = null;
+    let isRunning = false;
+    let isPaused = false;
+    let currentGeneration = 0;
+    let population = [];
+    let fitnessHistory = [];
+    let diversityHistory = [];
+    let bestSolution = null;
+
+    // UI Elements
+    const popSizeInput = document.getElementById('popSize');
+    const mutationInput = document.getElementById('mutation');
+    const crossoverInput = document.getElementById('crossover');
+    const eliteInput = document.getElementById('elite');
+    const maxGenInput = document.getElementById('maxGen');
+    const chartTypeSelect = document.getElementById('chartType');
+    const startBtn = document.getElementById('startBtn');
+    const pauseBtn = document.getElementById('pauseBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const canvas = document.getElementById('chart');
+    const ctx = canvas.getContext('2d');
+
+    // Set canvas size
+    canvas.width = canvas.offsetWidth;
+    canvas.height = 400;
+
+    // Update displays
+    function updateDisplays() {
+      document.getElementById('popSizeDisplay').textContent = popSizeInput.value;
+      document.getElementById('mutationDisplay').textContent = parseFloat(mutationInput.value).toFixed(2);
+      document.getElementById('crossoverDisplay').textContent = parseFloat(crossoverInput.value).toFixed(2);
+      document.getElementById('eliteDisplay').textContent = eliteInput.value;
+      document.getElementById('maxGenDisplay').textContent = maxGenInput.value;
+    }
+
+    popSizeInput.addEventListener('input', updateDisplays);
+    mutationInput.addEventListener('input', updateDisplays);
+    crossoverInput.addEventListener('input', updateDisplays);
+    eliteInput.addEventListener('input', updateDisplays);
+    maxGenInput.addEventListener('input', updateDisplays);
+
+    // Fitness function: f(x,y) = 15*sin(x) + 10*cos(y) - 0.1*(x² + y²)
+    // Domain: x,y ∈ [-10, 10]
+    function fitnessFunction(x, y) {
+      return 15 * Math.sin(x) + 10 * Math.cos(y) - 0.1 * (x * x + y * y);
+    }
+
+    // Decode chromosome (16 bits for x, 16 bits for y)
+    function decodeChromosome(chromosome) {
+      const xBits = chromosome.slice(0, 16);
+      const yBits = chromosome.slice(16, 32);
+
+      const xInt = parseInt(xBits.join(''), 2);
+      const yInt = parseInt(yBits.join(''), 2);
+
+      const x = (xInt / 65535) * 20 - 10; // Scale to [-10, 10]
+      const y = (yInt / 65535) * 20 - 10;
+
+      return { x, y };
+    }
+
+    // Create random chromosome
+    function randomChromosome() {
+      return Array.from({ length: 32 }, () => Math.random() < 0.5 ? 0 : 1);
+    }
+
+    // Initialize population
+    function initializePopulation(size) {
+      const pop = [];
+      for (let i = 0; i < size; i++) {
+        const chromosome = randomChromosome();
+        const { x, y } = decodeChromosome(chromosome);
+        const fitness = fitnessFunction(x, y);
+        pop.push({ chromosome, fitness, x, y });
+      }
+      return pop;
+    }
+
+    // Selection (tournament)
+    function selection(pop, tournamentSize = 3) {
+      const tournament = [];
+      for (let i = 0; i < tournamentSize; i++) {
+        tournament.push(pop[Math.floor(Math.random() * pop.length)]);
+      }
+      return tournament.reduce((best, curr) => curr.fitness > best.fitness ? curr : best);
+    }
+
+    // Crossover (single point)
+    function crossover(parent1, parent2, rate) {
+      if (Math.random() > rate) {
+        return [parent1.chromosome.slice(), parent2.chromosome.slice()];
+      }
+
+      const point = Math.floor(Math.random() * 32);
+      const child1 = [...parent1.chromosome.slice(0, point), ...parent2.chromosome.slice(point)];
+      const child2 = [...parent2.chromosome.slice(0, point), ...parent1.chromosome.slice(point)];
+
+      return [child1, child2];
+    }
+
+    // Mutation (bit flip)
+    function mutate(chromosome, rate) {
+      return chromosome.map(bit => Math.random() < rate ? 1 - bit : bit);
+    }
+
+    // Calculate genetic diversity
+    function calculateDiversity(pop) {
+      if (pop.length < 2) return 0;
+
+      let totalDistance = 0;
+      let count = 0;
+
+      for (let i = 0; i < pop.length - 1; i++) {
+        for (let j = i + 1; j < pop.length; j++) {
+          const distance = Math.sqrt(
+            Math.pow(pop[i].x - pop[j].x, 2) +
+            Math.pow(pop[i].y - pop[j].y, 2)
+          );
+          totalDistance += distance;
+          count++;
+        }
+      }
+
+      return totalDistance / count;
+    }
+
+    // Evolve one generation
+    function evolveGeneration() {
+      const popSize = parseInt(popSizeInput.value);
+      const mutationRate = parseFloat(mutationInput.value);
+      const crossoverRate = parseFloat(crossoverInput.value);
+      const eliteSize = parseInt(eliteInput.value);
+
+      // Sort by fitness
+      population.sort((a, b) => b.fitness - a.fitness);
+
+      // Elitism
+      const newPop = population.slice(0, eliteSize);
+
+      // Generate offspring
+      while (newPop.length < popSize) {
+        const parent1 = selection(population);
+        const parent2 = selection(population);
+
+        const [child1Chromo, child2Chromo] = crossover(parent1, parent2, crossoverRate);
+
+        const mutatedChild1 = mutate(child1Chromo, mutationRate);
+        const mutatedChild2 = mutate(child2Chromo, mutationRate);
+
+        for (const chromo of [mutatedChild1, mutatedChild2]) {
+          if (newPop.length < popSize) {
+            const { x, y } = decodeChromosome(chromo);
+            const fitness = fitnessFunction(x, y);
+            newPop.push({ chromosome: chromo, fitness, x, y });
+          }
+        }
+      }
+
+      population = newPop;
+
+      // Update stats
+      const bestFit = Math.max(...population.map(p => p.fitness));
+      const avgFit = population.reduce((sum, p) => sum + p.fitness, 0) / population.length;
+      const diversity = calculateDiversity(population);
+
+      fitnessHistory.push({ best: bestFit, avg: avgFit });
+      diversityHistory.push(diversity);
+
+      bestSolution = population[0];
+
+      // Update UI
+      document.getElementById('generation').textContent = currentGeneration;
+      document.getElementById('bestFitness').textContent = bestFit.toFixed(4);
+      document.getElementById('avgFitness').textContent = avgFit.toFixed(4);
+      document.getElementById('diversity').textContent = diversity.toFixed(4);
+      document.getElementById('bestChromosome').textContent = bestSolution.chromosome.join('');
+      document.getElementById('bestX').textContent = bestSolution.x.toFixed(4);
+      document.getElementById('bestY').textContent = bestSolution.y.toFixed(4);
+
+      // Store in AgentDB
+      storeGeneration();
+
+      // Render chart
+      renderChart();
+
+      currentGeneration++;
+    }
+
+    // Store generation in AgentDB
+    async function storeGeneration() {
+      if (!db) return;
+
+      try {
+        // Create embedding from population stats
+        const embedding = new Array(128).fill(0).map((_, i) => {
+          if (i === 0) return bestSolution.fitness / 25; // Normalize fitness
+          if (i === 1) return bestSolution.x / 10; // Normalize x
+          if (i === 2) return bestSolution.y / 10; // Normalize y
+          return Math.random() * 0.1; // Noise
+        });
+
+        await db.insert({
+          embedding,
+          metadata: {
+            id: `gen_${currentGeneration}`,
+            generation: currentGeneration,
+            bestFitness: bestSolution.fitness,
+            bestX: bestSolution.x,
+            bestY: bestSolution.y,
+            avgFitness: fitnessHistory[fitnessHistory.length - 1].avg,
+            diversity: diversityHistory[diversityHistory.length - 1]
+          }
+        });
+      } catch (error) {
+        logMessage(`Storage error: ${error.message}`, 'error');
+      }
+    }
+
+    // Render chart
+    function renderChart() {
+      const chartType = chartTypeSelect.value;
+      const width = canvas.width;
+      const height = canvas.height;
+      const padding = 40;
+
+      ctx.clearRect(0, 0, width, height);
+
+      // Background
+      ctx.fillStyle = 'hsl(0 0% 12%)';
+      ctx.fillRect(0, 0, width, height);
+
+      // Grid
+      ctx.strokeStyle = 'hsl(0 0% 20%)';
+      ctx.lineWidth = 1;
+
+      for (let i = 0; i <= 5; i++) {
+        const y = padding + (height - 2 * padding) * i / 5;
+        ctx.beginPath();
+        ctx.moveTo(padding, y);
+        ctx.lineTo(width - padding, y);
+        ctx.stroke();
+      }
+
+      if (fitnessHistory.length < 2) return;
+
+      let data;
+      let color;
+      let label;
+
+      if (chartType === 'fitness') {
+        data = fitnessHistory.map(h => h.best);
+        color = 'hsl(195 100% 60%)';
+        label = 'Best Fitness';
+      } else if (chartType === 'diversity') {
+        data = diversityHistory;
+        color = 'hsl(120 60% 60%)';
+        label = 'Genetic Diversity';
+      } else {
+        data = fitnessHistory.map(h => h.avg);
+        color = 'hsl(45 100% 60%)';
+        label = 'Average Fitness';
+      }
+
+      const maxVal = Math.max(...data);
+      const minVal = Math.min(...data);
+      const range = maxVal - minVal || 1;
+
+      // Draw line
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+
+      data.forEach((val, i) => {
+        const x = padding + (width - 2 * padding) * i / (data.length - 1);
+        const y = height - padding - (height - 2 * padding) * (val - minVal) / range;
+
+        if (i === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
+      });
+
+      ctx.stroke();
+
+      // Labels
+      ctx.fillStyle = 'hsl(0 0% 70%)';
+      ctx.font = '12px "Courier New"';
+      ctx.fillText(label, padding, 20);
+      ctx.fillText(`Max: ${maxVal.toFixed(2)}`, padding, height - 10);
+      ctx.fillText(`Gen: ${data.length}`, width - padding - 70, height - 10);
+    }
+
+    // Log message
+    function logMessage(message, type = 'normal') {
+      const log = document.getElementById('log');
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${type}`;
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      log.insertBefore(entry, log.firstChild);
+
+      // Keep last 50 entries
+      while (log.children.length > 50) {
+        log.removeChild(log.lastChild);
+      }
+    }
+
+    // Evolution loop
+    async function evolutionLoop() {
+      while (isRunning && !isPaused) {
+        const maxGen = parseInt(maxGenInput.value);
+
+        if (currentGeneration >= maxGen) {
+          isRunning = false;
+          startBtn.disabled = false;
+          pauseBtn.disabled = true;
+          logMessage('Evolution complete!', 'success');
+          break;
+        }
+
+        evolveGeneration();
+
+        if (currentGeneration % 10 === 0) {
+          logMessage(`Generation ${currentGeneration}: Best fitness = ${bestSolution.fitness.toFixed(4)}`);
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 50));
+      }
+    }
+
+    // Start evolution
+    startBtn.addEventListener('click', async () => {
+      if (isRunning && isPaused) {
+        isPaused = false;
+        pauseBtn.textContent = 'Pause';
+        logMessage('Evolution resumed');
+        evolutionLoop();
+        return;
+      }
+
+      isRunning = true;
+      isPaused = false;
+      currentGeneration = 0;
+      fitnessHistory = [];
+      diversityHistory = [];
+
+      const popSize = parseInt(popSizeInput.value);
+      population = initializePopulation(popSize);
+
+      startBtn.disabled = true;
+      pauseBtn.disabled = false;
+
+      logMessage('Starting evolution...', 'success');
+      evolutionLoop();
+    });
+
+    // Pause evolution
+    pauseBtn.addEventListener('click', () => {
+      isPaused = !isPaused;
+      pauseBtn.textContent = isPaused ? 'Resume' : 'Pause';
+      logMessage(isPaused ? 'Evolution paused' : 'Evolution resumed');
+
+      if (!isPaused) {
+        evolutionLoop();
+      }
+    });
+
+    // Reset
+    resetBtn.addEventListener('click', () => {
+      isRunning = false;
+      isPaused = false;
+      currentGeneration = 0;
+      population = [];
+      fitnessHistory = [];
+      diversityHistory = [];
+      bestSolution = null;
+
+      startBtn.disabled = false;
+      pauseBtn.disabled = true;
+      pauseBtn.textContent = 'Pause';
+
+      document.getElementById('generation').textContent = '0';
+      document.getElementById('bestFitness').textContent = '0.00';
+      document.getElementById('avgFitness').textContent = '0.00';
+      document.getElementById('diversity').textContent = '0.00';
+      document.getElementById('bestChromosome').textContent = 'No solution yet';
+      document.getElementById('bestX').textContent = '-';
+      document.getElementById('bestY').textContent = '-';
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      logMessage('System reset', 'success');
+    });
+
+    chartTypeSelect.addEventListener('change', () => {
+      renderChart();
+    });
+
+    // Initialize AgentDB WASM
+    async function initAgentDB() {
+      try {
+        console.log('Initializing AgentDB v1.0.7 from CDN...');
+        db = new SQLiteVectorDB({ memoryMode: true, backend: "wasm" });
+        await db.initializeAsync();
+        logMessage('✅ AgentDB WASM v1.0.7 initialized', 'success');
+        console.log('✅ AgentDB WASM v1.0.7 initialized');
+      } catch (error) {
+        logMessage(`AgentDB initialization failed: ${error.message}`, 'error');
+        logMessage('Continuing without storage...', 'error');
+      }
+    }
+
+    // Initialize on load
+    initAgentDB();
+    updateDisplays();
+  </script>
+</body>
+</html>

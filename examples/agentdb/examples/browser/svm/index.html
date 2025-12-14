@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Support Vector Machine - AgentDB WASM Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+            background: hsl(0 0% 12%);
+            color: hsl(0 0% 90%);
+            padding: 2rem;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding-bottom: 2rem;
+            border-bottom: 1px solid hsl(0 0% 25%);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            color: hsl(195 100% 60%);
+            font-weight: 600;
+        }
+
+        .subtitle {
+            font-size: 1rem;
+            color: hsl(0 0% 60%);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            background: hsl(0 0% 15%);
+            border: 1px solid hsl(0 0% 25%);
+            border-radius: 8px;
+            padding: 1.5rem;
+        }
+
+        .card h2 {
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+            color: hsl(195 100% 60%);
+            font-weight: 600;
+        }
+
+        .control-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: hsl(0 0% 80%);
+            font-size: 0.9rem;
+        }
+
+        .value-display {
+            color: hsl(195 100% 60%);
+            font-weight: 600;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            background: hsl(0 0% 25%);
+            outline: none;
+            border-radius: 3px;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background: hsl(195 100% 60%);
+            cursor: pointer;
+            border-radius: 50%;
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            background: hsl(195 100% 60%);
+            cursor: pointer;
+            border-radius: 50%;
+            border: none;
+        }
+
+        select {
+            width: 100%;
+            padding: 0.75rem;
+            background: hsl(0 0% 20%);
+            color: hsl(0 0% 90%);
+            border: 1px solid hsl(0 0% 25%);
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 0.9rem;
+        }
+
+        button {
+            width: 100%;
+            padding: 0.875rem;
+            background: hsl(195 100% 60%);
+            color: hsl(0 0% 12%);
+            border: none;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background: hsl(195 100% 70%);
+        }
+
+        button:disabled {
+            background: hsl(0 0% 25%);
+            color: hsl(0 0% 50%);
+            cursor: not-allowed;
+        }
+
+        .canvas-container {
+            background: hsl(0 0% 18%);
+            border-radius: 4px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        canvas {
+            width: 100%;
+            height: auto;
+            display: block;
+            border-radius: 4px;
+        }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .metric {
+            background: hsl(0 0% 18%);
+            padding: 1rem;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .metric-label {
+            font-size: 0.85rem;
+            color: hsl(0 0% 60%);
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-value {
+            font-size: 1.5rem;
+            color: hsl(195 100% 60%);
+            font-weight: 600;
+        }
+
+        .use-cases {
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid hsl(0 0% 25%);
+        }
+
+        .use-cases h3 {
+            font-size: 1rem;
+            margin-bottom: 0.75rem;
+            color: hsl(195 100% 60%);
+        }
+
+        .use-cases ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .use-cases li {
+            padding: 0.5rem 0;
+            color: hsl(0 0% 70%);
+            font-size: 0.9rem;
+        }
+
+        .use-cases li::before {
+            content: "→ ";
+            color: hsl(195 100% 60%);
+            font-weight: bold;
+            margin-right: 0.5rem;
+        }
+
+        .status {
+            padding: 0.75rem;
+            background: hsl(0 0% 18%);
+            border-radius: 4px;
+            font-size: 0.9rem;
+            margin-top: 1rem;
+            color: hsl(0 0% 70%);
+        }
+
+        .status.success {
+            background: hsl(142 76% 36% / 0.2);
+            color: hsl(142 76% 56%);
+        }
+
+        .status.error {
+            background: hsl(0 72% 51% / 0.2);
+            color: hsl(0 72% 61%);
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        .legend {
+            display: flex;
+            gap: 1.5rem;
+            justify-content: center;
+            margin-top: 1rem;
+            font-size: 0.85rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 12px;
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>⚡ Support Vector Machine</h1>
+            <p class="subtitle">Maximum Margin Classification with AgentDB WASM Integration</p>
+        </header>
+
+        <div class="grid">
+            <!-- Controls -->
+            <div class="card">
+                <h2>Model Configuration</h2>
+
+                <div class="control-group">
+                    <label for="kernel">Kernel Type</label>
+                    <select id="kernel">
+                        <option value="linear">Linear</option>
+                        <option value="rbf" selected>RBF (Radial Basis Function)</option>
+                        <option value="polynomial">Polynomial</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label>
+                        C Parameter (Regularization): <span class="value-display" id="cValue">1.0</span>
+                    </label>
+                    <input type="range" id="cParam" min="0.1" max="10" value="1.0" step="0.1">
+                </div>
+
+                <div class="control-group">
+                    <label>
+                        Gamma (RBF/Poly): <span class="value-display" id="gammaValue">0.5</span>
+                    </label>
+                    <input type="range" id="gamma" min="0.1" max="2.0" value="0.5" step="0.1">
+                </div>
+
+                <div class="control-group">
+                    <label>
+                        Number of Samples: <span class="value-display" id="samplesValue">100</span>
+                    </label>
+                    <input type="range" id="numSamples" min="50" max="300" value="100" step="25">
+                </div>
+
+                <button id="trainBtn">Train SVM</button>
+                <button id="generateBtn" style="margin-top: 0.5rem; background: hsl(0 0% 30%);">Generate New Data</button>
+
+                <div id="status" class="status" style="display: none;"></div>
+
+                <div class="use-cases">
+                    <h3>Use Cases</h3>
+                    <ul>
+                        <li>Image Classification</li>
+                        <li>Text Categorization</li>
+                        <li>Face Recognition</li>
+                        <li>Handwriting Recognition</li>
+                        <li>Bioinformatics</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Decision Boundary Visualization -->
+            <div class="card">
+                <h2>Decision Boundary</h2>
+                <div class="canvas-container">
+                    <canvas id="boundaryCanvas" width="600" height="600"></canvas>
+                </div>
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: hsl(210 100% 60%);"></div>
+                        <span>Class 1</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: hsl(0 100% 60%);"></div>
+                        <span>Class 2</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: hsl(142 76% 56%);"></div>
+                        <span>Support Vectors</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Support Vectors Visualization -->
+            <div class="card full-width">
+                <h2>Support Vectors & Margin</h2>
+                <div class="canvas-container">
+                    <canvas id="marginCanvas" width="1200" height="400"></canvas>
+                </div>
+            </div>
+
+            <!-- Metrics -->
+            <div class="card">
+                <h2>Performance Metrics</h2>
+                <div class="metrics">
+                    <div class="metric">
+                        <div class="metric-label">Training Accuracy</div>
+                        <div class="metric-value" id="accuracy">0.0%</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Support Vectors</div>
+                        <div class="metric-value" id="supportVectors">0</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Margin Width</div>
+                        <div class="metric-value" id="marginWidth">0.00</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Training Time</div>
+                        <div class="metric-value" id="trainingTime">0 ms</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AgentDB Integration -->
+            <div class="card">
+                <h2>AgentDB WASM Status</h2>
+                <div class="metrics">
+                    <div class="metric">
+                        <div class="metric-label">Models Stored</div>
+                        <div class="metric-value" id="modelsStored">0</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Memory Usage</div>
+                        <div class="metric-value" id="memoryUsage">0 KB</div>
+                    </div>
+                </div>
+                <div id="dbStatus" class="status">Initializing AgentDB WASM...</div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { SQLiteVectorDB } from "https://unpkg.com/agentdb@1.0.7/dist/agentdb.min.js";
+
+        let db = null;
+        let svmModel = null;
+        let trainingData = null;
+
+        // Initialize AgentDB WASM
+        async function initAgentDB() {
+            try {
+                console.log('Initializing AgentDB v1.0.7 from CDN...');
+                db = new SQLiteVectorDB({ memoryMode: true, backend: "wasm" });
+                await db.initializeAsync();
+                console.log('✅ AgentDB WASM v1.0.7 initialized');
+                updateDBStatus('AgentDB WASM v1.0.7 initialized successfully', 'success');
+                return true;
+            } catch (error) {
+                console.error('AgentDB initialization failed:', error);
+                updateDBStatus('AgentDB initialization failed: ' + error.message, 'error');
+                return false;
+            }
+        }
+
+        function updateDBStatus(message, type = '') {
+            const status = document.getElementById('dbStatus');
+            status.textContent = message;
+            status.className = 'status ' + type;
+        }
+
+        // Generate synthetic 2D dataset
+        function generateDataset(numSamples) {
+            const data = [];
+            const halfSamples = numSamples / 2;
+
+            // Class 1 (centered around [2, 2])
+            for (let i = 0; i < halfSamples; i++) {
+                data.push({
+                    x: 2 + Math.random() * 2 - 1,
+                    y: 2 + Math.random() * 2 - 1,
+                    label: 1
+                });
+            }
+
+            // Class 2 (centered around [-2, -2])
+            for (let i = 0; i < halfSamples; i++) {
+                data.push({
+                    x: -2 + Math.random() * 2 - 1,
+                    y: -2 + Math.random() * 2 - 1,
+                    label: -1
+                });
+            }
+
+            return data;
+        }
+
+        // Kernel functions
+        function linearKernel(x1, x2) {
+            return x1.x * x2.x + x1.y * x2.y;
+        }
+
+        function rbfKernel(x1, x2, gamma) {
+            const dx = x1.x - x2.x;
+            const dy = x1.y - x2.y;
+            return Math.exp(-gamma * (dx * dx + dy * dy));
+        }
+
+        function polynomialKernel(x1, x2, degree = 3) {
+            return Math.pow(1 + x1.x * x2.x + x1.y * x2.y, degree);
+        }
+
+        function getKernel(type, gamma) {
+            switch (type) {
+                case 'linear':
+                    return (x1, x2) => linearKernel(x1, x2);
+                case 'rbf':
+                    return (x1, x2) => rbfKernel(x1, x2, gamma);
+                case 'polynomial':
+                    return (x1, x2) => polynomialKernel(x1, x2, 3);
+                default:
+                    return (x1, x2) => linearKernel(x1, x2);
+            }
+        }
+
+        // Simplified SVM Training (SMO algorithm approximation)
+        function trainSVM(data, C, kernel, maxIter = 100) {
+            const n = data.length;
+            const alpha = new Array(n).fill(0);
+            let b = 0;
+
+            for (let iter = 0; iter < maxIter; iter++) {
+                let alphaChanged = 0;
+
+                for (let i = 0; i < n; i++) {
+                    // Calculate prediction
+                    let prediction = b;
+                    for (let j = 0; j < n; j++) {
+                        prediction += alpha[j] * data[j].label * kernel(data[j], data[i]);
+                    }
+
+                    const error = prediction - data[i].label;
+
+                    // Check KKT conditions
+                    if ((data[i].label * error < -0.001 && alpha[i] < C) ||
+                        (data[i].label * error > 0.001 && alpha[i] > 0)) {
+
+                        // Select second alpha randomly
+                        let j = i;
+                        while (j === i) {
+                            j = Math.floor(Math.random() * n);
+                        }
+
+                        let predictionJ = b;
+                        for (let k = 0; k < n; k++) {
+                            predictionJ += alpha[k] * data[k].label * kernel(data[k], data[j]);
+                        }
+
+                        const errorJ = predictionJ - data[j].label;
+
+                        // Store old alphas
+                        const alphaIOld = alpha[i];
+                        const alphaJOld = alpha[j];
+
+                        // Compute bounds
+                        let L, H;
+                        if (data[i].label !== data[j].label) {
+                            L = Math.max(0, alpha[j] - alpha[i]);
+                            H = Math.min(C, C + alpha[j] - alpha[i]);
+                        } else {
+                            L = Math.max(0, alpha[i] + alpha[j] - C);
+                            H = Math.min(C, alpha[i] + alpha[j]);
+                        }
+
+                        if (L === H) continue;
+
+                        // Compute eta
+                        const eta = 2 * kernel(data[i], data[j]) -
+                                   kernel(data[i], data[i]) -
+                                   kernel(data[j], data[j]);
+
+                        if (eta >= 0) continue;
+
+                        // Update alpha[j]
+                        alpha[j] -= data[j].label * (error - errorJ) / eta;
+                        alpha[j] = Math.max(L, Math.min(H, alpha[j]));
+
+                        if (Math.abs(alpha[j] - alphaJOld) < 0.00001) continue;
+
+                        // Update alpha[i]
+                        alpha[i] += data[i].label * data[j].label * (alphaJOld - alpha[j]);
+
+                        // Update bias
+                        const b1 = b - error -
+                                  data[i].label * (alpha[i] - alphaIOld) * kernel(data[i], data[i]) -
+                                  data[j].label * (alpha[j] - alphaJOld) * kernel(data[i], data[j]);
+
+                        const b2 = b - errorJ -
+                                  data[i].label * (alpha[i] - alphaIOld) * kernel(data[i], data[j]) -
+                                  data[j].label * (alpha[j] - alphaJOld) * kernel(data[j], data[j]);
+
+                        if (alpha[i] > 0 && alpha[i] < C) {
+                            b = b1;
+                        } else if (alpha[j] > 0 && alpha[j] < C) {
+                            b = b2;
+                        } else {
+                            b = (b1 + b2) / 2;
+                        }
+
+                        alphaChanged++;
+                    }
+                }
+
+                if (alphaChanged === 0) break;
+            }
+
+            // Find support vectors
+            const supportVectors = [];
+            for (let i = 0; i < n; i++) {
+                if (alpha[i] > 0.0001) {
+                    supportVectors.push({ ...data[i], alpha: alpha[i] });
+                }
+            }
+
+            return { alpha, b, supportVectors };
+        }
+
+        function predict(model, point, data, kernel) {
+            let result = model.b;
+            for (let i = 0; i < data.length; i++) {
+                if (model.alpha[i] > 0) {
+                    result += model.alpha[i] * data[i].label * kernel(data[i], point);
+                }
+            }
+            return Math.sign(result);
+        }
+
+        // Train SVM
+        async function trainSVMModel() {
+            const C = parseFloat(document.getElementById('cParam').value);
+            const gamma = parseFloat(document.getElementById('gamma').value);
+            const kernelType = document.getElementById('kernel').value;
+            const numSamples = parseInt(document.getElementById('numSamples').value);
+
+            updateStatus('Training SVM...', '');
+            document.getElementById('trainBtn').disabled = true;
+
+            try {
+                const startTime = performance.now();
+
+                if (!trainingData) {
+                    trainingData = generateDataset(numSamples);
+                }
+
+                const kernel = getKernel(kernelType, gamma);
+                svmModel = trainSVM(trainingData, C, kernel);
+
+                // Calculate accuracy
+                let correct = 0;
+                for (const point of trainingData) {
+                    const pred = predict(svmModel, point, trainingData, kernel);
+                    if (pred === point.label) correct++;
+                }
+                const accuracy = (correct / trainingData.length) * 100;
+
+                // Calculate margin width (approximation)
+                const marginWidth = svmModel.supportVectors.length > 0 ?
+                    2.0 / Math.sqrt(svmModel.supportVectors.reduce((sum, sv) => sum + sv.alpha, 0)) :
+                    0;
+
+                const trainingTime = Math.round(performance.now() - startTime);
+
+                // Store in AgentDB
+                if (db) {
+                    await storeModelInDB(svmModel, kernelType, C, gamma);
+                }
+
+                // Update UI
+                document.getElementById('accuracy').textContent = accuracy.toFixed(1) + '%';
+                document.getElementById('supportVectors').textContent = svmModel.supportVectors.length;
+                document.getElementById('marginWidth').textContent = marginWidth.toFixed(2);
+                document.getElementById('trainingTime').textContent = trainingTime + ' ms';
+
+                visualizeDecisionBoundary(svmModel, trainingData, kernel);
+                visualizeMargin(svmModel, trainingData, kernel);
+
+                updateStatus('Training complete!', 'success');
+            } catch (error) {
+                console.error('Training error:', error);
+                updateStatus('Training failed: ' + error.message, 'error');
+            } finally {
+                document.getElementById('trainBtn').disabled = false;
+            }
+        }
+
+        async function storeModelInDB(model, kernelType, C, gamma) {
+            if (!db) return;
+
+            try {
+                // Generate embedding from model parameters
+                const embedding = generateModelEmbedding(model, 128);
+
+                await db.insert({
+                    embedding,
+                    metadata: {
+                        type: 'svm_model',
+                        kernel: kernelType,
+                        C: C,
+                        gamma: gamma,
+                        supportVectors: model.supportVectors.length,
+                        timestamp: Date.now()
+                    }
+                });
+
+                const stats = await db.stats();
+                document.getElementById('modelsStored').textContent = stats.count;
+                document.getElementById('memoryUsage').textContent =
+                    Math.round(stats.memoryUsage / 1024) + ' KB';
+            } catch (error) {
+                console.error('Failed to store in AgentDB:', error);
+            }
+        }
+
+        function generateModelEmbedding(model, dim) {
+            const embedding = new Array(dim).fill(0);
+
+            // Encode support vectors
+            model.supportVectors.forEach((sv, i) => {
+                const idx1 = (i * 3) % dim;
+                const idx2 = (i * 3 + 1) % dim;
+                const idx3 = (i * 3 + 2) % dim;
+
+                embedding[idx1] += sv.x * sv.alpha * 0.1;
+                embedding[idx2] += sv.y * sv.alpha * 0.1;
+                embedding[idx3] += sv.label * sv.alpha * 0.1;
+            });
+
+            // Encode bias
+            embedding[0] += model.b * 0.1;
+
+            // Normalize
+            const magnitude = Math.sqrt(embedding.reduce((sum, v) => sum + v * v, 0));
+            return embedding.map(v => magnitude > 0 ? v / magnitude : 0);
+        }
+
+        function visualizeDecisionBoundary(model, data, kernel) {
+            const canvas = document.getElementById('boundaryCanvas');
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width;
+            const height = canvas.height;
+
+            ctx.fillStyle = 'hsl(0 0% 18%)';
+            ctx.fillRect(0, 0, width, height);
+
+            const scale = width / 10;
+            const offsetX = width / 2;
+            const offsetY = height / 2;
+
+            // Draw decision boundary
+            const resolution = 2;
+            for (let x = 0; x < width; x += resolution) {
+                for (let y = 0; y < height; y += resolution) {
+                    const point = {
+                        x: (x - offsetX) / scale,
+                        y: (offsetY - y) / scale
+                    };
+
+                    const pred = predict(model, point, data, kernel);
+
+                    if (pred > 0) {
+                        ctx.fillStyle = 'hsl(210 100% 60% / 0.1)';
+                    } else {
+                        ctx.fillStyle = 'hsl(0 100% 60% / 0.1)';
+                    }
+                    ctx.fillRect(x, y, resolution, resolution);
+                }
+            }
+
+            // Draw data points
+            data.forEach(point => {
+                const x = point.x * scale + offsetX;
+                const y = offsetY - point.y * scale;
+
+                ctx.beginPath();
+                ctx.arc(x, y, 4, 0, 2 * Math.PI);
+                ctx.fillStyle = point.label > 0 ? 'hsl(210 100% 60%)' : 'hsl(0 100% 60%)';
+                ctx.fill();
+            });
+
+            // Draw support vectors
+            model.supportVectors.forEach(sv => {
+                const x = sv.x * scale + offsetX;
+                const y = offsetY - sv.y * scale;
+
+                ctx.beginPath();
+                ctx.arc(x, y, 8, 0, 2 * Math.PI);
+                ctx.strokeStyle = 'hsl(142 76% 56%)';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            });
+
+            // Draw axes
+            ctx.strokeStyle = 'hsl(0 0% 40%)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(0, offsetY);
+            ctx.lineTo(width, offsetY);
+            ctx.moveTo(offsetX, 0);
+            ctx.lineTo(offsetX, height);
+            ctx.stroke();
+        }
+
+        function visualizeMargin(model, data, kernel) {
+            const canvas = document.getElementById('marginCanvas');
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width;
+            const height = canvas.height;
+
+            ctx.fillStyle = 'hsl(0 0% 18%)';
+            ctx.fillRect(0, 0, width, height);
+
+            const scale = height / 8;
+            const offsetX = width / 2;
+            const offsetY = height / 2;
+
+            // Draw margin zones
+            for (let x = 0; x < width; x += 3) {
+                for (let y = 0; y < height; y += 3) {
+                    const point = {
+                        x: (x - offsetX) / scale,
+                        y: (offsetY - y) / scale
+                    };
+
+                    let score = model.b;
+                    for (let i = 0; i < data.length; i++) {
+                        if (model.alpha[i] > 0) {
+                            score += model.alpha[i] * data[i].label * kernel(data[i], point);
+                        }
+                    }
+
+                    const absScore = Math.abs(score);
+                    if (absScore < 1) {
+                        const alpha = (1 - absScore) * 0.3;
+                        ctx.fillStyle = `hsl(195 100% 60% / ${alpha})`;
+                        ctx.fillRect(x, y, 3, 3);
+                    }
+                }
+            }
+
+            // Draw support vectors prominently
+            model.supportVectors.forEach(sv => {
+                const x = sv.x * scale + offsetX;
+                const y = offsetY - sv.y * scale;
+
+                // Glow effect
+                const gradient = ctx.createRadialGradient(x, y, 0, x, y, 20);
+                gradient.addColorStop(0, 'hsl(142 76% 56% / 0.3)');
+                gradient.addColorStop(1, 'hsl(142 76% 56% / 0)');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(x - 20, y - 20, 40, 40);
+
+                // Vector point
+                ctx.beginPath();
+                ctx.arc(x, y, 6, 0, 2 * Math.PI);
+                ctx.fillStyle = 'hsl(142 76% 56%)';
+                ctx.fill();
+                ctx.strokeStyle = 'hsl(142 76% 76%)';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            });
+
+            // Draw all data points
+            data.forEach(point => {
+                const x = point.x * scale + offsetX;
+                const y = offsetY - point.y * scale;
+
+                ctx.beginPath();
+                ctx.arc(x, y, 3, 0, 2 * Math.PI);
+                ctx.fillStyle = point.label > 0 ? 'hsl(210 100% 60% / 0.6)' : 'hsl(0 100% 60% / 0.6)';
+                ctx.fill();
+            });
+
+            // Draw axes
+            ctx.strokeStyle = 'hsl(0 0% 40%)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(0, offsetY);
+            ctx.lineTo(width, offsetY);
+            ctx.moveTo(offsetX, 0);
+            ctx.lineTo(offsetX, height);
+            ctx.stroke();
+        }
+
+        function updateStatus(message, type) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = 'status ' + type;
+            status.style.display = 'block';
+        }
+
+        // Event listeners
+        document.getElementById('cParam').addEventListener('input', (e) => {
+            document.getElementById('cValue').textContent = parseFloat(e.target.value).toFixed(1);
+        });
+
+        document.getElementById('gamma').addEventListener('input', (e) => {
+            document.getElementById('gammaValue').textContent = parseFloat(e.target.value).toFixed(1);
+        });
+
+        document.getElementById('numSamples').addEventListener('input', (e) => {
+            document.getElementById('samplesValue').textContent = e.target.value;
+        });
+
+        document.getElementById('trainBtn').addEventListener('click', trainSVMModel);
+
+        document.getElementById('generateBtn').addEventListener('click', () => {
+            const numSamples = parseInt(document.getElementById('numSamples').value);
+            trainingData = generateDataset(numSamples);
+            updateStatus('New dataset generated. Click "Train SVM" to train.', '');
+
+            // Clear visualizations
+            ['boundaryCanvas', 'marginCanvas'].forEach(id => {
+                const canvas = document.getElementById(id);
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = 'hsl(0 0% 18%)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            });
+        });
+
+        // Initialize
+        initAgentDB();
+        trainingData = generateDataset(100);
+    </script>
+</body>
+</html>

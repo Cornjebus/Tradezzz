@@ -10,6 +10,7 @@ import { createServer } from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
 import { NeonDatabase, initializeDatabase } from '../database/NeonDatabase';
 import { requireAuth, optionalAuth, getTierLimits } from './middleware/clerk.middleware';
+import tradingRoutes from './routes/trading.routes';
 
 const PORT = process.env.API_PORT || 3001;
 
@@ -449,6 +450,11 @@ export class NeuralTradingServer {
         res.status(500).json({ error: 'Failed to list positions' });
       }
     });
+
+    // ============================================
+    // TRADING MODE & PAPER TRADING ROUTES (Phase 10)
+    // ============================================
+    this.app.use('/api/trading', tradingRoutes);
 
     // Error handler
     this.app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

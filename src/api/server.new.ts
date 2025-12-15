@@ -13,6 +13,7 @@ import { requireAuth, optionalAuth, getTierLimits } from './middleware/clerk.mid
 import tradingRoutes from './routes/trading.routes';
 import onboardingRoutes from './routes/onboarding.routes';
 import { rateLimit, getRateLimitStatus } from './middleware/ratelimit.middleware';
+import privacyRoutes from './routes/privacy.routes';
 
 const PORT = process.env.API_PORT || 3001;
 
@@ -471,6 +472,11 @@ export class NeuralTradingServer {
 
     // Rate limit status endpoint
     this.app.get('/api/ratelimit/status', requireAuth, getRateLimitStatus);
+
+    // ============================================
+    // PRIVACY & DATA EXPORT ROUTES (Phase 13)
+    // ============================================
+    this.app.use('/api/privacy', privacyRoutes);
 
     // Error handler
     this.app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

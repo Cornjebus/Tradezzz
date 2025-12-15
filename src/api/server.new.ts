@@ -15,6 +15,7 @@ import onboardingRoutes from './routes/onboarding.routes';
 import { rateLimit, getRateLimitStatus } from './middleware/ratelimit.middleware';
 import privacyRoutes from './routes/privacy.routes';
 import monitoringRoutes from './routes/monitoring.routes';
+import aiProvidersRoutes from './routes/ai-providers.routes';
 
 const PORT = process.env.API_PORT || 3001;
 
@@ -483,6 +484,11 @@ export class NeuralTradingServer {
     // MONITORING & ALERTING ROUTES (Phase 15)
     // ============================================
     this.app.use('/api/monitoring', monitoringRoutes);
+
+    // ============================================
+    // AI PROVIDER ROUTES (Phase 16)
+    // ============================================
+    this.app.use('/api/ai', aiProvidersRoutes);
 
     // Error handler
     this.app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

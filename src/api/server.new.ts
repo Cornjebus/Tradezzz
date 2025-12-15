@@ -12,6 +12,7 @@ import { NeonDatabase, initializeDatabase } from '../database/NeonDatabase';
 import { requireAuth, optionalAuth, getTierLimits } from './middleware/clerk.middleware';
 import tradingRoutes from './routes/trading.routes';
 import onboardingRoutes from './routes/onboarding.routes';
+import { rateLimit, getRateLimitStatus } from './middleware/ratelimit.middleware';
 
 const PORT = process.env.API_PORT || 3001;
 
@@ -461,6 +462,15 @@ export class NeuralTradingServer {
     // ONBOARDING & DISCLAIMER ROUTES (Phase 11)
     // ============================================
     this.app.use('/api/onboarding', onboardingRoutes);
+
+    // ============================================
+    // RATE LIMITING (Phase 12)
+    // ============================================
+    // Apply global rate limiting to all API routes
+    this.app.use('/api', rateLimit({ tierBased: true }));
+
+    // Rate limit status endpoint
+    this.app.get('/api/ratelimit/status', requireAuth, getRateLimitStatus);
 
     // Error handler
     this.app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

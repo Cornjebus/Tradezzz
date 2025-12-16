@@ -16,6 +16,7 @@ import { rateLimit, getRateLimitStatus } from './middleware/ratelimit.middleware
 import privacyRoutes from './routes/privacy.routes';
 import monitoringRoutes from './routes/monitoring.routes';
 import aiProvidersRoutes from './routes/ai-providers.routes';
+import exchangesRoutes from './routes/exchanges.routes';
 
 const PORT = process.env.API_PORT || 3001;
 
@@ -489,6 +490,11 @@ export class NeuralTradingServer {
     // AI PROVIDER ROUTES (Phase 16)
     // ============================================
     this.app.use('/api/ai', aiProvidersRoutes);
+
+    // ============================================
+    // EXCHANGE ROUTES (Phase 9)
+    // ============================================
+    this.app.use('/api/exchanges', exchangesRoutes);
 
     // Error handler
     this.app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

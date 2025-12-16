@@ -177,8 +177,101 @@ A **multi-user crypto research & execution platform** where:
 │  PATTERN INTELLIGENCE (Weeks 29-32)                              │
 │  └── Phase 21: RuVector Integration                              │
 │                                                                   │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                   │
+│  🎨 FRONTEND INTEGRATION (Continuous - alongside each phase)     │
+│                                                                   │
+│  Frontend wiring happens incrementally as backend completes:     │
+│  ├── After Phase 10: Trading Mode Indicator UI                   │
+│  ├── After Phase 11: Disclaimer/Onboarding flow                  │
+│  ├── After Phase 13: Privacy settings & data export              │
+│  ├── After Phase 16: AI Providers tab (connect, manage, test)    │
+│  ├── After Phase 9:  Exchanges tab (connect, balance, status)    │
+│  ├── After Phase 5:  Strategies tab (create, edit, backtest)     │
+│  ├── After Phase 7:  Orders tab (history, open positions)        │
+│  └── After Phase 15: Monitoring dashboard (alerts, health)       │
+│                                                                   │
+│  Approach: Each backend phase completion triggers UI wiring      │
+│  No separate "frontend phase" - it's continuous integration      │
+│                                                                   │
 └─────────────────────────────────────────────────────────────────┘
 ```
+
+---
+
+## 🎨 Frontend Integration Strategy
+
+### Incremental UI Wiring
+
+Frontend integration is **NOT a separate phase** - it happens continuously as backend capabilities are completed.
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                 FRONTEND INTEGRATION MAP                         │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                   │
+│  Backend Phase          →    Frontend Component                  │
+│  ─────────────────────────────────────────────────────────────  │
+│  Phase 10 (Paper/Live)  →    TradingModeIndicator               │
+│  Phase 11 (Disclaimers) →    DisclaimerAcceptance modal         │
+│  Phase 13 (Privacy)     →    Settings > Privacy & Export        │
+│  Phase 16 (AI Provider) →    AI Providers tab (full CRUD)       │
+│  Phase 9  (Exchanges)   →    Exchanges tab (full CRUD)          │
+│  Phase 5  (Strategies)  →    Strategies tab (create/edit)       │
+│  Phase 6  (Backtesting) →    Backtest results view              │
+│  Phase 7  (Execution)   →    Orders tab, live positions         │
+│  Phase 15 (Monitoring)  →    Health status, alerts panel        │
+│  Phase 21 (RuVector)    →    Pattern insights dashboard         │
+│                                                                   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Frontend Tech Stack
+
+| Component | Technology |
+|-----------|------------|
+| Framework | React 18 + TypeScript |
+| Auth | Clerk (@clerk/clerk-react) |
+| Styling | Tailwind CSS |
+| State | React hooks + Context |
+| API Client | fetch with custom hooks |
+| Build | Vite |
+
+### API Hook Pattern
+
+All frontend API calls use a consistent hook pattern:
+
+```typescript
+// src/ui/hooks/useApi.ts
+export function useApi<T>(endpoint: string) {
+  const { getToken } = useAuth();
+
+  const fetchWithAuth = async (options?: RequestInit) => {
+    const token = await getToken();
+    return fetch(`/api${endpoint}`, {
+      ...options,
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        ...options?.headers,
+      },
+    });
+  };
+
+  return { fetchWithAuth };
+}
+```
+
+### Current Frontend Status
+
+| Tab | Backend Ready | UI Wired | Status |
+|-----|---------------|----------|--------|
+| Overview | ✅ | ❌ | Static mock data |
+| Exchanges | ✅ Phase 9 | ❌ | Not connected |
+| AI Providers | ✅ Phase 16 | ❌ | Not connected |
+| Strategies | ⏳ Phase 5 | ❌ | Not connected |
+| Orders | ⏳ Phase 7 | ❌ | Not connected |
+| Settings | ✅ Multiple | ❌ | Not connected |
 
 ### Phase Summary Table
 

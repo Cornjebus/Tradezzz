@@ -21,6 +21,8 @@ import {
   Wallet,
   Sparkles,
 } from 'lucide-react';
+import { AIProvidersTab } from './providers/AIProvidersTab';
+import { ExchangesTab } from './exchanges/ExchangesTab';
 
 // Tab types
 type Tab = 'overview' | 'exchanges' | 'ai-providers' | 'strategies' | 'orders' | 'settings';
@@ -261,134 +263,9 @@ function SetupStep({ number, title, description, completed, emoji }: {
   );
 }
 
-// Exchanges Tab
-function ExchangesTab() {
-  return (
-    <div className="p-8">
-      <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold">Exchange Connections</h1>
-          <span>🔗</span>
-        </div>
-        <button className="flex items-center gap-2 px-4 py-2 bg-indigo-500 hover:bg-indigo-600 rounded-lg transition-colors">
-          <Plus className="h-4 w-4" />
-          Connect Exchange
-        </button>
-      </div>
+// Exchanges Tab - Now imported from ./exchanges/ExchangesTab
 
-      {/* Exchange Cards */}
-      <div className="grid grid-cols-3 gap-6 mb-8">
-        <ExchangeCard name="Binance" logo="🟡" connected={false} />
-        <ExchangeCard name="Coinbase" logo="🔵" connected={false} />
-        <ExchangeCard name="Kraken" logo="🟣" connected={false} />
-      </div>
-
-      {/* Empty State */}
-      <div className="bg-[#12121a]/80 border border-indigo-900/30 rounded-xl p-12 text-center">
-        <div className="text-4xl mb-4">🔌</div>
-        <h3 className="text-lg font-medium mb-2">No exchanges connected yet</h3>
-        <p className="text-gray-400 mb-4">Connect your exchange to start trading while you sleep</p>
-        <button className="px-6 py-2 bg-indigo-500 hover:bg-indigo-600 rounded-lg transition-colors">
-          Connect Your First Exchange
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function ExchangeCard({ name, logo, connected }: { name: string; logo: string; connected: boolean }) {
-  return (
-    <div className={`bg-[#12121a]/80 border rounded-xl p-6 transition-all hover:scale-105 ${connected ? 'border-green-500/50' : 'border-indigo-900/30 hover:border-indigo-500/50'}`}>
-      <div className="flex items-center gap-3 mb-4">
-        <span className="text-2xl">{logo}</span>
-        <span className="font-semibold">{name}</span>
-        {connected && <span className="ml-auto text-green-400 text-sm">✓ Connected</span>}
-      </div>
-      {connected ? (
-        <div className="space-y-2 text-sm">
-          <div className="flex justify-between">
-            <span className="text-gray-400">Balance:</span>
-            <span>$1,234.56</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-400">Status:</span>
-            <span className="text-green-400">Active</span>
-          </div>
-        </div>
-      ) : (
-        <button className="w-full py-2 border border-indigo-500/50 rounded-lg text-indigo-400 hover:bg-indigo-500/10 transition-colors">
-          Connect
-        </button>
-      )}
-    </div>
-  );
-}
-
-// AI Providers Tab
-function AIProvidersTab() {
-  return (
-    <div className="p-8">
-      <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold">AI Providers</h1>
-          <span>🤖</span>
-        </div>
-        <button className="flex items-center gap-2 px-4 py-2 bg-indigo-500 hover:bg-indigo-600 rounded-lg transition-colors">
-          <Plus className="h-4 w-4" />
-          Add Provider
-        </button>
-      </div>
-
-      {/* Provider Cards */}
-      <div className="grid grid-cols-3 gap-6 mb-8">
-        <ProviderCard name="OpenAI" models={['GPT-4o', 'GPT-4-turbo']} connected={false} emoji="🧠" />
-        <ProviderCard name="Anthropic" models={['Claude 3.5', 'Claude Opus']} connected={false} emoji="🔮" />
-        <ProviderCard name="DeepSeek" models={['V3.2', 'Coder']} connected={false} emoji="🌊" />
-      </div>
-
-      {/* Empty State */}
-      <div className="bg-[#12121a]/80 border border-indigo-900/30 rounded-xl p-12 text-center">
-        <div className="text-4xl mb-4">🧠</div>
-        <h3 className="text-lg font-medium mb-2">No AI providers connected</h3>
-        <p className="text-gray-400 mb-4">Add your API key to enable AI-powered trading signals</p>
-        <button className="px-6 py-2 bg-indigo-500 hover:bg-indigo-600 rounded-lg transition-colors">
-          Add Your First AI Provider
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function ProviderCard({ name, models, connected, emoji }: { name: string; models: string[]; connected: boolean; emoji: string }) {
-  return (
-    <div className={`bg-[#12121a]/80 border rounded-xl p-6 transition-all hover:scale-105 ${connected ? 'border-green-500/50' : 'border-indigo-900/30 hover:border-indigo-500/50'}`}>
-      <div className="flex items-center gap-3 mb-4">
-        <span className="text-2xl">{emoji}</span>
-        <span className="font-semibold">{name}</span>
-        {connected && <span className="ml-auto text-green-400 text-sm">✓ Active</span>}
-      </div>
-      <div className="text-sm text-gray-400 mb-4">
-        Models: {models.join(', ')}
-      </div>
-      {connected ? (
-        <div className="space-y-2 text-sm">
-          <div className="flex justify-between">
-            <span className="text-gray-400">Tokens Used:</span>
-            <span>12,345</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-400">Cost (Today):</span>
-            <span>$0.23</span>
-          </div>
-        </div>
-      ) : (
-        <button className="w-full py-2 border border-indigo-500/50 rounded-lg text-indigo-400 hover:bg-indigo-500/10 transition-colors">
-          Connect
-        </button>
-      )}
-    </div>
-  );
-}
+// AI Providers Tab - Now imported from ./providers/AIProvidersTab
 
 // Strategies Tab
 function StrategiesTab() {

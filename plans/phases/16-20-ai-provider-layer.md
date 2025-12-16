@@ -538,7 +538,59 @@ describe('AIProviderFactory', () => {
 
 ---
 
-## 🔌 Phase 17: Provider Adapters
+## 🔌 Phase 17: Provider Adapters (Full-Stack)
+
+> **IMPORTANT**: Phase 17 follows full-stack development. Each adapter includes backend + frontend + tests in a single commit.
+
+### 17.0 Frontend Requirements (Per Adapter)
+
+For EACH provider adapter (OpenAI, Anthropic, etc.), implement:
+
+**Backend:**
+- Provider adapter class with all interface methods
+- Tests for connection, analysis, signals, sentiment
+- Route handlers for chat/analyze endpoints
+
+**Frontend (useApi.ts + UI):**
+```typescript
+// Add to useApi.ts
+export function useAIChat(providerId: string) {
+  const api = useApi();
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [streaming, setStreaming] = useState(false);
+
+  const sendMessage = async (prompt: string) => {
+    const result = await api.post(`/api/ai/providers/${providerId}/chat`, { prompt });
+    if (result.success) {
+      setMessages(prev => [...prev, { role: 'assistant', content: result.data.content }]);
+    }
+    return result;
+  };
+
+  return { messages, sendMessage, streaming };
+}
+```
+
+**UI Components:**
+```
+src/ui/components/providers/
+├── AIProvidersTab.tsx         # Already exists - add test panel
+├── ProviderTestPanel.tsx      # NEW: Test connection with real API call
+├── ProviderChatPanel.tsx      # NEW: Interactive chat test
+└── ProviderUsageStats.tsx     # NEW: Show real-time usage
+```
+
+**Per-Provider UI Updates:**
+| Provider | Test Panel | Chat Panel | Usage Display |
+|----------|------------|------------|---------------|
+| OpenAI | ✅ | ✅ | ✅ |
+| Anthropic | ✅ | ✅ | ✅ |
+| Google | ✅ | ✅ | ✅ |
+| DeepSeek | ✅ | ✅ | ✅ |
+| Groq | ✅ | ❌ (no streaming) | ✅ |
+| Mistral | ✅ | ✅ | ✅ |
+| xAI | ✅ | ✅ | ✅ |
+| Ollama | ✅ (local check) | ✅ | ✅ (no cost) |
 
 ### 17.1 OpenAI Adapter (Test-First)
 

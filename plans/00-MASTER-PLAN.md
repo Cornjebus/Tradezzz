@@ -2,10 +2,11 @@
 
 ## Single Source of Truth for Multi-User Crypto Trading Platform
 
-**Version**: 2.0.0
+**Version**: 2.1.0
 **Last Updated**: December 2024
-**Status**: Planning Phase
+**Status**: Active Development - Phase 17
 **Target Rating**: 95+/100
+**Current Tests**: 566 passing
 
 ---
 
@@ -201,30 +202,58 @@ A **multi-user crypto research & execution platform** where:
 
 ## 🎨 Frontend Integration Strategy
 
-### Incremental UI Wiring
+### Full-Stack Development Approach
 
-Frontend integration is **NOT a separate phase** - it happens continuously as backend capabilities are completed.
+> **CRITICAL**: Frontend and backend are developed TOGETHER, not sequentially.
+
+Every phase now includes both backend implementation AND frontend wiring. This ensures:
+- No "catch-up" frontend work later
+- Each commit delivers a working feature end-to-end
+- Users can test features immediately
+- Integration bugs are caught early
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                 FRONTEND INTEGRATION MAP                         │
+│              FULL-STACK DEVELOPMENT WORKFLOW                     │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                   │
-│  Backend Phase          →    Frontend Component                  │
-│  ─────────────────────────────────────────────────────────────  │
-│  Phase 10 (Paper/Live)  →    TradingModeIndicator               │
-│  Phase 11 (Disclaimers) →    DisclaimerAcceptance modal         │
-│  Phase 13 (Privacy)     →    Settings > Privacy & Export        │
-│  Phase 16 (AI Provider) →    AI Providers tab (full CRUD)       │
-│  Phase 9  (Exchanges)   →    Exchanges tab (full CRUD)          │
-│  Phase 5  (Strategies)  →    Strategies tab (create/edit)       │
-│  Phase 6  (Backtesting) →    Backtest results view              │
-│  Phase 7  (Execution)   →    Orders tab, live positions         │
-│  Phase 15 (Monitoring)  →    Health status, alerts panel        │
-│  Phase 21 (RuVector)    →    Pattern insights dashboard         │
+│  For EACH feature in a phase:                                    │
+│                                                                   │
+│  1. Backend                                                       │
+│     ├── Write tests first (TDD)                                  │
+│     ├── Implement API route                                      │
+│     └── Verify tests pass                                        │
+│                                                                   │
+│  2. Frontend                                                      │
+│     ├── Add hook to useApi.ts                                    │
+│     ├── Create/update UI component                               │
+│     └── Wire to backend API                                      │
+│                                                                   │
+│  3. Integration                                                   │
+│     ├── Test end-to-end in browser                               │
+│     └── Verify build succeeds                                    │
+│                                                                   │
+│  4. Commit                                                        │
+│     └── Single commit with backend + frontend + tests            │
 │                                                                   │
 └─────────────────────────────────────────────────────────────────┘
 ```
+
+### Frontend Integration Map
+
+| Backend Phase | Frontend Component | Status |
+|---------------|-------------------|--------|
+| Phase 10 (Paper/Live) | TradingModeIndicator | ✅ Wired |
+| Phase 11 (Disclaimers) | DisclaimerAcceptance modal | ⏳ Pending |
+| Phase 13 (Privacy) | Settings > Privacy & Export | ✅ Wired |
+| Phase 16 (AI Provider) | AI Providers tab (full CRUD) | ✅ Wired |
+| Phase 9 (Exchanges) | Exchanges tab (full CRUD) | ✅ Wired |
+| Phase 5 (Strategies) | Strategies tab (create/edit) | ⏳ Pending |
+| Phase 6 (Backtesting) | Backtest results view | ⏳ Pending |
+| Phase 7 (Execution) | Orders tab, live positions | ⏳ Pending |
+| Phase 15 (Monitoring) | Health status, alerts panel | ⏳ Pending |
+| Phase 17 (AI Adapters) | Provider test, chat panel | 🔄 In Progress |
+| Phase 21 (RuVector) | Pattern insights dashboard | ⏳ Pending |
 
 ### Frontend Tech Stack
 
@@ -239,16 +268,15 @@ Frontend integration is **NOT a separate phase** - it happens continuously as ba
 
 ### API Hook Pattern
 
-All frontend API calls use a consistent hook pattern:
+All frontend API calls use a consistent hook pattern in `src/ui/hooks/useApi.ts`:
 
 ```typescript
-// src/ui/hooks/useApi.ts
-export function useApi<T>(endpoint: string) {
+export function useApi() {
   const { getToken } = useAuth();
 
-  const fetchWithAuth = async (options?: RequestInit) => {
+  const request = async <T>(endpoint: string, options?: RequestInit): Promise<ApiResponse<T>> => {
     const token = await getToken();
-    return fetch(`/api${endpoint}`, {
+    const response = await fetch(`${API_BASE}${endpoint}`, {
       ...options,
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -256,22 +284,31 @@ export function useApi<T>(endpoint: string) {
         ...options?.headers,
       },
     });
+    return response.json();
   };
 
-  return { fetchWithAuth };
+  return { get, post, put, del, loading, error };
 }
+
+// Domain-specific hooks
+export function useExchanges() { /* CRUD for exchanges */ }
+export function useAIProviders() { /* CRUD for AI providers */ }
+export function useTradingMode() { /* Paper/Live mode */ }
+export function useUserSettings() { /* User preferences */ }
+export function useOnboarding() { /* Progress tracking */ }
 ```
 
 ### Current Frontend Status
 
 | Tab | Backend Ready | UI Wired | Status |
 |-----|---------------|----------|--------|
-| Overview | ✅ | ❌ | Static mock data |
-| Exchanges | ✅ Phase 9 | ❌ | Not connected |
-| AI Providers | ✅ Phase 16 | ❌ | Not connected |
-| Strategies | ⏳ Phase 5 | ❌ | Not connected |
-| Orders | ⏳ Phase 7 | ❌ | Not connected |
-| Settings | ✅ Multiple | ❌ | Not connected |
+| Overview | ✅ | ✅ | Connected to APIs |
+| Exchanges | ✅ Phase 9 | ✅ | Full CRUD working |
+| AI Providers | ✅ Phase 16 | ✅ | Full CRUD working |
+| Strategies | ⏳ Phase 5 | ❌ | Placeholder |
+| Orders | ⏳ Phase 7 | ❌ | Placeholder |
+| Settings | ✅ Multiple | ✅ | Preferences working |
+| Trading Mode | ✅ Phase 10 | ✅ | Paper/Live switching |
 
 ### Phase Summary Table
 

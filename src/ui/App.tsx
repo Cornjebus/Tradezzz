@@ -314,6 +314,14 @@ function LoadingScreen() {
 
 // Main App component
 export function App() {
+  // In dev mode, skip Clerk auth and go straight to Dashboard
+  const isDev = import.meta.env.DEV;
+
+  if (isDev) {
+    return <Dashboard />;
+  }
+
+  // Production: use Clerk auth
   const { isLoaded } = useAuth();
 
   if (!isLoaded) {

@@ -5,9 +5,9 @@
  */
 
 import { useState, useCallback } from 'react';
-import { useAuth } from '@clerk/clerk-react';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const IS_DEV = import.meta.env.DEV;
 
 export interface ApiError {
   message: string;
@@ -24,7 +24,6 @@ export interface ApiResponse<T> {
  * Base API hook for authenticated requests
  */
 export function useApi() {
-  const { getToken } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
 
@@ -36,7 +35,8 @@ export function useApi() {
     setError(null);
 
     try {
-      const token = await getToken();
+      // In dev mode, use dev token; in prod, would use Clerk
+      const token = IS_DEV ? 'dev-token' : '';
 
       const response = await fetch(`${API_BASE}${endpoint}`, {
         ...options,
@@ -63,7 +63,7 @@ export function useApi() {
     } finally {
       setLoading(false);
     }
-  }, [getToken]);
+  }, []);
 
   const get = useCallback(<T>(endpoint: string) =>
     request<T>(endpoint, { method: 'GET' }), [request]);

@@ -51,6 +51,22 @@ export function createAuthMiddleware(authService: AuthService) {
 }
 
 /**
+ * Development auth middleware - bypasses auth for local testing
+ * In production, use createAuthMiddleware with real AuthService
+ */
+export const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
+  // For development: attach mock user
+  req.user = {
+    userId: 'dev-user-1',
+    id: 'dev-user-1',
+    email: 'dev@tradezzz.local',
+    role: 'user',
+  } as any;
+  req.userId = 'dev-user-1';
+  next();
+};
+
+/**
  * Optional authentication - doesn't fail if no token, but attaches user if present
  */
 export function createOptionalAuthMiddleware(authService: AuthService) {

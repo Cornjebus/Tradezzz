@@ -10,17 +10,14 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Loader2, Moon, Wallet, TrendingUp, Activity, CheckCircle2, Circle } from 'lucide-react';
-import { useExchanges, useAIProviders, useOnboarding, useTradingMode } from '../../hooks/useApi';
-import { useAuth } from '@clerk/clerk-react';
-
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+import { useExchanges, useAIProviders, useOnboarding, useTradingMode, useApi } from '../../hooks/useApi';
 
 interface OverviewTabProps {
   onNavigate?: (tab: string) => void;
 }
 
 export function OverviewTab({ onNavigate }: OverviewTabProps) {
-  const { getToken } = useAuth();
+  const api = useApi();
   const { exchanges, fetchExchanges } = useExchanges();
   const { providers, fetchProviders } = useAIProviders();
   const { progress, fetchProgress } = useOnboarding();
@@ -34,18 +31,14 @@ export function OverviewTab({ onNavigate }: OverviewTabProps) {
 
   const fetchPortfolio = useCallback(async () => {
     try {
-      const token = await getToken();
-      const response = await fetch(`${API_BASE}/api/trading/paper/portfolio`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await response.json();
-      if (data.success) {
-        setPortfolio(data.data);
+      const result = await api.get<{ totalValue: number; balances: Record<string, number> }>('/api/trading/paper/portfolio');
+      if (result.success && result.data) {
+        setPortfolio(result.data);
       }
     } catch (err) {
       console.error('Failed to fetch portfolio:', err);
     }
-  }, [getToken]);
+  }, [api]);
 
   useEffect(() => {
     const loadData = async () => {

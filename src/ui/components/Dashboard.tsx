@@ -4,7 +4,6 @@
  */
 
 import { useState } from 'react';
-import { useUser, useClerk } from '@clerk/clerk-react';
 import {
   Moon,
   LayoutDashboard,
@@ -18,6 +17,7 @@ import {
   Plus,
   Sparkles,
 } from 'lucide-react';
+import { useUser, useClerk } from '@clerk/clerk-react';
 import { AIProvidersTab } from './providers/AIProvidersTab';
 import { ExchangesTab } from './exchanges/ExchangesTab';
 import { SettingsTab } from './settings/SettingsTab';

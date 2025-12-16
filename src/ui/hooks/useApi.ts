@@ -4,10 +4,9 @@
  * Provides authenticated API calls to backend services
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-const IS_DEV = import.meta.env.DEV;
 
 export interface ApiError {
   message: string;
@@ -18,6 +17,12 @@ export interface ApiResponse<T> {
   success: boolean;
   data?: T;
   error?: string;
+}
+
+// Global token storage - will be set by ClerkTokenProvider or default to dev
+let globalToken: string | null = null;
+export function setGlobalToken(token: string | null) {
+  globalToken = token;
 }
 
 /**
@@ -35,8 +40,8 @@ export function useApi() {
     setError(null);
 
     try {
-      // In dev mode, use dev token; in prod, would use Clerk
-      const token = IS_DEV ? 'dev-token' : '';
+      // Use global token or fallback to dev token
+      const token = globalToken || 'dev-token';
 
       const response = await fetch(`${API_BASE}${endpoint}`, {
         ...options,

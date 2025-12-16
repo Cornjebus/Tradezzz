@@ -314,14 +314,20 @@ function LoadingScreen() {
 
 // Main App component
 export function App() {
-  // In dev mode, skip Clerk auth and go straight to Dashboard
-  const isDev = import.meta.env.DEV;
+  // Check if we have Clerk available
+  const hasClerk = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
-  if (isDev) {
+  // No Clerk = demo mode, show dashboard directly
+  if (!hasClerk) {
     return <Dashboard />;
   }
 
-  // Production: use Clerk auth
+  // With Clerk: use auth flow
+  return <AuthenticatedApp />;
+}
+
+// Separate component for Clerk-wrapped auth flow
+function AuthenticatedApp() {
   const { isLoaded } = useAuth();
 
   if (!isLoaded) {

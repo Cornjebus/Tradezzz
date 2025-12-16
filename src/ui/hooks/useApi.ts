@@ -327,3 +327,161 @@ export function useMonitoring() {
     fetchHealth,
   };
 }
+
+// ============================================
+// USER SETTINGS HOOK
+// ============================================
+
+export interface UserSettings {
+  subscription: {
+    tier: 'dreamer' | 'sleeper' | 'slumber' | 'coma';
+    features: string[];
+    maxStrategies: number;
+  };
+  trading: {
+    defaultMode: 'paper' | 'live';
+    riskLevel: 'conservative' | 'medium' | 'aggressive';
+    maxPositions: number;
+    defaultOrderSize: number;
+  };
+  notifications: {
+    bigTrades: boolean;
+    morningSummary: boolean;
+    priceAlerts: boolean;
+    systemUpdates: boolean;
+    email: boolean;
+    push: boolean;
+  };
+  display: {
+    theme: 'dark' | 'light' | 'auto';
+    currency: string;
+    timezone: string;
+    language: string;
+  };
+}
+
+export interface SubscriptionInfo {
+  current: UserSettings['subscription'];
+  tierInfo: {
+    name: string;
+    price: number;
+    emoji: string;
+    features: string[];
+    upgradeUrl: string | null;
+  };
+  allTiers: Record<string, {
+    name: string;
+    price: number;
+    emoji: string;
+    features: string[];
+    upgradeUrl: string | null;
+  }>;
+}
+
+export function useUserSettings() {
+  const api = useApi();
+  const [settings, setSettings] = useState<UserSettings | null>(null);
+  const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null);
+
+  const fetchSettings = useCallback(async () => {
+    const result = await api.get<UserSettings>('/api/settings');
+    if (result.success && result.data) {
+      setSettings(result.data);
+    }
+    return result;
+  }, [api]);
+
+  const fetchSubscription = useCallback(async () => {
+    const result = await api.get<SubscriptionInfo>('/api/settings/subscription');
+    if (result.success && result.data) {
+      setSubscription(result.data);
+    }
+    return result;
+  }, [api]);
+
+  const updateTradingSettings = useCallback(async (data: Partial<UserSettings['trading']>) => {
+    const result = await api.put<UserSettings['trading']>('/api/settings/trading', data);
+    if (result.success) {
+      await fetchSettings();
+    }
+    return result;
+  }, [api, fetchSettings]);
+
+  const updateNotificationSettings = useCallback(async (data: Partial<UserSettings['notifications']>) => {
+    const result = await api.put<UserSettings['notifications']>('/api/settings/notifications', data);
+    if (result.success) {
+      await fetchSettings();
+    }
+    return result;
+  }, [api, fetchSettings]);
+
+  const updateDisplaySettings = useCallback(async (data: Partial<UserSettings['display']>) => {
+    const result = await api.put<UserSettings['display']>('/api/settings/display', data);
+    if (result.success) {
+      await fetchSettings();
+    }
+    return result;
+  }, [api, fetchSettings]);
+
+  return {
+    settings,
+    subscription,
+    loading: api.loading,
+    error: api.error,
+    fetchSettings,
+    fetchSubscription,
+    updateTradingSettings,
+    updateNotificationSettings,
+    updateDisplaySettings,
+  };
+}
+
+// ============================================
+// ONBOARDING HOOK
+// ============================================
+
+export interface OnboardingProgress {
+  steps: Record<string, boolean>;
+  isComplete: boolean;
+  percentComplete: number;
+}
+
+export function useOnboarding() {
+  const api = useApi();
+  const [progress, setProgress] = useState<OnboardingProgress | null>(null);
+  const [canTrade, setCanTrade] = useState<{ allowed: boolean; reason?: string } | null>(null);
+
+  const fetchProgress = useCallback(async () => {
+    const result = await api.get<OnboardingProgress>('/api/onboarding/progress');
+    if (result.success && result.data) {
+      setProgress(result.data);
+    }
+    return result;
+  }, [api]);
+
+  const checkCanTrade = useCallback(async () => {
+    const result = await api.get<{ allowed: boolean; reason?: string }>('/api/onboarding/can-trade');
+    if (result.success && result.data) {
+      setCanTrade(result.data);
+    }
+    return result;
+  }, [api]);
+
+  const completeStep = useCallback(async (step: string) => {
+    const result = await api.post('/api/onboarding/complete-step', { step });
+    if (result.success) {
+      await fetchProgress();
+    }
+    return result;
+  }, [api, fetchProgress]);
+
+  return {
+    progress,
+    canTrade,
+    loading: api.loading,
+    error: api.error,
+    fetchProgress,
+    checkCanTrade,
+    completeStep,
+  };
+}

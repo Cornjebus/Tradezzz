@@ -23,6 +23,8 @@ import {
 } from 'lucide-react';
 import { AIProvidersTab } from './providers/AIProvidersTab';
 import { ExchangesTab } from './exchanges/ExchangesTab';
+import { SettingsTab } from './settings/SettingsTab';
+import { TradingModeIndicator } from './trading/TradingModeIndicator';
 
 // Tab types
 type Tab = 'overview' | 'exchanges' | 'ai-providers' | 'strategies' | 'orders' | 'settings';
@@ -123,6 +125,12 @@ export function Dashboard() {
 
       {/* Main Content */}
       <main className="flex-1 overflow-auto">
+        {/* Header with Trading Mode Indicator */}
+        <div className="sticky top-0 z-10 bg-[#0a0a12]/95 backdrop-blur border-b border-indigo-900/30 px-8 py-4 flex items-center justify-between">
+          <div />
+          <TradingModeIndicator compact />
+        </div>
+
         {activeTab === 'overview' && <OverviewTab />}
         {activeTab === 'exchanges' && <ExchangesTab />}
         {activeTab === 'ai-providers' && <AIProvidersTab />}
@@ -322,81 +330,4 @@ function OrdersTab() {
   );
 }
 
-// Settings Tab
-function SettingsTab() {
-  return (
-    <div className="p-8">
-      <div className="flex items-center gap-3 mb-8">
-        <h1 className="text-2xl font-bold">Settings</h1>
-        <span>⚙️</span>
-      </div>
-
-      <div className="max-w-2xl space-y-6">
-        {/* Account Settings */}
-        <div className="bg-[#12121a]/80 border border-indigo-900/30 rounded-xl p-6">
-          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <span>😴</span> Account
-          </h2>
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <div>
-                <p className="font-medium">Subscription Tier</p>
-                <p className="text-sm text-indigo-400">Dreamer (Free)</p>
-              </div>
-              <button className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 rounded-lg text-sm transition-colors">
-                Upgrade to Sleeper 💤
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Trading Settings */}
-        <div className="bg-[#12121a]/80 border border-indigo-900/30 rounded-xl p-6">
-          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <span>📊</span> Trading
-          </h2>
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <div>
-                <p className="font-medium">Default Mode</p>
-                <p className="text-sm text-gray-400">Paper trading (simulated)</p>
-              </div>
-              <select className="bg-indigo-900/30 border border-indigo-500/30 rounded-lg px-3 py-2 text-sm">
-                <option>Paper Trading</option>
-                <option disabled>Live Trading (Sleeper+)</option>
-              </select>
-            </div>
-            <div className="flex justify-between items-center">
-              <div>
-                <p className="font-medium">Risk Level</p>
-                <p className="text-sm text-gray-400">How aggressive while you sleep</p>
-              </div>
-              <select className="bg-indigo-900/30 border border-indigo-500/30 rounded-lg px-3 py-2 text-sm">
-                <option>😴 Conservative</option>
-                <option>💤 Medium</option>
-                <option>🚀 Aggressive</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        {/* Notifications */}
-        <div className="bg-[#12121a]/80 border border-indigo-900/30 rounded-xl p-6">
-          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <span>🔔</span> Notifications
-          </h2>
-          <div className="space-y-4">
-            <label className="flex items-center justify-between cursor-pointer">
-              <span>Wake me up for big trades</span>
-              <input type="checkbox" className="w-5 h-5 rounded accent-indigo-500" />
-            </label>
-            <label className="flex items-center justify-between cursor-pointer">
-              <span>Morning profit summary</span>
-              <input type="checkbox" className="w-5 h-5 rounded accent-indigo-500" defaultChecked />
-            </label>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+// Settings Tab - Now imported from ./settings/SettingsTab

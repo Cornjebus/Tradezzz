@@ -17,6 +17,7 @@ import privacyRoutes from './routes/privacy.routes';
 import monitoringRoutes from './routes/monitoring.routes';
 import aiProvidersRoutes from './routes/ai-providers.routes';
 import exchangesRoutes from './routes/exchanges.routes';
+import userSettingsRoutes from './routes/user-settings.routes';
 
 const PORT = process.env.API_PORT || 3001;
 
@@ -495,6 +496,11 @@ export class NeuralTradingServer {
     // EXCHANGE ROUTES (Phase 9)
     // ============================================
     this.app.use('/api/exchanges', exchangesRoutes);
+
+    // ============================================
+    // USER SETTINGS ROUTES
+    // ============================================
+    this.app.use('/api/settings', userSettingsRoutes);
 
     // Error handler
     this.app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

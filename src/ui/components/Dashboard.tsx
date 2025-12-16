@@ -16,15 +16,13 @@ import {
   LogOut,
   ChevronDown,
   Plus,
-  TrendingUp,
-  Activity,
-  Wallet,
   Sparkles,
 } from 'lucide-react';
 import { AIProvidersTab } from './providers/AIProvidersTab';
 import { ExchangesTab } from './exchanges/ExchangesTab';
 import { SettingsTab } from './settings/SettingsTab';
 import { TradingModeIndicator } from './trading/TradingModeIndicator';
+import { OverviewTab } from './overview/OverviewTab';
 
 // Tab types
 type Tab = 'overview' | 'exchanges' | 'ai-providers' | 'strategies' | 'orders' | 'settings';
@@ -131,7 +129,7 @@ export function Dashboard() {
           <TradingModeIndicator compact />
         </div>
 
-        {activeTab === 'overview' && <OverviewTab />}
+        {activeTab === 'overview' && <OverviewTab onNavigate={(tab) => setActiveTab(tab as Tab)} />}
         {activeTab === 'exchanges' && <ExchangesTab />}
         {activeTab === 'ai-providers' && <AIProvidersTab />}
         {activeTab === 'strategies' && <StrategiesTab />}
@@ -142,134 +140,7 @@ export function Dashboard() {
   );
 }
 
-// Overview Tab
-function OverviewTab() {
-  return (
-    <div className="p-8">
-      <div className="flex items-center gap-3 mb-8">
-        <h1 className="text-2xl font-bold">Dashboard</h1>
-        <span className="text-2xl">💤</span>
-      </div>
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-4 gap-6 mb-8">
-        <StatCard
-          title="Portfolio Value"
-          value="$0.00"
-          change="+0%"
-          positive
-          icon={<Wallet className="h-5 w-5" />}
-        />
-        <StatCard
-          title="24h P&L"
-          value="$0.00"
-          change="0%"
-          positive
-          icon={<TrendingUp className="h-5 w-5" />}
-        />
-        <StatCard
-          title="Open Positions"
-          value="0"
-          subtitle="Paper Mode"
-          icon={<Activity className="h-5 w-5" />}
-        />
-        <StatCard
-          title="Active Strategies"
-          value="0"
-          subtitle="of 1 allowed"
-          icon={<Moon className="h-5 w-5" />}
-        />
-      </div>
-
-      {/* Getting Started */}
-      <div className="bg-[#12121a]/80 border border-indigo-900/30 rounded-xl p-6">
-        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <span>🌙</span>
-          Start Your Sleep Trading Journey
-        </h2>
-        <div className="space-y-4">
-          <SetupStep
-            number={1}
-            title="Connect an Exchange"
-            description="Add your Binance, Coinbase, or Kraken API keys to start trading"
-            completed={false}
-            emoji="🔗"
-          />
-          <SetupStep
-            number={2}
-            title="Add an AI Provider"
-            description="Connect OpenAI, Anthropic, or DeepSeek for AI-powered analysis"
-            completed={false}
-            emoji="🤖"
-          />
-          <SetupStep
-            number={3}
-            title="Create a Strategy"
-            description="Build your first trading strategy using AI signals"
-            completed={false}
-            emoji="📈"
-          />
-          <SetupStep
-            number={4}
-            title="Start Sleeping"
-            description="Let TradeZZZ trade while you dream 💤"
-            completed={false}
-            emoji="😴"
-          />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function StatCard({ title, value, change, positive, subtitle, icon }: {
-  title: string;
-  value: string;
-  change?: string;
-  positive?: boolean;
-  subtitle?: string;
-  icon: React.ReactNode;
-}) {
-  return (
-    <div className="bg-[#12121a]/80 border border-indigo-900/30 rounded-xl p-6 hover:border-indigo-500/30 transition-colors">
-      <div className="flex items-center justify-between mb-4">
-        <span className="text-gray-400 text-sm">{title}</span>
-        <span className="text-indigo-400">{icon}</span>
-      </div>
-      <p className="text-2xl font-bold mb-1">{value}</p>
-      {change && (
-        <p className={`text-sm ${positive ? 'text-green-400' : 'text-red-400'}`}>
-          {change}
-        </p>
-      )}
-      {subtitle && (
-        <p className="text-sm text-gray-500">{subtitle}</p>
-      )}
-    </div>
-  );
-}
-
-function SetupStep({ number, title, description, completed, emoji }: {
-  number: number;
-  title: string;
-  description: string;
-  completed: boolean;
-  emoji: string;
-}) {
-  return (
-    <div className={`flex items-start gap-4 p-4 rounded-lg ${completed ? 'bg-green-500/10' : 'bg-indigo-900/10'}`}>
-      <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg ${
-        completed ? 'bg-green-500 text-white' : 'bg-indigo-500/20 border border-indigo-500/50'
-      }`}>
-        {completed ? '✓' : emoji}
-      </div>
-      <div>
-        <h3 className="font-medium">{title}</h3>
-        <p className="text-sm text-gray-400">{description}</p>
-      </div>
-    </div>
-  );
-}
+// Overview Tab - Now imported from ./overview/OverviewTab
 
 // Exchanges Tab - Now imported from ./exchanges/ExchangesTab
 

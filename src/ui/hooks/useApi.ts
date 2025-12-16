@@ -329,6 +329,112 @@ export function useMonitoring() {
 }
 
 // ============================================
+// AI CHAT HOOK
+// ============================================
+
+export interface ChatMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+export interface ChatResponse {
+  content: string;
+  model: string;
+  usage: {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+  };
+  latencyMs: number;
+}
+
+export function useAIChat(providerId: string) {
+  const api = useApi();
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [lastResponse, setLastResponse] = useState<ChatResponse | null>(null);
+
+  const sendMessage = useCallback(async (content: string) => {
+    // Add user message to history
+    const userMessage: ChatMessage = { role: 'user', content };
+    setMessages(prev => [...prev, userMessage]);
+
+    // Call API
+    const result = await api.post<ChatResponse>(`/api/ai/providers/${providerId}/chat`, {
+      messages: [...messages, userMessage],
+    });
+
+    if (result.success && result.data) {
+      // Add assistant response to history
+      const assistantMessage: ChatMessage = { role: 'assistant', content: result.data.content };
+      setMessages(prev => [...prev, assistantMessage]);
+      setLastResponse(result.data);
+    }
+
+    return result;
+  }, [api, providerId, messages]);
+
+  const clearHistory = useCallback(() => {
+    setMessages([]);
+    setLastResponse(null);
+  }, []);
+
+  return {
+    messages,
+    lastResponse,
+    loading: api.loading,
+    error: api.error,
+    sendMessage,
+    clearHistory,
+  };
+}
+
+// ============================================
+// AI ANALYSIS HOOK
+// ============================================
+
+export interface SentimentResult {
+  sentiment: 'bullish' | 'bearish' | 'neutral';
+  score: number;
+  confidence: number;
+  reasoning: string;
+}
+
+export interface SignalResult {
+  action: 'buy' | 'sell' | 'hold';
+  confidence: number;
+  reasoning: string;
+  suggestedSize: number;
+  stopLoss?: number;
+  takeProfit?: number;
+}
+
+export function useAIAnalysis(providerId: string) {
+  const api = useApi();
+
+  const analyzeSentiment = useCallback(async (text: string, symbol?: string) => {
+    return api.post<SentimentResult>(`/api/ai/providers/${providerId}/sentiment`, {
+      text,
+      symbol,
+    });
+  }, [api, providerId]);
+
+  const generateSignal = useCallback(async (params: {
+    symbol: string;
+    price: number;
+    indicators: Record<string, number>;
+  }) => {
+    return api.post<SignalResult>(`/api/ai/providers/${providerId}/signal`, params);
+  }, [api, providerId]);
+
+  return {
+    loading: api.loading,
+    error: api.error,
+    analyzeSentiment,
+    generateSignal,
+  };
+}
+
+// ============================================
 // USER SETTINGS HOOK
 // ============================================
 

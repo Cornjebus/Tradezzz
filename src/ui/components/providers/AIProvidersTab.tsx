@@ -5,8 +5,9 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Plus, Trash2, RefreshCw, Check, X, Loader2 } from 'lucide-react';
+import { Plus, Trash2, RefreshCw, Check, X, Loader2, Zap } from 'lucide-react';
 import { useAIProviders, AIProvider, SupportedProvider } from '../../hooks/useApi';
+import { ProviderTestPanel } from './ProviderTestPanel';
 
 const PROVIDER_EMOJIS: Record<string, string> = {
   openai: '🧠',
@@ -35,6 +36,7 @@ export function AIProvidersTab() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [testingId, setTestingId] = useState<string | null>(null);
   const [testResult, setTestResult] = useState<{ id: string; valid: boolean } | null>(null);
+  const [testPanelProvider, setTestPanelProvider] = useState<AIProvider | null>(null);
 
   useEffect(() => {
     fetchProviders();
@@ -107,6 +109,7 @@ export function AIProvidersTab() {
                 key={provider.id}
                 provider={provider}
                 onTest={() => handleTest(provider.id)}
+                onOpenTestPanel={() => setTestPanelProvider(provider)}
                 onDelete={() => handleDelete(provider.id)}
                 onToggle={() => handleToggleStatus(provider)}
                 testing={testingId === provider.id}
@@ -164,6 +167,16 @@ export function AIProvidersTab() {
           onClose={() => setShowAddModal(false)}
         />
       )}
+
+      {/* Provider Test Panel */}
+      {testPanelProvider && (
+        <ProviderTestPanel
+          providerId={testPanelProvider.id}
+          providerName={testPanelProvider.name}
+          providerType={testPanelProvider.provider}
+          onClose={() => setTestPanelProvider(null)}
+        />
+      )}
     </div>
   );
 }
@@ -171,6 +184,7 @@ export function AIProvidersTab() {
 function ConnectedProviderCard({
   provider,
   onTest,
+  onOpenTestPanel,
   onDelete,
   onToggle,
   testing,
@@ -178,6 +192,7 @@ function ConnectedProviderCard({
 }: {
   provider: AIProvider;
   onTest: () => void;
+  onOpenTestPanel: () => void;
   onDelete: () => void;
   onToggle: () => void;
   testing: boolean;
@@ -246,6 +261,13 @@ function ConnectedProviderCard({
           ) : (
             'Test'
           )}
+        </button>
+        <button
+          onClick={onOpenTestPanel}
+          className="px-3 py-2 bg-indigo-500 hover:bg-indigo-600 rounded-lg text-white transition-colors"
+          title="Open test panel"
+        >
+          <Zap className="h-4 w-4" />
         </button>
         <button
           onClick={onDelete}

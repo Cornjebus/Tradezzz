@@ -52,10 +52,10 @@ class TradingService {
     }
 
     // Decrypt credentials
-    const apiKey = decryptApiKey(connection.api_key_encrypted);
-    const apiSecret = decryptApiKey(connection.api_secret_encrypted);
-    const passphrase = connection.passphrase_encrypted
-      ? decryptApiKey(connection.passphrase_encrypted)
+    const apiKey = decryptApiKey(connection.encrypted_api_key);
+    const apiSecret = decryptApiKey(connection.encrypted_api_secret);
+    const passphrase = connection.encrypted_passphrase
+      ? decryptApiKey(connection.encrypted_passphrase)
       : undefined;
 
     const credentials: ExchangeCredentials = {

@@ -11,6 +11,17 @@ const isPublicRoute = createRouteMatcher([
 const isApiRoute = createRouteMatcher(['/api/(.*)'])
 
 export default clerkMiddleware(async (auth, request) => {
+  // Handle CORS preflight requests
+  if (request.method === 'OPTIONS') {
+    return new NextResponse(null, {
+      status: 200,
+      headers: {
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      },
+    })
+  }
+
   // Allow public routes
   if (isPublicRoute(request)) {
     return NextResponse.next()

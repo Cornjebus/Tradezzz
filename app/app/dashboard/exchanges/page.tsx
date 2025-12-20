@@ -64,7 +64,7 @@ export default function ExchangesPage() {
       const res = await fetch("/api/exchanges");
       if (res.ok) {
         const data = await res.json();
-        setConnections(data.exchanges || []);
+        setConnections(data.connections || []);
       }
     } catch (error) {
       console.error("Failed to fetch exchanges:", error);

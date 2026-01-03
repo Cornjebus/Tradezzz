@@ -4,10 +4,27 @@
  * This adapter uses Coinbase's Advanced Trade API (api.coinbase.com)
  * which replaced the deprecated Coinbase Pro API.
  *
- * Authentication uses JWT tokens signed with the API secret.
+ * Authentication uses JWT tokens signed with ES256 (ECDSA P-256).
+ *
+ * PUBLIC ENDPOINTS (No API keys needed - great for paper trading!):
+ * - GET /api/v3/brokerage/market/products - List all products
+ * - GET /api/v3/brokerage/market/products/{product_id} - Get product details/ticker
+ * - GET /api/v3/brokerage/market/products/{product_id}/book - Order book
+ * - GET /api/v3/brokerage/market/products/{product_id}/candles - OHLCV data
+ *
+ * AUTHENTICATED ENDPOINTS (Require CDP API keys):
+ * - GET /api/v3/brokerage/accounts - Account balances
+ * - POST /api/v3/brokerage/orders - Place orders
+ * - GET /api/v3/brokerage/orders - List orders
+ * - DELETE /api/v3/brokerage/orders/batch_cancel - Cancel orders
+ *
+ * API Key Format (CDP - Coinbase Developer Platform):
+ * - Key name: "organizations/{org_id}/apiKeys/{key_id}"
+ * - Key secret: PEM-formatted EC private key
  */
 
 import * as crypto from 'crypto';
+import jwt from 'jsonwebtoken';
 import {
   ExchangeAdapter,
   ExchangeAdapterContext,
@@ -25,6 +42,36 @@ import {
 export interface CoinbaseAdapterOptions {
   baseUrl?: string;
   timeoutMs?: number;
+}
+
+export interface CoinbaseOrder {
+  orderId: string;
+  clientOrderId: string;
+  productId: string;
+  side: 'BUY' | 'SELL';
+  type: 'MARKET' | 'LIMIT' | 'STOP_LIMIT';
+  status: string;
+  filledSize: string;
+  filledValue: string;
+  averageFilledPrice: string;
+  createdTime: string;
+}
+
+export interface CreateOrderParams {
+  symbol: string;
+  side: 'buy' | 'sell';
+  type: 'market' | 'limit' | 'stop_limit';
+  quantity: number;
+  price?: number;
+  stopPrice?: number;
+  clientOrderId?: string;
+}
+
+export interface CreateOrderResult {
+  success: boolean;
+  orderId?: string;
+  clientOrderId?: string;
+  error?: string;
 }
 
 export class CoinbaseAdapter implements ExchangeAdapter {
@@ -47,7 +94,22 @@ export class CoinbaseAdapter implements ExchangeAdapter {
   }
 
   /**
+   * Convert Coinbase product ID back to standard format: "BTC-USDT" -> "BTC/USDT"
+   */
+  private fromCoinbaseProductId(productId: string): string {
+    return productId.replace('-', '/');
+  }
+
+  /**
    * Generate JWT token for Coinbase Advanced Trade API authentication
+   *
+   * Uses ES256 (ECDSA with P-256 curve) as required by Coinbase CDP API.
+   * The API secret must be a PEM-formatted EC private key.
+   *
+   * @param apiKey - CDP API key in format "organizations/{org_id}/apiKeys/{key_id}"
+   * @param apiSecret - PEM-formatted EC private key
+   * @param requestMethod - HTTP method (GET, POST, DELETE, etc.)
+   * @param requestPath - API path (e.g., "/api/v3/brokerage/accounts")
    */
   private generateJWT(
     apiKey: string,
@@ -56,47 +118,47 @@ export class CoinbaseAdapter implements ExchangeAdapter {
     requestPath: string,
   ): string {
     const timestamp = Math.floor(Date.now() / 1000);
+    const nonce = crypto.randomBytes(16).toString('hex');
 
-    // JWT Header
-    const header = {
-      alg: 'ES256',
-      kid: apiKey,
-      nonce: crypto.randomBytes(16).toString('hex'),
-      typ: 'JWT',
-    };
-
-    // JWT Payload
+    // JWT Payload as per Coinbase CDP specification
     const payload = {
       iss: 'coinbase-cloud',
       nbf: timestamp,
       exp: timestamp + 120, // 2 minutes expiry
       sub: apiKey,
-      uri: `${requestMethod} ${this.baseUrl}${requestPath}`,
+      uri: `${requestMethod} api.coinbase.com${requestPath}`,
     };
 
-    // For ES256, we need to use EC key signing
-    // Simplified version - in production use proper EC signing
-    const base64Header = Buffer.from(JSON.stringify(header)).toString('base64url');
-    const base64Payload = Buffer.from(JSON.stringify(payload)).toString('base64url');
+    // Ensure the secret is properly formatted as PEM
+    let pemKey = apiSecret;
+    if (!pemKey.includes('-----BEGIN')) {
+      // If it's not already PEM formatted, assume it's base64 encoded
+      pemKey = `-----BEGIN EC PRIVATE KEY-----\n${apiSecret}\n-----END EC PRIVATE KEY-----`;
+    }
 
-    const signatureInput = `${base64Header}.${base64Payload}`;
+    // Sign with ES256 (ECDSA P-256) algorithm
+    const token = jwt.sign(payload, pemKey, {
+      algorithm: 'ES256',
+      header: {
+        alg: 'ES256',
+        kid: apiKey,
+        nonce: nonce,
+        typ: 'JWT',
+      },
+    });
 
-    // Create HMAC signature (simplified - real impl would use EC)
-    const signature = crypto
-      .createHmac('sha256', apiSecret)
-      .update(signatureInput)
-      .digest('base64url');
-
-    return `${base64Header}.${base64Payload}.${signature}`;
+    return token;
   }
 
   /**
    * Make authenticated request to Coinbase Advanced Trade API
    */
-  private async getJson(
+  private async request(
+    method: string,
     path: string,
     ctx?: ExchangeAdapterContext,
     params?: Record<string, string>,
+    body?: Record<string, unknown>,
   ): Promise<any> {
     const url = new URL(path, this.baseUrl);
     if (params) {
@@ -114,14 +176,15 @@ export class CoinbaseAdapter implements ExchangeAdapter {
 
     // Add authentication if credentials provided
     if (ctx?.apiKey && ctx?.apiSecret) {
-      const jwt = this.generateJWT(ctx.apiKey, ctx.apiSecret, 'GET', path);
+      const jwt = this.generateJWT(ctx.apiKey, ctx.apiSecret, method, path);
       headers['Authorization'] = `Bearer ${jwt}`;
     }
 
     try {
       const response = await fetch(url.toString(), {
-        method: 'GET',
+        method,
         headers,
+        body: body ? JSON.stringify(body) : undefined,
         signal: controller.signal,
       });
 
@@ -139,7 +202,30 @@ export class CoinbaseAdapter implements ExchangeAdapter {
   }
 
   /**
+   * Make GET request (convenience method)
+   */
+  private async getJson(
+    path: string,
+    ctx?: ExchangeAdapterContext,
+    params?: Record<string, string>,
+  ): Promise<any> {
+    return this.request('GET', path, ctx, params);
+  }
+
+  /**
+   * Make POST request (convenience method)
+   */
+  private async postJson(
+    path: string,
+    ctx: ExchangeAdapterContext,
+    body: Record<string, unknown>,
+  ): Promise<any> {
+    return this.request('POST', path, ctx, undefined, body);
+  }
+
+  /**
    * Get ticker for a trading pair
+   * PUBLIC ENDPOINT - No authentication required
    */
   async getTicker(ctx: ExchangeAdapterContext, symbol: string): Promise<Ticker> {
     const productId = this.toCoinbaseProductId(symbol);
@@ -169,6 +255,7 @@ export class CoinbaseAdapter implements ExchangeAdapter {
 
   /**
    * Get order book for a trading pair
+   * PUBLIC ENDPOINT - No authentication required
    */
   async getOrderBook(ctx: ExchangeAdapterContext, symbol: string): Promise<OrderBook> {
     const productId = this.toCoinbaseProductId(symbol);
@@ -201,6 +288,7 @@ export class CoinbaseAdapter implements ExchangeAdapter {
 
   /**
    * Get OHLCV candles for a trading pair
+   * PUBLIC ENDPOINT - No authentication required
    */
   async getOHLCV(
     ctx: ExchangeAdapterContext,
@@ -212,7 +300,7 @@ export class CoinbaseAdapter implements ExchangeAdapter {
     const granularity = this.timeframeToGranularity(timeframe);
 
     const end = Math.floor(Date.now() / 1000);
-    const start = end - granularity * limit;
+    const start = end - this.granularityToSeconds(granularity) * limit;
 
     const response = await this.getJson(
       `/api/v3/brokerage/market/products/${productId}/candles`,
@@ -254,7 +342,25 @@ export class CoinbaseAdapter implements ExchangeAdapter {
   }
 
   /**
+   * Convert granularity to seconds for time calculations
+   */
+  private granularityToSeconds(granularity: string): number {
+    const map: Record<string, number> = {
+      'ONE_MINUTE': 60,
+      'FIVE_MINUTE': 300,
+      'FIFTEEN_MINUTE': 900,
+      'THIRTY_MINUTE': 1800,
+      'ONE_HOUR': 3600,
+      'TWO_HOUR': 7200,
+      'SIX_HOUR': 21600,
+      'ONE_DAY': 86400,
+    };
+    return map[granularity] || 3600;
+  }
+
+  /**
    * Get all available trading symbols
+   * PUBLIC ENDPOINT - No authentication required
    */
   async getSymbols(ctx: ExchangeAdapterContext): Promise<string[]> {
     const response = await this.getJson('/api/v3/brokerage/market/products', ctx);
@@ -266,7 +372,8 @@ export class CoinbaseAdapter implements ExchangeAdapter {
   }
 
   /**
-   * Get account balances (requires authentication)
+   * Get account balances
+   * AUTHENTICATED ENDPOINT - Requires valid CDP API keys
    */
   async getBalance(ctx: ExchangeAdapterContext): Promise<Balance> {
     if (!ctx.apiKey || !ctx.apiSecret) {
@@ -305,10 +412,22 @@ export class CoinbaseAdapter implements ExchangeAdapter {
 
   /**
    * Get trading fees
+   * AUTHENTICATED ENDPOINT - Returns actual fees if authenticated, defaults otherwise
    */
   async getTradingFees(ctx: ExchangeAdapterContext): Promise<TradingFees> {
+    if (ctx.apiKey && ctx.apiSecret) {
+      try {
+        const response = await this.getJson('/api/v3/brokerage/transaction_summary', ctx);
+        return {
+          maker: parseFloat(response.maker_fee_rate || '0.004'),
+          taker: parseFloat(response.taker_fee_rate || '0.006'),
+        };
+      } catch {
+        // Fall through to defaults
+      }
+    }
+
     // Coinbase Advanced Trade standard fees
-    // Real implementation would fetch from /api/v3/brokerage/transaction_summary
     return {
       maker: 0.004, // 0.4%
       taker: 0.006, // 0.6%
@@ -317,6 +436,7 @@ export class CoinbaseAdapter implements ExchangeAdapter {
 
   /**
    * Get symbol trading limits
+   * PUBLIC ENDPOINT - No authentication required
    */
   async getSymbolLimits(ctx: ExchangeAdapterContext, symbol: string): Promise<SymbolLimits> {
     const productId = this.toCoinbaseProductId(symbol);
@@ -333,8 +453,8 @@ export class CoinbaseAdapter implements ExchangeAdapter {
         minPrice: parseFloat(response.quote_min_size || '0.01'),
         maxPrice: parseFloat(response.quote_max_size || '1000000'),
         minNotional: parseFloat(response.min_market_funds || '1'),
-        quantityPrecision: parseInt(response.base_increment?.split('.')[1]?.length || '8'),
-        pricePrecision: parseInt(response.quote_increment?.split('.')[1]?.length || '2'),
+        quantityPrecision: this.getPrecision(response.base_increment),
+        pricePrecision: this.getPrecision(response.quote_increment),
       };
     } catch (error) {
       // Return defaults if API fails
@@ -349,6 +469,15 @@ export class CoinbaseAdapter implements ExchangeAdapter {
         pricePrecision: 2,
       };
     }
+  }
+
+  /**
+   * Get decimal precision from increment string
+   */
+  private getPrecision(increment?: string): number {
+    if (!increment) return 8;
+    const parts = increment.split('.');
+    return parts.length > 1 ? parts[1].length : 0;
   }
 
   /**
@@ -398,6 +527,247 @@ export class CoinbaseAdapter implements ExchangeAdapter {
       fee,
       total: params.side === 'buy' ? subtotal + fee : subtotal - fee,
     };
+  }
+
+  /**
+   * Create/Place an order
+   * AUTHENTICATED ENDPOINT - Requires valid CDP API keys
+   */
+  async createOrder(
+    ctx: ExchangeAdapterContext,
+    params: CreateOrderParams,
+  ): Promise<CreateOrderResult> {
+    if (!ctx.apiKey || !ctx.apiSecret) {
+      return { success: false, error: 'API credentials required for trading' };
+    }
+
+    // Validate order params first
+    const validation = await this.validateOrderParams(ctx, {
+      symbol: params.symbol,
+      side: params.side,
+      type: params.type,
+      quantity: params.quantity,
+      price: params.price,
+    });
+
+    if (!validation.valid) {
+      return { success: false, error: validation.error };
+    }
+
+    const productId = this.toCoinbaseProductId(params.symbol);
+    const clientOrderId = params.clientOrderId || crypto.randomUUID();
+
+    // Build order configuration based on order type
+    let orderConfiguration: Record<string, unknown>;
+
+    if (params.type === 'market') {
+      orderConfiguration = {
+        market_market_ioc: {
+          base_size: params.quantity.toString(),
+        },
+      };
+    } else if (params.type === 'limit') {
+      orderConfiguration = {
+        limit_limit_gtc: {
+          base_size: params.quantity.toString(),
+          limit_price: params.price!.toString(),
+          post_only: false,
+        },
+      };
+    } else if (params.type === 'stop_limit') {
+      orderConfiguration = {
+        stop_limit_stop_limit_gtc: {
+          base_size: params.quantity.toString(),
+          limit_price: params.price!.toString(),
+          stop_price: params.stopPrice!.toString(),
+          stop_direction: params.side === 'buy' ? 'STOP_DIRECTION_STOP_UP' : 'STOP_DIRECTION_STOP_DOWN',
+        },
+      };
+    } else {
+      return { success: false, error: `Unsupported order type: ${params.type}` };
+    }
+
+    try {
+      const response = await this.postJson('/api/v3/brokerage/orders', ctx, {
+        client_order_id: clientOrderId,
+        product_id: productId,
+        side: params.side.toUpperCase(),
+        order_configuration: orderConfiguration,
+      });
+
+      if (response.success === false || response.error_response) {
+        return {
+          success: false,
+          error: response.error_response?.message || response.failure_reason || 'Order failed',
+        };
+      }
+
+      return {
+        success: true,
+        orderId: response.success_response?.order_id || response.order_id,
+        clientOrderId,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message || 'Failed to create order',
+      };
+    }
+  }
+
+  /**
+   * Cancel an order by ID
+   * AUTHENTICATED ENDPOINT - Requires valid CDP API keys
+   */
+  async cancelOrder(
+    ctx: ExchangeAdapterContext,
+    orderId: string,
+  ): Promise<{ success: boolean; error?: string }> {
+    if (!ctx.apiKey || !ctx.apiSecret) {
+      return { success: false, error: 'API credentials required' };
+    }
+
+    try {
+      const response = await this.postJson('/api/v3/brokerage/orders/batch_cancel', ctx, {
+        order_ids: [orderId],
+      });
+
+      const result = response.results?.[0];
+      if (result?.success) {
+        return { success: true };
+      }
+
+      return {
+        success: false,
+        error: result?.failure_reason || 'Cancel failed',
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message || 'Failed to cancel order',
+      };
+    }
+  }
+
+  /**
+   * Get order by ID
+   * AUTHENTICATED ENDPOINT - Requires valid CDP API keys
+   */
+  async getOrder(
+    ctx: ExchangeAdapterContext,
+    orderId: string,
+  ): Promise<CoinbaseOrder | null> {
+    if (!ctx.apiKey || !ctx.apiSecret) {
+      return null;
+    }
+
+    try {
+      const response = await this.getJson(`/api/v3/brokerage/orders/historical/${orderId}`, ctx);
+      const order = response.order;
+
+      if (!order) return null;
+
+      return {
+        orderId: order.order_id,
+        clientOrderId: order.client_order_id,
+        productId: order.product_id,
+        side: order.side,
+        type: order.order_type,
+        status: order.status,
+        filledSize: order.filled_size || '0',
+        filledValue: order.filled_value || '0',
+        averageFilledPrice: order.average_filled_price || '0',
+        createdTime: order.created_time,
+      };
+    } catch (error) {
+      console.error('Failed to get order:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Get open orders
+   * AUTHENTICATED ENDPOINT - Requires valid CDP API keys
+   */
+  async getOpenOrders(
+    ctx: ExchangeAdapterContext,
+    symbol?: string,
+  ): Promise<CoinbaseOrder[]> {
+    if (!ctx.apiKey || !ctx.apiSecret) {
+      return [];
+    }
+
+    try {
+      const params: Record<string, string> = {
+        order_status: 'OPEN',
+      };
+
+      if (symbol) {
+        params.product_id = this.toCoinbaseProductId(symbol);
+      }
+
+      const response = await this.getJson('/api/v3/brokerage/orders/historical', ctx, params);
+      const orders = response.orders || [];
+
+      return orders.map((order: any): CoinbaseOrder => ({
+        orderId: order.order_id,
+        clientOrderId: order.client_order_id,
+        productId: order.product_id,
+        side: order.side,
+        type: order.order_type,
+        status: order.status,
+        filledSize: order.filled_size || '0',
+        filledValue: order.filled_value || '0',
+        averageFilledPrice: order.average_filled_price || '0',
+        createdTime: order.created_time,
+      }));
+    } catch (error) {
+      console.error('Failed to get open orders:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get order history
+   * AUTHENTICATED ENDPOINT - Requires valid CDP API keys
+   */
+  async getOrderHistory(
+    ctx: ExchangeAdapterContext,
+    symbol?: string,
+    limit: number = 100,
+  ): Promise<CoinbaseOrder[]> {
+    if (!ctx.apiKey || !ctx.apiSecret) {
+      return [];
+    }
+
+    try {
+      const params: Record<string, string> = {
+        limit: limit.toString(),
+      };
+
+      if (symbol) {
+        params.product_id = this.toCoinbaseProductId(symbol);
+      }
+
+      const response = await this.getJson('/api/v3/brokerage/orders/historical', ctx, params);
+      const orders = response.orders || [];
+
+      return orders.map((order: any): CoinbaseOrder => ({
+        orderId: order.order_id,
+        clientOrderId: order.client_order_id,
+        productId: order.product_id,
+        side: order.side,
+        type: order.order_type,
+        status: order.status,
+        filledSize: order.filled_size || '0',
+        filledValue: order.filled_value || '0',
+        averageFilledPrice: order.average_filled_price || '0',
+        createdTime: order.created_time,
+      }));
+    } catch (error) {
+      console.error('Failed to get order history:', error);
+      return [];
+    }
   }
 
   /**

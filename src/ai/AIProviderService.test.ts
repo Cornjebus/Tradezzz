@@ -22,7 +22,7 @@ describe('AIProviderService', () => {
   let userId: string;
 
   beforeEach(async () => {
-    vi.stubEnv('NODE_ENV', 'development');
+    vi.stubEnv('NODE_ENV', 'test');
     db = createMockDatabase();
     configService = new ConfigService({ db });
 
@@ -207,6 +207,17 @@ describe('AIProviderService', () => {
       });
 
       expect(provider.defaultModel).toBe('gpt-4');
+    });
+  });
+
+  // ============================================================================
+  // Runtime Status
+  // ============================================================================
+
+  describe('Runtime Status', () => {
+    it('should_report_adapterFactoryConfigured_false_when_not_provided', () => {
+      const status = aiService.getRuntimeStatus();
+      expect(status.adapterFactoryConfigured).toBe(false);
     });
   });
 
@@ -547,6 +558,7 @@ describe('AIProviderService', () => {
       expect(providers).toContain('anthropic');
       expect(providers).toContain('deepseek');
       expect(providers).toContain('google');
+      expect(providers).toContain('grok');
     });
 
     it('should_get_provider_info', () => {
@@ -563,6 +575,8 @@ describe('AIProviderService', () => {
 
       expect(models).toContain('gpt-4');
       expect(models).toContain('gpt-3.5-turbo');
+      const grokModels = aiService.getAvailableModels('grok');
+      expect(grokModels).toContain('grok-2');
     });
 
     it('should_get_model_pricing', () => {

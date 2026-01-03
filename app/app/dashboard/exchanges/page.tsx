@@ -29,21 +29,25 @@ import {
 import { useToast } from "@/hooks/use-toast";
 
 const SUPPORTED_EXCHANGES = [
-  { id: "binance", name: "Binance", logo: "🟡" },
-  { id: "coinbase", name: "Coinbase", logo: "🔵" },
-  { id: "kraken", name: "Kraken", logo: "🟣" },
-  { id: "kucoin", name: "KuCoin", logo: "🟢" },
-  { id: "bybit", name: "Bybit", logo: "🟠" },
-  { id: "okx", name: "OKX", logo: "⚪" },
+  { id: "binance", name: "Binance", logo: "🟡", requiresPassphrase: false },
+  { id: "coinbase", name: "Coinbase", logo: "🔵", requiresPassphrase: true },
+  { id: "kraken", name: "Kraken", logo: "🟣", requiresPassphrase: false },
+  { id: "kucoin", name: "KuCoin", logo: "🟢", requiresPassphrase: true },
+  { id: "bybit", name: "Bybit", logo: "🟠", requiresPassphrase: false },
+  { id: "okx", name: "OKX", logo: "⚪", requiresPassphrase: true },
 ];
+
+// Exchanges that require passphrase in addition to API key/secret
+const EXCHANGES_REQUIRING_PASSPHRASE = ["coinbase", "kucoin", "okx"];
 
 interface ExchangeConnection {
   id: string;
   exchange: string;
   name: string;
   status: string;
-  is_active: boolean;
-  created_at: string;
+  isActive?: boolean;
+  createdAt: string;
+  lastUsedAt?: string;
 }
 
 export default function ExchangesPage() {
@@ -56,7 +60,11 @@ export default function ExchangesPage() {
   const [connectionName, setConnectionName] = useState("");
   const [apiKey, setApiKey] = useState("");
   const [apiSecret, setApiSecret] = useState("");
+  const [passphrase, setPassphrase] = useState("");
   const [isConnecting, setIsConnecting] = useState(false);
+
+  // Check if selected exchange requires passphrase
+  const requiresPassphrase = EXCHANGES_REQUIRING_PASSPHRASE.includes(selectedExchange);
   const { toast } = useToast();
 
   const fetchConnections = async () => {
@@ -83,7 +91,16 @@ export default function ExchangesPage() {
   }, []);
 
   const handleConnect = async () => {
+    // Validate required fields including passphrase for exchanges that need it
     if (!selectedExchange || !apiKey || !apiSecret) return;
+    if (requiresPassphrase && !passphrase) {
+      toast({
+        title: "Missing Passphrase",
+        description: `${SUPPORTED_EXCHANGES.find(e => e.id === selectedExchange)?.name || selectedExchange} requires a passphrase`,
+        variant: "destructive",
+      });
+      return;
+    }
 
     setIsConnecting(true);
 
@@ -98,6 +115,7 @@ export default function ExchangesPage() {
           name: connectionName || exchange?.name,
           apiKey,
           apiSecret,
+          ...(requiresPassphrase && { passphrase }),
         }),
       });
 
@@ -111,6 +129,7 @@ export default function ExchangesPage() {
         setConnectionName("");
         setApiKey("");
         setApiSecret("");
+        setPassphrase("");
         fetchConnections();
       } else {
         const error = await res.json();
@@ -270,8 +289,24 @@ export default function ExchangesPage() {
                   placeholder="Enter your API secret"
                   value={apiSecret}
                   onChange={(e) => setApiSecret(e.target.value)}
+                  data-testid="api-secret-input"
                 />
               </div>
+              {requiresPassphrase && (
+                <div className="space-y-2">
+                  <Label>Passphrase</Label>
+                  <Input
+                    type="password"
+                    placeholder="Enter your API passphrase"
+                    value={passphrase}
+                    onChange={(e) => setPassphrase(e.target.value)}
+                    data-testid="passphrase-input"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {SUPPORTED_EXCHANGES.find(e => e.id === selectedExchange)?.name || selectedExchange} requires a passphrase for API authentication
+                  </p>
+                </div>
+              )}
               <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">
                 <div className="flex items-start gap-2">
                   <AlertTriangle className="h-4 w-4 text-yellow-400 mt-0.5" />
@@ -286,7 +321,7 @@ export default function ExchangesPage() {
               <Button
                 className="w-full"
                 onClick={handleConnect}
-                disabled={!selectedExchange || !apiKey || !apiSecret || isConnecting}
+                disabled={!selectedExchange || !apiKey || !apiSecret || (requiresPassphrase && !passphrase) || isConnecting}
               >
                 {isConnecting ? (
                   <>
@@ -335,7 +370,7 @@ export default function ExchangesPage() {
                       <div>
                         <h3 className="font-semibold">{connection.name || exchange.name}</h3>
                         <div className="flex items-center gap-2 mt-1">
-                          {connection.is_active ? (
+                          {connection.isActive ? (
                             <Badge variant="secondary" className="bg-green-500/20 text-green-400">
                               <CheckCircle2 className="h-3 w-3 mr-1" />
                               Connected
@@ -347,7 +382,7 @@ export default function ExchangesPage() {
                             </Badge>
                           )}
                           <span className="text-sm text-muted-foreground">
-                            Added {new Date(connection.created_at).toLocaleDateString()}
+                            Added {new Date(connection.createdAt).toLocaleDateString()}
                           </span>
                         </div>
                       </div>

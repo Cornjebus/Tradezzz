@@ -16,6 +16,7 @@ import {
   ChevronDown,
   Menu,
   X,
+  Brain,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -46,6 +47,7 @@ const navItems = [
   { href: "/dashboard/exchanges", label: "Exchanges", icon: Link2 },
   { href: "/dashboard/ai-providers", label: "AI Providers", icon: Bot },
   { href: "/dashboard/strategies", label: "Strategies", icon: LineChart },
+  { href: "/dashboard/patterns", label: "Patterns", icon: Brain },
   { href: "/dashboard/orders", label: "Orders", icon: History },
   { href: "/dashboard/settings", label: "Settings", icon: Settings },
 ];

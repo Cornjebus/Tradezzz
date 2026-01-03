@@ -13,8 +13,9 @@ import { ConfigService } from '../config/ConfigService';
 import { StrategyService } from '../strategies/StrategyService';
 import { BacktestService } from '../backtesting/BacktestService';
 import { OrderService } from '../execution/OrderService';
-import { ExchangeService } from '../exchanges/ExchangeService';
-import { AIProviderService } from '../ai/AIProviderService';
+import { ExchangeService, ExchangeType } from '../exchanges/ExchangeService';
+import { AIProviderService, AIProviderType } from '../ai/AIProviderService';
+import { createAdapter, SupportedProvider } from '../ai/adapters';
 import { createAuthRouter } from './routes/auth.routes';
 import { createStrategyRouter } from './routes/strategy.routes';
 import { createBacktestRouter } from './routes/backtest.routes';
@@ -22,6 +23,9 @@ import { createOrderRouter } from './routes/order.routes';
 import { createExchangeRouter } from './routes/exchange.routes';
 import { createAIRouter } from './routes/ai.routes';
 import { errorHandler } from './middleware/error.middleware';
+import { BinanceAdapter } from '../exchanges/adapters/BinanceAdapter';
+import { CoinbaseAdapter } from '../exchanges/adapters/CoinbaseAdapter';
+import { KrakenAdapter } from '../exchanges/adapters/KrakenAdapter';
 
 const PORT = process.env.API_PORT || 3001;
 const JWT_SECRET = process.env.JWT_SECRET || 'neural-trading-jwt-secret-min-32-chars!!';
@@ -83,19 +87,48 @@ export class APIServer {
     this.orderService = new OrderService({
       db: this.db,
       configService: this.configService,
-      strategyService: this.strategyService
+      strategyService: this.strategyService,
+      backtestService: this.backtestService,
     });
 
     this.exchangeService = new ExchangeService({
       db: this.db,
       configService: this.configService,
       encryptionKey: ENCRYPTION_KEY,
+      adapterFactory: (exchange: ExchangeType) => {
+        if (exchange === 'binance') {
+          return new BinanceAdapter();
+        }
+        if (exchange === 'coinbase') {
+          return new CoinbaseAdapter();
+        }
+        if (exchange === 'kraken') {
+          return new KrakenAdapter();
+        }
+        // For exchanges without a concrete adapter, fall back to the simulated
+        // implementation by returning null.
+        return null as any;
+      },
     });
 
     this.aiService = new AIProviderService({
       db: this.db,
       configService: this.configService,
       encryptionKey: ENCRYPTION_KEY,
+      adapterFactory: (provider: AIProviderType, config: { apiKey: string; model?: string }) => {
+        // Only providers that have a concrete adapter are routed through
+        // createAdapter; others fall back to AIProviderService's simulated logic.
+        const supported: SupportedProvider[] = ['openai', 'anthropic', 'deepseek', 'ollama', 'grok', 'google'];
+        if (!supported.includes(provider as SupportedProvider)) {
+          return null;
+        }
+
+        return createAdapter({
+          provider: provider as SupportedProvider,
+          apiKey: config.apiKey,
+          model: config.model,
+        });
+      },
     });
   }
 
@@ -127,7 +160,7 @@ export class APIServer {
 
     // API Routes
     this.app.use('/api/auth', createAuthRouter(this.authService));
-    this.app.use('/api/strategies', createStrategyRouter(this.strategyService, this.authService));
+    this.app.use('/api/strategies', createStrategyRouter(this.strategyService, this.authService, this.backtestService));
     this.app.use('/api/backtests', createBacktestRouter(this.backtestService, this.strategyService, this.authService));
     this.app.use('/api/orders', createOrderRouter(this.orderService, this.strategyService, this.authService));
     this.app.use('/api/exchanges', createExchangeRouter(this.exchangeService, this.authService));

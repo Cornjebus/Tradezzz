@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useUser, useClerk } from "@clerk/nextjs";
-import { Settings, User, Bell, Shield, CreditCard, Trash2, LogOut } from "lucide-react";
+import { Settings, User, Bell, Shield, CreditCard, Trash2, LogOut, Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +27,14 @@ import {
 export default function SettingsPage() {
   const { user } = useUser();
   const { signOut } = useClerk();
+  const { toast } = useToast();
+  const router = useRouter();
+
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [savingPreferences, setSavingPreferences] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   const [notifications, setNotifications] = useState({
     email: true,
@@ -38,6 +48,124 @@ export default function SettingsPage() {
     riskLevel: "medium",
     currency: "USD",
   });
+  const [graphRiskMode, setGraphRiskMode] = useState<"off" | "warn" | "block">("warn");
+
+  // Initialize form with user data
+  useEffect(() => {
+    if (user) {
+      setFirstName(user.firstName || "");
+      setLastName(user.lastName || "");
+    }
+    // Load saved preferences from backend
+    loadPreferences();
+  }, [user]);
+
+  const loadPreferences = async () => {
+    try {
+      const res = await fetch("/api/user/settings");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.settings) {
+          setPreferences({
+            timezone: data.settings.timezone || "UTC",
+            riskLevel: data.settings.riskLevel || "medium",
+            currency: data.settings.currency || "USD",
+          });
+          setGraphRiskMode(data.settings.graphRiskMode || "warn");
+          if (data.settings.notifications) {
+            setNotifications(data.settings.notifications);
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Failed to load preferences:", error);
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    setSavingProfile(true);
+    try {
+      // Update Clerk user profile
+      await user?.update({
+        firstName,
+        lastName,
+      });
+      toast({
+        title: "Profile Updated",
+        description: "Your profile has been saved successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update profile. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  const handleSavePreferences = async () => {
+    setSavingPreferences(true);
+    try {
+      const res = await fetch("/api/user/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          timezone: preferences.timezone,
+          risk_level: preferences.riskLevel,
+          currency: preferences.currency,
+          graph_risk_mode: graphRiskMode,
+          notifications,
+        }),
+      });
+
+      if (res.ok) {
+        toast({
+          title: "Preferences Saved",
+          description: "Your trading preferences have been updated.",
+        });
+      } else {
+        throw new Error("Failed to save");
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save preferences. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingPreferences(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeletingAccount(true);
+    try {
+      const res = await fetch("/api/user", {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        toast({
+          title: "Account Deleted",
+          description: "Your account has been permanently deleted.",
+        });
+        await signOut();
+        router.push("/");
+      } else {
+        throw new Error("Failed to delete");
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete account. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingAccount(false);
+    }
+  };
 
   return (
     <div className="p-8 max-w-4xl">
@@ -82,14 +210,31 @@ export default function SettingsPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>First Name</Label>
-                <Input defaultValue={user?.firstName || ""} />
+                <Input
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  data-testid="first-name-input"
+                />
               </div>
               <div className="space-y-2">
                 <Label>Last Name</Label>
-                <Input defaultValue={user?.lastName || ""} />
+                <Input
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  data-testid="last-name-input"
+                />
               </div>
             </div>
-            <Button>Save Changes</Button>
+            <Button onClick={handleSaveProfile} disabled={savingProfile}>
+              {savingProfile ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save Changes"
+              )}
+            </Button>
           </CardContent>
         </Card>
 
@@ -199,6 +344,33 @@ export default function SettingsPage() {
               </div>
             </div>
             <div className="space-y-2">
+              <Label>Graph Risk Mode</Label>
+              <Select
+                value={graphRiskMode}
+                onValueChange={(value) =>
+                  setGraphRiskMode(value as "off" | "warn" | "block")
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="off">
+                    Off – ignore graph-based risk when placing live orders
+                  </SelectItem>
+                  <SelectItem value="warn">
+                    Warn – show non-blocking warnings when graph risk is high
+                  </SelectItem>
+                  <SelectItem value="block">
+                    Block – prevent new live orders when graph risk is high
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                This controls how RuVector/graph risk influences live trading. Paper trading is never blocked.
+              </p>
+            </div>
+            <div className="space-y-2">
               <Label>Display Currency</Label>
               <Select
                 value={preferences.currency}
@@ -215,7 +387,16 @@ export default function SettingsPage() {
                 </SelectContent>
               </Select>
             </div>
-            <Button>Save Preferences</Button>
+            <Button onClick={handleSavePreferences} disabled={savingPreferences}>
+              {savingPreferences ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save Preferences"
+              )}
+            </Button>
           </CardContent>
         </Card>
 
@@ -286,8 +467,19 @@ export default function SettingsPage() {
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction className="bg-destructive text-destructive-foreground">
-                      Delete Account
+                    <AlertDialogAction
+                      className="bg-destructive text-destructive-foreground"
+                      onClick={handleDeleteAccount}
+                      disabled={deletingAccount}
+                    >
+                      {deletingAccount ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Deleting...
+                        </>
+                      ) : (
+                        "Delete Account"
+                      )}
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>

@@ -573,7 +573,7 @@ export function useAIChat(providerId: string) {
 
 **UI Components:**
 ```
-src/ui/components/providers/
+Next.js components for AI providers (see `app/` components)
 ├── AIProvidersTab.tsx         # Already exists - add test panel
 ├── ProviderTestPanel.tsx      # NEW: Test connection with real API call
 ├── ProviderChatPanel.tsx      # NEW: Interactive chat test

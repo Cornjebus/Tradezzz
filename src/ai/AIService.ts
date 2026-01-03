@@ -294,6 +294,8 @@ export class AIService {
       anthropic: 0.000025, // ~$0.025/1K
       deepseek: 0.0000001, // ~$0.0001/1K
       ollama: 0, // Local
+      grok: 0.000025, // Rough estimate, xAI Grok
+      google: 0.000006, // Rough estimate based on Gemini pricing
     };
 
     return {

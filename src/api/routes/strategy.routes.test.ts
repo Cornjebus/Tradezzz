@@ -12,6 +12,7 @@ import { AuthService } from '../../users/AuthService';
 import { ConfigService } from '../../config/ConfigService';
 import { MockDatabase, createMockDatabase } from '../../../tests/helpers/mock-db';
 import { errorHandler } from '../middleware/error.middleware';
+import type { BacktestService, BacktestResult } from '../../backtesting/BacktestService';
 
 describe('Strategy Routes', () => {
   let app: Express;
@@ -21,9 +22,10 @@ describe('Strategy Routes', () => {
   let db: MockDatabase;
   let accessToken: string;
   let userId: string;
+  let backtestService: Pick<BacktestService, 'getBacktestHistory'>;
 
   beforeEach(async () => {
-    vi.stubEnv('NODE_ENV', 'development');
+    vi.stubEnv('NODE_ENV', 'test');
     db = createMockDatabase();
     configService = new ConfigService({ db });
     authService = new AuthService({
@@ -33,6 +35,12 @@ describe('Strategy Routes', () => {
       refreshTokenExpiresIn: '7d',
     });
     strategyService = new StrategyService({ db, configService });
+
+    backtestService = {
+      getBacktestHistory: async (strategyId: string): Promise<BacktestResult[]> => {
+        return [];
+      },
+    } as any;
 
     // Create test user
     const result = await authService.register({
@@ -45,7 +53,7 @@ describe('Strategy Routes', () => {
 
     app = express();
     app.use(express.json());
-    app.use('/api/strategies', createStrategyRouter(strategyService, authService));
+    app.use('/api/strategies', createStrategyRouter(strategyService, authService, backtestService as any));
     app.use(errorHandler);
   });
 
@@ -388,6 +396,70 @@ describe('Strategy Routes', () => {
       expect(response.body.success).toBe(true);
       expect(response.body.data.totalTrades).toBeDefined();
       expect(response.body.data.winRate).toBeDefined();
+    });
+  });
+
+  // ============================================================================
+  // GET /api/strategies/:id/live-eligibility - Live Trading Eligibility
+  // ============================================================================
+
+  describe('GET /api/strategies/:id/live-eligibility', () => {
+    let strategyId: string;
+
+    beforeEach(async () => {
+      const strategy = await strategyService.createStrategy({
+        userId,
+        name: 'Eligibility Test',
+        type: 'momentum',
+        config: { symbols: ['BTC/USDT'] },
+      });
+      strategyId = strategy.id;
+    });
+
+    it('should_return_not_eligible_when_no_backtests', async () => {
+      const response = await request(app)
+        .get(`/api/strategies/${strategyId}/live-eligibility`)
+        .set('Authorization', `Bearer ${accessToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.eligible).toBe(false);
+      expect(response.body.data.reason).toContain('No completed backtests');
+    });
+
+    it('should_return_eligible_when_latest_backtest_meets_criteria', async () => {
+      // Override backtestService behavior for this test
+      (backtestService.getBacktestHistory as any) = async (): Promise<BacktestResult[]> => [
+        {
+          id: 'bt-1',
+          strategyId,
+          symbol: 'BTC/USDT',
+          startDate: new Date('2024-01-01'),
+          endDate: new Date('2024-01-31'),
+          initialCapital: 10000,
+          finalCapital: 11500,
+          status: 'completed',
+          metrics: {
+            totalReturn: 15,
+            maxDrawdown: 20,
+          } as any,
+          trades: [],
+          equityCurve: [],
+          errorMessage: undefined,
+          createdAt: new Date('2024-02-01'),
+          completedAt: new Date('2024-02-01'),
+        },
+      ];
+
+      const response = await request(app)
+        .get(`/api/strategies/${strategyId}/live-eligibility`)
+        .set('Authorization', `Bearer ${accessToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.eligible).toBe(true);
+      expect(response.body.data.latestBacktest.metrics.totalReturn).toBe(15);
+      expect(response.body.data.latestBacktest.metrics.maxDrawdown).toBe(20);
     });
   });
 });

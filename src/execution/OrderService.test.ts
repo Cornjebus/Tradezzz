@@ -18,7 +18,7 @@ describe('OrderService', () => {
   let strategyId: string;
 
   beforeEach(async () => {
-    vi.stubEnv('NODE_ENV', 'development');
+    vi.stubEnv('NODE_ENV', 'test');
     db = createMockDatabase();
     configService = new ConfigService({ db });
     strategyService = new StrategyService({ db, configService });
@@ -40,11 +40,7 @@ describe('OrderService', () => {
     });
     strategyId = strategy.id;
 
-    orderService = new OrderService({
-      db,
-      configService,
-      strategyService,
-    });
+    orderService = new OrderService({ db, configService, strategyService });
   });
 
   // ============================================================================
@@ -537,6 +533,11 @@ describe('OrderService', () => {
         tier: 'free',
       });
 
+      // Allow this test to exercise tier validation rather than execution mode
+      await strategyService.updateStrategy(strategyId, {
+        executionMode: 'auto' as any,
+      });
+
       await expect(
         orderService.createOrder({
           userId: freeUser.id,
@@ -562,6 +563,276 @@ describe('OrderService', () => {
           mode: 'paper',
         })
       ).rejects.toThrow('Invalid symbol format');
+    });
+
+    it('should_block_live_orders_when_global_kill_switch_enabled', async () => {
+      const original = process.env.LIVE_TRADING_DISABLED;
+      process.env.LIVE_TRADING_DISABLED = 'true';
+
+      await expect(
+        orderService.createOrder({
+          userId,
+          strategyId,
+          symbol: 'BTC/USDT',
+          side: 'buy',
+          type: 'market',
+          quantity: 0.1,
+          mode: 'live',
+        })
+      ).rejects.toThrow('Live trading is temporarily disabled');
+
+      if (original === undefined) {
+        delete process.env.LIVE_TRADING_DISABLED;
+      } else {
+        process.env.LIVE_TRADING_DISABLED = original;
+      }
+    });
+
+    it('should_create_approval_request_for_manual_live_order', async () => {
+      await strategyService.updateStatus(strategyId, 'backtesting' as any);
+      await strategyService.updateStatus(strategyId, 'paper' as any);
+      await strategyService.updateStatus(strategyId, 'active' as any);
+
+      await db.exchangeConnections.create({
+        userId,
+        exchange: 'binance',
+        apiKey: 'test-key',
+        apiSecret: 'test-secret',
+        name: 'Binance',
+      } as any);
+
+      const approval = await orderService.createApprovalRequest({
+        userId,
+        strategyId,
+        symbol: 'BTC/USDT',
+        side: 'buy',
+        type: 'market',
+        quantity: 0.1,
+        mode: 'live',
+      });
+
+      expect(approval.id).toBeDefined();
+      expect(approval.status).toBe('pending');
+      expect(approval.mode).toBe('live');
+      expect(approval.strategyId).toBe(strategyId);
+    });
+
+    it('should_approve_manual_live_order_via_approval_flow', async () => {
+      await strategyService.updateStatus(strategyId, 'backtesting' as any);
+      await strategyService.updateStatus(strategyId, 'paper' as any);
+      await strategyService.updateStatus(strategyId, 'active' as any);
+
+      await db.exchangeConnections.create({
+        userId,
+        exchange: 'binance',
+        apiKey: 'test-key',
+        apiSecret: 'test-secret',
+        name: 'Binance',
+      } as any);
+
+      // Provide a passing backtest so the gate allows live trading
+      const backtestService = {
+        getBacktestHistory: vi.fn().mockResolvedValue([
+          {
+            id: 'bt-1',
+            strategyId,
+            symbol: 'BTC/USDT',
+            startDate: new Date('2024-01-01'),
+            endDate: new Date('2024-01-31'),
+            status: 'completed',
+            metrics: {
+              totalReturn: 10,
+              maxDrawdown: 15,
+            },
+            trades: [],
+            equityCurve: [],
+            createdAt: new Date('2024-02-01'),
+          },
+        ]),
+      } as any;
+
+      const gatedOrderService = new OrderService({
+        db,
+        configService,
+        strategyService,
+        backtestService,
+      });
+
+      const approval = await gatedOrderService.createApprovalRequest({
+        userId,
+        strategyId,
+        symbol: 'BTC/USDT',
+        side: 'buy',
+        type: 'market',
+        quantity: 0.1,
+        mode: 'live',
+      });
+
+      const result = await gatedOrderService.approveLiveOrder(userId, approval.id);
+
+      expect(result.approval.status).toBe('approved');
+      expect(result.approval.orderId).toBeDefined();
+      expect(result.order.mode).toBe('live');
+      expect(result.order.symbol).toBe('BTC/USDT');
+    });
+
+    it('should_block_live_orders_for_manual_execution_mode', async () => {
+      // Ensure strategy is active and has exchange so other gates pass
+      await strategyService.updateStatus(strategyId, 'backtesting' as any);
+      await strategyService.updateStatus(strategyId, 'paper' as any);
+      await strategyService.updateStatus(strategyId, 'active' as any);
+
+      await db.exchangeConnections.create({
+        userId,
+        exchange: 'binance',
+        apiKey: 'test-key',
+        apiSecret: 'test-secret',
+        name: 'Binance',
+      } as any);
+
+      // Execution mode defaults to manual; live order should be rejected
+      await expect(
+        orderService.createOrder({
+          userId,
+          strategyId,
+          symbol: 'BTC/USDT',
+          side: 'buy',
+          type: 'market',
+          quantity: 0.1,
+          mode: 'live',
+        })
+      ).rejects.toThrow('This strategy is configured for manual execution only. Enable autonomous mode before placing live orders.');
+    });
+
+    it('should_allow_live_orders_for_auto_execution_mode', async () => {
+      await strategyService.updateStatus(strategyId, 'backtesting' as any);
+      await strategyService.updateStatus(strategyId, 'paper' as any);
+      await strategyService.updateStatus(strategyId, 'active' as any);
+
+      await db.exchangeConnections.create({
+        userId,
+        exchange: 'binance',
+        apiKey: 'test-key',
+        apiSecret: 'test-secret',
+        name: 'Binance',
+      } as any);
+
+      // Update strategy to autonomous execution
+      await strategyService.updateStrategy(strategyId, {
+        executionMode: 'auto' as any,
+      });
+
+      const order = await orderService.createOrder({
+        userId,
+        strategyId,
+        symbol: 'BTC/USDT',
+        side: 'buy',
+        type: 'market',
+        quantity: 0.1,
+        mode: 'live',
+      });
+
+      expect(order.mode).toBe('live');
+      expect(order.id).toBeDefined();
+    });
+
+    it('should_enforce_backtest_gate_for_live_trading', async () => {
+      // Strategy must be active for live trading
+      await strategyService.updateStatus(strategyId, 'backtesting' as any);
+      await strategyService.updateStatus(strategyId, 'paper' as any);
+      await strategyService.updateStatus(strategyId, 'active' as any);
+      await strategyService.updateStrategy(strategyId, {
+        executionMode: 'auto' as any,
+      });
+
+      // Create an exchange connection so live trading checks pass
+      await db.exchangeConnections.create({
+        userId,
+        exchange: 'binance',
+        apiKey: 'test-key',
+        apiSecret: 'test-secret',
+        name: 'Binance',
+      } as any);
+
+      const backtestService = {
+        getBacktestHistory: vi.fn().mockResolvedValue([]),
+      } as any;
+
+      const gatedOrderService = new OrderService({
+        db,
+        configService,
+        strategyService,
+        backtestService,
+      });
+
+      await expect(
+        gatedOrderService.createOrder({
+          userId,
+          strategyId,
+          symbol: 'BTC/USDT',
+          side: 'buy',
+          type: 'market',
+          quantity: 0.1,
+          mode: 'live',
+        })
+      ).rejects.toThrow('Strategy must pass a successful backtest before live trading');
+    });
+
+    it('should_allow_live_order_when_latest_backtest_meets_criteria', async () => {
+      await strategyService.updateStatus(strategyId, 'backtesting' as any);
+      await strategyService.updateStatus(strategyId, 'paper' as any);
+      await strategyService.updateStatus(strategyId, 'active' as any);
+       await strategyService.updateStrategy(strategyId, {
+        executionMode: 'auto' as any,
+      });
+
+      await db.exchangeConnections.create({
+        userId,
+        exchange: 'binance',
+        apiKey: 'test-key',
+        apiSecret: 'test-secret',
+        name: 'Binance',
+      } as any);
+
+      const backtestService = {
+        getBacktestHistory: vi.fn().mockResolvedValue([
+          {
+            id: 'bt-1',
+            strategyId,
+            symbol: 'BTC/USDT',
+            startDate: new Date('2024-01-01'),
+            endDate: new Date('2024-01-31'),
+            status: 'completed',
+            metrics: {
+              totalReturn: 15,
+              maxDrawdown: 20,
+            },
+            trades: [],
+            equityCurve: [],
+            createdAt: new Date('2024-02-01'),
+          },
+        ]),
+      } as any;
+
+      const gatedOrderService = new OrderService({
+        db,
+        configService,
+        strategyService,
+        backtestService,
+      });
+
+      const order = await gatedOrderService.createOrder({
+        userId,
+        strategyId,
+        symbol: 'BTC/USDT',
+        side: 'buy',
+        type: 'market',
+        quantity: 0.1,
+        mode: 'live',
+      });
+
+      expect(order.id).toBeDefined();
+      expect(order.mode).toBe('live');
     });
   });
 
@@ -877,6 +1148,9 @@ describe('OrderService', () => {
   describe('Live Trading Validation', () => {
     it('should_validate_strategy_is_active_for_live_trading', async () => {
       // Strategy is in draft status, not active
+      await strategyService.updateStrategy(strategyId, {
+        executionMode: 'auto' as any,
+      });
       await expect(
         orderService.createOrder({
           userId,
@@ -895,6 +1169,9 @@ describe('OrderService', () => {
       await strategyService.updateStatus(strategyId, 'backtesting');
       await strategyService.updateStatus(strategyId, 'paper');
       await strategyService.updateStatus(strategyId, 'active');
+      await strategyService.updateStrategy(strategyId, {
+        executionMode: 'auto' as any,
+      });
 
       await expect(
         orderService.createOrder({

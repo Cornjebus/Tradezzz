@@ -3,7 +3,7 @@
  * Handles strategy creation, validation, status management, and statistics
  */
 
-import { Strategy, StrategyType, StrategyStatus, CreateStrategyInput } from '../database/types';
+import { Strategy, StrategyType, StrategyStatus, StrategyExecutionMode, CreateStrategyInput } from '../database/types';
 import { ConfigService } from '../config/ConfigService';
 
 // ============================================================================
@@ -16,6 +16,7 @@ export interface CreateStrategyParams {
   description?: string;
   type: StrategyType;
   config: Record<string, any>;
+  executionMode?: StrategyExecutionMode;
 }
 
 export interface UpdateStrategyParams {
@@ -23,6 +24,7 @@ export interface UpdateStrategyParams {
   description?: string;
   config?: Record<string, any>;
   type?: StrategyType; // Not allowed but typed for validation
+  executionMode?: StrategyExecutionMode;
 }
 
 export interface StrategyFilters {
@@ -111,6 +113,8 @@ export class StrategyService {
     // Apply default risk parameters
     const configWithDefaults = this.applyDefaultRiskParams(validatedConfig);
 
+    const executionMode: StrategyExecutionMode = params.executionMode || 'manual';
+
     // Create strategy
     const strategy = await this.db.strategies.create({
       userId: params.userId,
@@ -119,6 +123,7 @@ export class StrategyService {
       type: params.type,
       config: configWithDefaults,
       status: 'draft',
+      executionMode,
     });
 
     return strategy;
@@ -287,6 +292,7 @@ export class StrategyService {
     if (updates.name) updateData.name = updates.name;
     if (updates.description !== undefined) updateData.description = updates.description;
     if (updates.config) updateData.config = updates.config;
+    if (updates.executionMode) updateData.executionMode = updates.executionMode;
 
     return await this.db.strategies.update(strategyId, updateData);
   }

@@ -45,6 +45,8 @@ export type StrategyStatus =
   | 'paused'
   | 'archived';
 
+export type StrategyExecutionMode = 'manual' | 'auto';
+
 export interface Strategy {
   id: string;
   userId: string;
@@ -53,6 +55,7 @@ export interface Strategy {
   type: StrategyType;
   config: Record<string, unknown>;
   status: StrategyStatus;
+   executionMode?: StrategyExecutionMode;
   createdAt: Date;
   updatedAt: Date;
 }

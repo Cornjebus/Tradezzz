@@ -158,8 +158,8 @@ export class BacktestService {
     // Run backtest simulation
     const result = await this.executeBacktest(config, strategy);
 
-    // Store result
-    this.storeResult(config.strategyId, result);
+    // Persist and cache result
+    await this.saveResult(strategy.userId, result);
 
     return result;
   }
@@ -569,6 +569,36 @@ export class BacktestService {
   // ============================================================================
   // History & Comparison
   // ============================================================================
+
+  private async saveResult(userId: string, result: BacktestResult): Promise<void> {
+    // Persist to DB if a backtest repository is available
+    const repo = this.db?.backtests;
+    if (repo && typeof repo.create === 'function' && typeof repo.update === 'function') {
+      try {
+        const created = await repo.create({
+          userId,
+          strategyId: result.strategyId,
+          symbol: result.symbol,
+          startDate: result.startDate,
+          endDate: result.endDate,
+          initialCapital: result.metrics.initialCapital,
+        });
+
+        await repo.update(created.id, {
+          status: 'completed',
+          finalCapital: result.metrics.finalCapital,
+          metrics: result.metrics,
+          trades: result.trades,
+          equityCurve: result.equityCurve.map(point => point.equity),
+          completedAt: result.endDate,
+        });
+      } catch {
+        // If persistence fails, continue with in-memory storage only
+      }
+    }
+
+    this.storeResult(result.strategyId, result);
+  }
 
   private storeResult(strategyId: string, result: BacktestResult): void {
     const existing = this.backtestResults.get(strategyId) || [];

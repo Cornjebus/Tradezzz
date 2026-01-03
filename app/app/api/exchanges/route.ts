@@ -4,13 +4,16 @@ import db from "@/lib/db";
 import { encryptApiKey } from "@/lib/encryption";
 
 const SUPPORTED_EXCHANGES = [
-  { id: "binance", name: "Binance", logo: "🟡" },
-  { id: "coinbase", name: "Coinbase", logo: "🔵" },
-  { id: "kraken", name: "Kraken", logo: "🟣" },
-  { id: "kucoin", name: "KuCoin", logo: "🟢" },
-  { id: "bybit", name: "Bybit", logo: "🟠" },
-  { id: "okx", name: "OKX", logo: "⚪" },
+  { id: "binance", name: "Binance", logo: "🟡", requiresPassphrase: false },
+  { id: "coinbase", name: "Coinbase", logo: "🔵", requiresPassphrase: true },
+  { id: "kraken", name: "Kraken", logo: "🟣", requiresPassphrase: false },
+  { id: "kucoin", name: "KuCoin", logo: "🟢", requiresPassphrase: true },
+  { id: "bybit", name: "Bybit", logo: "🟠", requiresPassphrase: false },
+  { id: "okx", name: "OKX", logo: "⚪", requiresPassphrase: true },
 ];
+
+// Exchanges that require passphrase for API authentication
+const EXCHANGES_REQUIRING_PASSPHRASE = ["coinbase", "kucoin", "okx"];
 
 // GET /api/exchanges - List user's connected exchanges
 export async function GET(request: NextRequest) {
@@ -37,8 +40,8 @@ export async function GET(request: NextRequest) {
       exchange: conn.exchange,
       name: conn.name,
       status: conn.status,
-      lastUsedAt: conn.last_used_at,
-      createdAt: conn.created_at,
+      lastUsedAt: conn.lastUsedAt,
+      createdAt: conn.createdAt,
     }));
 
     return NextResponse.json({ connections: safeConnections });
@@ -76,6 +79,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate passphrase for exchanges that require it (Coinbase, KuCoin, OKX)
+    if (EXCHANGES_REQUIRING_PASSPHRASE.includes(exchange) && !passphrase) {
+      return NextResponse.json(
+        { error: `${exchangeInfo.name} requires a passphrase for API authentication` },
+        { status: 400 }
+      );
+    }
+
     // Encrypt API keys
     const encryptedApiKey = encryptApiKey(apiKey);
     const encryptedApiSecret = encryptApiKey(apiSecret);
@@ -104,13 +115,47 @@ export async function POST(request: NextRequest) {
         exchange: connection.exchange,
         name: connection.name,
         status: connection.status,
-        createdAt: connection.created_at,
+        createdAt: connection.createdAt,
       },
     }, { status: 201 });
   } catch (error) {
     console.error("Create exchange connection error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
+// PUT /api/exchanges - Proxy test connection to Neon API
+export async function PUT(request: NextRequest) {
+  try {
+    const body = await request.json().catch(() => null);
+    const id = body?.id as string | undefined;
+    const action = body?.action as string | undefined;
+
+    if (!id || action !== "test") {
+      return NextResponse.json(
+        { error: "Unsupported action" },
+        { status: 400 }
+      );
+    }
+
+    const baseUrl = process.env.NEURAL_TRADING_API_URL || "http://localhost:3001";
+    const res = await fetch(
+      `${baseUrl.replace(/\/+$/, "")}/api/exchanges/${encodeURIComponent(id)}/test`,
+      {
+        method: "POST",
+        cache: "no-store",
+      },
+    );
+
+    const json = await res.json().catch(() => ({}));
+    return NextResponse.json(json, { status: res.status });
+  } catch (error) {
+    console.error("Test exchange connection proxy error:", error);
+    return NextResponse.json(
+      { error: "Failed to test exchange connection" },
       { status: 500 }
     );
   }
@@ -137,7 +182,7 @@ export async function DELETE(request: NextRequest) {
 
     // Verify ownership
     const connection = await db.exchangeConnections.findById(id);
-    if (!connection || connection.user_id !== authUser.dbUser.id) {
+    if (!connection || connection.userId !== authUser.dbUser.id) {
       return NextResponse.json(
         { error: "Connection not found" },
         { status: 404 }

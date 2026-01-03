@@ -268,7 +268,7 @@ Every phase now includes both backend implementation AND frontend wiring. This e
 
 ### API Hook Pattern
 
-All frontend API calls use a consistent hook pattern in `src/ui/hooks/useApi.ts`:
+Frontend API calls in the web UI use a consistent hook pattern (see the Next.js app in `app/`):
 
 ```typescript
 export function useApi() {

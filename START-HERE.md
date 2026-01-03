@@ -34,8 +34,8 @@ npm ls --depth=0
 - ✅ `IMPLEMENTATION-STATUS.md` - Current status
 
 ### 💻 Code Ready
-- ✅ `src/ui/NeuralTradingUI.tsx` - React UI (from demo)
-- ✅ `src/server.ts` - Express + WebSocket server
+- ✅ Next.js app in `app/` - production UI (Clerk + dashboard)
+- ✅ `src/api/server.new.ts` - Express + WebSocket Neural Trading API
 - ✅ Architecture designed for real libraries
 
 ## 🎯 Quick Start

@@ -1,949 +1,460 @@
-# Phase 21: RuVector Integration - TDD Specification
+# Phase 21 – RuVector Integration & Pattern Intelligence (90+ to “Elite” Trader Status)
 
-## Overview
+**Goal:** Take TradeZZZ from a safe, production‑ready live trader (~90/100) to an **elite, pattern‑intelligent trading system** that:
 
-RuVector is a self-learning vector database that provides:
-- **61µs search latency** for pattern matching
-- **Graph Neural Networks** that improve search over time
-- **Semantic routing** for intelligent AI model selection
-- **Tiered storage** for cost-effective memory management
+- Uses **RuVector** as a distributed vector + graph + GNN engine,
+- Learns from **all strategies, trades, market regimes, AI calls, and docs**,
+- Routes AI, strategies, and risk decisions intelligently,
+- Exposes this power through **strategy recommender, risk graph view, and “explain my strategy” UI**, and
+- Remains **multi‑tenant, crypto‑first, but ready for multi‑asset** (stocks/forex/options) later.
 
-**Philosophy**: The system learns from every successful trade, making future pattern recognition faster and more accurate.
+This phase assumes:
 
----
-
-## 21.1 Core RuVector Setup (Test-First)
-
-**Test File**: `src/memory/RuVectorStore.test.ts`
-
-```typescript
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { RuVectorStore } from './RuVectorStore';
-
-describe('RuVectorStore', () => {
-  let store: RuVectorStore;
-
-  beforeEach(async () => {
-    store = new RuVectorStore({
-      collection: 'test_patterns',
-      dimensions: 1536, // OpenAI embedding size
-      hnswConfig: {
-        m: 16,
-        efConstruction: 200,
-        efSearch: 100
-      }
-    });
-    await store.initialize();
-  });
-
-  afterEach(async () => {
-    await store.destroy();
-  });
-
-  describe('Initialization', () => {
-    it('should_create_collection_with_hnsw_index', async () => {
-      const info = await store.getCollectionInfo();
-
-      expect(info.name).toBe('test_patterns');
-      expect(info.indexType).toBe('hnsw');
-      expect(info.dimensions).toBe(1536);
-    });
-
-    it('should_support_multiple_collections_per_user', async () => {
-      const userStore = new RuVectorStore({
-        collection: 'user_123_patterns',
-        dimensions: 1536
-      });
-      await userStore.initialize();
-
-      const info = await userStore.getCollectionInfo();
-      expect(info.name).toBe('user_123_patterns');
-
-      await userStore.destroy();
-    });
-  });
-
-  describe('Vector Storage', () => {
-    it('should_store_pattern_with_embedding', async () => {
-      const pattern = {
-        id: 'pattern_1',
-        embedding: new Float32Array(1536).fill(0.1),
-        metadata: {
-          symbol: 'BTC/USDT',
-          type: 'double_bottom',
-          timestamp: new Date(),
-          profitability: 0.15
-        }
-      };
-
-      const result = await store.upsert(pattern);
-
-      expect(result.id).toBe('pattern_1');
-      expect(result.success).toBe(true);
-    });
-
-    it('should_batch_upsert_multiple_patterns', async () => {
-      const patterns = Array.from({ length: 100 }, (_, i) => ({
-        id: `pattern_${i}`,
-        embedding: new Float32Array(1536).fill(i / 100),
-        metadata: { index: i }
-      }));
-
-      const results = await store.batchUpsert(patterns);
-
-      expect(results.successCount).toBe(100);
-      expect(results.failCount).toBe(0);
-    });
-  });
-
-  describe('Similarity Search', () => {
-    it('should_find_similar_patterns_within_latency_target', async () => {
-      // Seed with patterns
-      for (let i = 0; i < 1000; i++) {
-        await store.upsert({
-          id: `pattern_${i}`,
-          embedding: new Float32Array(1536).fill(i / 1000),
-          metadata: { index: i }
-        });
-      }
-
-      const queryEmbedding = new Float32Array(1536).fill(0.5);
-      const startTime = performance.now();
-
-      const results = await store.search({
-        embedding: queryEmbedding,
-        topK: 10
-      });
-
-      const latency = performance.now() - startTime;
-
-      expect(results.length).toBe(10);
-      expect(latency).toBeLessThan(100); // Target: < 100ms
-    });
-
-    it('should_return_similarity_scores', async () => {
-      await store.upsert({
-        id: 'exact_match',
-        embedding: new Float32Array(1536).fill(0.5),
-        metadata: {}
-      });
-
-      const results = await store.search({
-        embedding: new Float32Array(1536).fill(0.5),
-        topK: 1
-      });
-
-      expect(results[0].score).toBeGreaterThan(0.99);
-    });
-
-    it('should_filter_by_metadata', async () => {
-      await store.batchUpsert([
-        { id: 'btc_1', embedding: new Float32Array(1536).fill(0.1), metadata: { symbol: 'BTC/USDT' } },
-        { id: 'eth_1', embedding: new Float32Array(1536).fill(0.1), metadata: { symbol: 'ETH/USDT' } },
-        { id: 'btc_2', embedding: new Float32Array(1536).fill(0.2), metadata: { symbol: 'BTC/USDT' } }
-      ]);
-
-      const results = await store.search({
-        embedding: new Float32Array(1536).fill(0.1),
-        topK: 10,
-        filter: { symbol: 'BTC/USDT' }
-      });
-
-      expect(results.length).toBe(2);
-      expect(results.every(r => r.metadata.symbol === 'BTC/USDT')).toBe(true);
-    });
-  });
-
-  describe('Multi-Tenancy', () => {
-    it('should_isolate_patterns_by_user', async () => {
-      const user1Store = new RuVectorStore({ collection: 'user_1_patterns', dimensions: 1536 });
-      const user2Store = new RuVectorStore({ collection: 'user_2_patterns', dimensions: 1536 });
-
-      await user1Store.initialize();
-      await user2Store.initialize();
-
-      await user1Store.upsert({
-        id: 'private_pattern',
-        embedding: new Float32Array(1536).fill(0.1),
-        metadata: { secret: 'user1_data' }
-      });
-
-      const user2Results = await user2Store.search({
-        embedding: new Float32Array(1536).fill(0.1),
-        topK: 10
-      });
-
-      expect(user2Results.length).toBe(0);
-
-      await user1Store.destroy();
-      await user2Store.destroy();
-    });
-  });
-});
-```
+- Backend: **Neon + Clerk + NeuralTradingServer** (`src/api/server.new.ts`),
+- Frontend: **Next.js app** in `app/`,
+- Live trading safety rails and AI multi‑provider adapters are already in place (Phases 1–20),
+- Deployment target: **Vercel (Next) + managed Neon + RuVector cluster** (multi‑tenant).
 
 ---
 
-## 21.2 Pattern Memory Service (Test-First)
+## 1. Architecture & Deployment – RuVector as Pattern Core
 
-**Test File**: `src/memory/PatternMemory.test.ts`
+**Objective:** Stand up RuVector as a **multi‑tenant pattern engine** alongside Neon and the Neural Trading API.
 
-```typescript
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { PatternMemory } from './PatternMemory';
-import { OpenAIProvider } from '../ai/providers/adapters/OpenAIProvider';
+### 1.1 High‑Level Architecture
 
-describe('PatternMemory', () => {
-  let memory: PatternMemory;
-  let mockAIProvider: any;
+- **Neon (Postgres)** – source of truth for:
+  - Users, strategies, orders, positions, trades, AI providers, exchange connections.
+- **RuVector Cluster** – pattern & routing core:
+  - Stores embeddings and graphs for strategies, trades, regimes, docs, news, AI calls.
+  - Provides **Cypher/SPARQL + GNN** APIs for search, routing, and risk analysis.
+- **NeuralTradingServer** (Express):
+  - New `RuVectorClient` service (Node binding or HTTP client).
+  - New domain services:
+    - `PatternStoreService` – ingest from Neon → RuVector,
+    - `AIRoutingService` – provider selection via RuVector,
+    - `StrategyGraphService` – similarity, recommendations, explanations,
+    - `RiskGraphService` – graph risk score + anomalies,
+    - `SwarmMemoryService` – agent performance graph.
+- **Next.js Frontend (app/)**:
+  - New views for:
+    - Strategy recommender,
+    - Risk graph view,
+    - “Explain my strategy” graph narrative.
 
-  beforeEach(async () => {
-    mockAIProvider = {
-      getEmbedding: vi.fn().mockResolvedValue(new Float32Array(1536).fill(0.5))
-    };
+### 1.2 Deployment Mode
 
-    memory = new PatternMemory({
-      userId: 'user_1',
-      aiProvider: mockAIProvider
-    });
-    await memory.initialize();
-  });
+- **Short‑term (Phase 21)**:
+  - One **RuVector cluster** per environment (dev/staging/prod).
+  - Multi‑tenant via **per‑tenant namespace / keyspace** (e.g., `tenant_id` prefix in index/graph labels).
+- **Mid‑term**:
+  - Use RuVector’s **Raft + auto‑sharding** for horizontal scale.
+  - Optionally deploy **RuVector Postgres extension** collocated with Neon for low‑latency joins.
 
-  describe('Pattern Storage', () => {
-    it('should_store_trading_pattern_with_embedding', async () => {
-      const pattern = {
-        symbol: 'BTC/USDT',
-        type: 'double_bottom',
-        indicators: {
-          rsi: 28,
-          macd: -150,
-          volume: 1500000
-        },
-        priceAction: {
-          entry: 42000,
-          exit: 45000,
-          stopLoss: 41000
-        },
-        outcome: {
-          profit: 0.07, // 7%
-          duration: 48 // hours
-        }
-      };
+### 1.3 Config & Secrets
 
-      const stored = await memory.storePattern(pattern);
+- Add `ruvector` config section (likely in `src/config/ConfigService.ts` / env):
+  - `RUVECTOR_URL`, `RUVECTOR_API_KEY` (if used),
+  - `RUVECTOR_NAMESPACE_STRATEGIES`, `RUVECTOR_NAMESPACE_TRADES`, etc.
+- Add TDD tests:
+  - **ConfigService** returns required RuVector config and fails fast if missing in production.
 
-      expect(stored.id).toBeDefined();
-      expect(mockAIProvider.getEmbedding).toHaveBeenCalled();
-    });
+**Deliverables**
 
-    it('should_embed_pattern_description_for_semantic_search', async () => {
-      const pattern = {
-        symbol: 'ETH/USDT',
-        type: 'ascending_triangle',
-        description: 'Bullish breakout pattern with increasing volume'
-      };
+- RuVector cluster deployed for dev/staging/prod (or locally mocked with `npx ruvector`).
+- `RuVectorClient` abstraction with:
+  - `ping()`, `upsertVectors()`, `cypherQuery()`, `search()` primitives.
+- Basic health check: `/api/patterns/health` that verifies RuVector connectivity.
 
-      await memory.storePattern(pattern);
+**TDD Notes**
 
-      expect(mockAIProvider.getEmbedding).toHaveBeenCalledWith(
-        expect.stringContaining('ascending_triangle')
-      );
-    });
-  });
-
-  describe('Pattern Retrieval', () => {
-    it('should_find_similar_historical_patterns', async () => {
-      // Store historical patterns
-      await memory.storePattern({
-        symbol: 'BTC/USDT',
-        type: 'oversold_bounce',
-        indicators: { rsi: 22 },
-        outcome: { profit: 0.12 }
-      });
-
-      await memory.storePattern({
-        symbol: 'BTC/USDT',
-        type: 'oversold_bounce',
-        indicators: { rsi: 25 },
-        outcome: { profit: 0.08 }
-      });
-
-      // Query for similar pattern
-      const currentMarket = {
-        symbol: 'BTC/USDT',
-        indicators: { rsi: 24 }
-      };
-
-      const similar = await memory.findSimilarPatterns(currentMarket, { topK: 5 });
-
-      expect(similar.length).toBeGreaterThan(0);
-      expect(similar[0].pattern.type).toBe('oversold_bounce');
-    });
-
-    it('should_return_pattern_success_rate', async () => {
-      // Store mix of profitable and unprofitable patterns
-      for (let i = 0; i < 10; i++) {
-        await memory.storePattern({
-          symbol: 'BTC/USDT',
-          type: 'head_and_shoulders',
-          outcome: { profit: i % 3 === 0 ? -0.05 : 0.10 }
-        });
-      }
-
-      const stats = await memory.getPatternStats('head_and_shoulders');
-
-      expect(stats.successRate).toBeGreaterThan(0.6);
-      expect(stats.averageProfit).toBeGreaterThan(0);
-      expect(stats.sampleSize).toBe(10);
-    });
-  });
-
-  describe('Learning from Outcomes', () => {
-    it('should_update_pattern_with_trade_outcome', async () => {
-      const stored = await memory.storePattern({
-        symbol: 'BTC/USDT',
-        type: 'bullish_flag',
-        indicators: { rsi: 45 }
-      });
-
-      await memory.recordOutcome(stored.id, {
-        profit: 0.15,
-        duration: 24,
-        exitReason: 'take_profit'
-      });
-
-      const pattern = await memory.getPattern(stored.id);
-
-      expect(pattern.outcome.profit).toBe(0.15);
-      expect(pattern.outcome.exitReason).toBe('take_profit');
-    });
-
-    it('should_improve_pattern_ranking_after_successful_trade', async () => {
-      const stored = await memory.storePattern({
-        symbol: 'ETH/USDT',
-        type: 'cup_and_handle',
-        indicators: {}
-      });
-
-      const initialRank = await memory.getPatternConfidence(stored.id);
-
-      await memory.recordOutcome(stored.id, {
-        profit: 0.20,
-        duration: 72,
-        exitReason: 'take_profit'
-      });
-
-      const updatedRank = await memory.getPatternConfidence(stored.id);
-
-      expect(updatedRank).toBeGreaterThan(initialRank);
-    });
-  });
-});
-```
+- Unit tests for `RuVectorClient` using **local/HTTP mocks** (no real network in CI).
+- Integration test that fails clearly if RuVector endpoint is unreachable (guarded / skipped in pure‑CI).
 
 ---
 
-## 21.3 GNN Self-Learning (Test-First)
+## 2. Data Modeling – What Goes Into RuVector v1
 
-**Test File**: `src/memory/GNNLearning.test.ts`
+**Objective:** Define **schemas and namespaces** for all the data that will live in RuVector.
 
-```typescript
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { GNNLearning } from './GNNLearning';
+### 2.1 Entities & Embeddings (v1 = “All of the Above”)
 
-describe('GNNLearning', () => {
-  let gnn: GNNLearning;
+1. **Strategies + Backtests**
+   - Nodes: `Strategy`, `Backtest`, `Config`, `Indicator`, `Symbol`.
+   - Embeddings:
+     - Strategy text (name, description, config),
+     - Backtest performance vector (return, DD, Sharpe, win rate, etc.).
+   - Edges:
+     - `(:Strategy)-[:HAS_BACKTEST]->(:Backtest)`
+     - `(:Strategy)-[:USES_SYMBOL]->(:Symbol)`
+     - `(:Strategy)-[:USES_INDICATOR]->(:Indicator)`
 
-  beforeEach(async () => {
-    gnn = new GNNLearning({
-      graphId: 'test_graph',
-      attentionMechanism: 'graph_aware'
-    });
-    await gnn.initialize();
-  });
+2. **Trades / Positions (per user)**
+   - Nodes: `Trade`, `Position`, `User`.
+   - Embeddings:
+     - Trade feature vector (side, size, pnl, time, regime).
+   - Edges:
+     - `(:User)-[:PLACED]->(:Trade)`
+     - `(:Strategy)-[:OPENED_POSITION]->(:Position)`
 
-  describe('Graph Building', () => {
-    it('should_create_nodes_for_patterns', async () => {
-      await gnn.addPatternNode({
-        id: 'pattern_1',
-        embedding: new Float32Array(1536).fill(0.1),
-        metadata: { type: 'double_bottom' }
-      });
+3. **Market Regimes / Indicators**
+   - Nodes: `Regime`, `IndicatorSnapshot`.
+   - Embeddings:
+     - Normalized indicator vector (volatility, trend, liquidity, correlation).
+   - Edges:
+     - `(:Regime)-[:APPLIES_TO]->(:Symbol)`
+     - `(:Trade)-[:EXECUTED_DURING]->(:Regime)`
 
-      const node = await gnn.getNode('pattern_1');
+4. **Docs / Playbooks / Code**
+   - Nodes: `Doc`, `Section`, `CodeSnippet`.
+   - Embeddings:
+     - Text embeddings for explanations, playbooks, strategy code comments.
+   - Edges:
+     - `(:Strategy)-[:DOCUMENTED_BY]->(:Doc)`
+     - `(:Doc)-[:HAS_SECTION]->(:Section)`
 
-      expect(node).toBeDefined();
-      expect(node.metadata.type).toBe('double_bottom');
-    });
+5. **News / Sentiment**
+   - Nodes: `NewsItem`, `SentimentSnapshot`.
+   - Edges:
+     - `(:NewsItem)-[:RELATES_TO]->(:Symbol)`
+     - `(:Regime)-[:INFLUENCED_BY]->(:NewsItem)`
 
-    it('should_create_edges_between_related_patterns', async () => {
-      await gnn.addPatternNode({ id: 'p1', embedding: new Float32Array(1536).fill(0.1), metadata: {} });
-      await gnn.addPatternNode({ id: 'p2', embedding: new Float32Array(1536).fill(0.1), metadata: {} });
+### 2.2 Multi‑Tenant Strategy
 
-      await gnn.createEdge('p1', 'p2', {
-        relationship: 'followed_by',
-        weight: 0.8
-      });
+- All nodes/edges carry `tenantId` (and `userId` when per‑user).
+- RuVector schema uses:
+  - Either **separate logical indexes** (per tenant), or
+  - Single cluster with `tenantId` filters on all queries.
 
-      const edges = await gnn.getEdges('p1');
+**Deliverables**
 
-      expect(edges.length).toBe(1);
-      expect(edges[0].target).toBe('p2');
-      expect(edges[0].weight).toBe(0.8);
-    });
-  });
-
-  describe('Attention Mechanism', () => {
-    it('should_use_graph_attention_for_pattern_scoring', async () => {
-      // Create pattern graph
-      await gnn.addPatternNode({ id: 'profitable_1', embedding: new Float32Array(1536).fill(0.5), metadata: { profit: 0.15 } });
-      await gnn.addPatternNode({ id: 'profitable_2', embedding: new Float32Array(1536).fill(0.5), metadata: { profit: 0.12 } });
-      await gnn.addPatternNode({ id: 'loss_1', embedding: new Float32Array(1536).fill(0.5), metadata: { profit: -0.08 } });
-
-      // Connect profitable patterns
-      await gnn.createEdge('profitable_1', 'profitable_2', { weight: 0.9 });
-
-      const query = new Float32Array(1536).fill(0.5);
-      const results = await gnn.attentionSearch(query, { topK: 3 });
-
-      // Profitable patterns should rank higher due to graph structure
-      expect(results[0].id).toMatch(/profitable/);
-    });
-
-    it('should_strengthen_connections_after_positive_feedback', async () => {
-      await gnn.addPatternNode({ id: 'p1', embedding: new Float32Array(1536).fill(0.1), metadata: {} });
-      await gnn.addPatternNode({ id: 'p2', embedding: new Float32Array(1536).fill(0.1), metadata: {} });
-      await gnn.createEdge('p1', 'p2', { weight: 0.5 });
-
-      // Positive feedback: p1 → p2 led to profit
-      await gnn.reinforceConnection('p1', 'p2', { reward: 1.0 });
-
-      const edges = await gnn.getEdges('p1');
-
-      expect(edges[0].weight).toBeGreaterThan(0.5);
-    });
-
-    it('should_weaken_connections_after_negative_feedback', async () => {
-      await gnn.addPatternNode({ id: 'p1', embedding: new Float32Array(1536).fill(0.1), metadata: {} });
-      await gnn.addPatternNode({ id: 'p2', embedding: new Float32Array(1536).fill(0.1), metadata: {} });
-      await gnn.createEdge('p1', 'p2', { weight: 0.5 });
-
-      // Negative feedback: p1 → p2 led to loss
-      await gnn.reinforceConnection('p1', 'p2', { reward: -1.0 });
-
-      const edges = await gnn.getEdges('p1');
-
-      expect(edges[0].weight).toBeLessThan(0.5);
-    });
-  });
-
-  describe('Self-Improvement', () => {
-    it('should_improve_search_accuracy_over_time', async () => {
-      // Seed patterns
-      for (let i = 0; i < 100; i++) {
-        await gnn.addPatternNode({
-          id: `pattern_${i}`,
-          embedding: new Float32Array(1536).fill(i / 100),
-          metadata: { profitable: i % 2 === 0 }
-        });
-      }
-
-      // Simulate usage: repeatedly search and provide feedback
-      const query = new Float32Array(1536).fill(0.5);
-
-      let initialAccuracy = 0;
-      let finalAccuracy = 0;
-
-      // Measure initial accuracy
-      for (let i = 0; i < 10; i++) {
-        const results = await gnn.attentionSearch(query, { topK: 5 });
-        const profitable = results.filter(r => r.metadata.profitable).length;
-        initialAccuracy += profitable / 5;
-      }
-      initialAccuracy /= 10;
-
-      // Simulate learning: provide feedback for 50 queries
-      for (let i = 0; i < 50; i++) {
-        const results = await gnn.attentionSearch(query, { topK: 5 });
-        for (const result of results) {
-          if (result.metadata.profitable) {
-            await gnn.recordPositiveFeedback(result.id);
-          } else {
-            await gnn.recordNegativeFeedback(result.id);
-          }
-        }
-      }
-
-      // Measure final accuracy
-      for (let i = 0; i < 10; i++) {
-        const results = await gnn.attentionSearch(query, { topK: 5 });
-        const profitable = results.filter(r => r.metadata.profitable).length;
-        finalAccuracy += profitable / 5;
-      }
-      finalAccuracy /= 10;
-
-      expect(finalAccuracy).toBeGreaterThan(initialAccuracy);
-    });
-  });
-});
-```
+- `PatternSchema.md` (generated or inline in this file) listing:
+  - Node types, edge types, key properties, primary IDs.
+- Small ingestion fixture tests verifying:
+  - A synthetic strategy + trades + regime end up as the expected graph in RuVector.
 
 ---
 
-## 21.4 Semantic AI Routing (Test-First)
+## 3. Ingestion Pipeline – Neon → RuVector
 
-**Test File**: `src/memory/SemanticRouter.test.ts`
+**Objective:** Build reliable, testable pipelines that stream data from Neon into RuVector in near‑real‑time.
 
-```typescript
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { SemanticRouter } from './SemanticRouter';
-import { AIProviderFactory } from '../ai/providers/AIProviderFactory';
+### 3.1 Ingestion Services
 
-describe('SemanticRouter', () => {
-  let router: SemanticRouter;
+- `PatternIngestionService` (backend):
+  - `ingestStrategy(strategyId)`,
+  - `ingestBacktest(backtestId)`,
+  - `ingestTradesForUser(userId, since)`,
+  - `ingestRegimeSnapshot(symbol, timestamp)`,
+  - `ingestDocs()` / `ingestNews()` for offline content.
+- Trigger points:
+  - After backtest completion (`BacktestService.runBacktest`),
+  - After trade creation (`NeonLiveTradingService.fillOrder`),
+  - Background jobs for news/regimes/docs.
 
-  beforeEach(async () => {
-    router = new SemanticRouter({
-      userId: 'user_1',
-      providers: {
-        cheap: { provider: 'deepseek', model: 'deepseek-v3.2' },
-        balanced: { provider: 'openai', model: 'gpt-4.1' },
-        premium: { provider: 'anthropic', model: 'claude-opus-4.5' },
-        reasoning: { provider: 'openai', model: 'o3' },
-        fast: { provider: 'groq', model: 'llama-3.3-70b-versatile' }
-      }
-    });
-    await router.initialize();
-  });
+### 3.2 TDD & Reliability
 
-  describe('Query Classification', () => {
-    it('should_route_simple_queries_to_cheap_model', async () => {
-      const query = 'What is the current price of BTC?';
+- Unit tests with **fake Neon DB + fake RuVectorClient**:
+  - `should_ingest_strategy_graph_when_backtest_completes`,
+  - `should_ingest_trade_and_link_to_regime`,
+  - `should_tag_nodes_with_tenantId_and_userId`.
+- Idempotency:
+  - Upserts keyed by `neonId` (strategyId/tradeId) to avoid duplicates.
 
-      const route = await router.classify(query);
+**Deliverables**
 
-      expect(route.tier).toBe('cheap');
-      expect(route.provider).toBe('deepseek');
-    });
-
-    it('should_route_complex_analysis_to_premium_model', async () => {
-      const query = `
-        Analyze the correlation between BTC dominance,
-        altcoin market cap, DeFi TVL, and stablecoin flows
-        to predict the likely market regime for Q1 2025.
-        Consider macro factors and on-chain metrics.
-      `;
-
-      const route = await router.classify(query);
-
-      expect(route.tier).toBe('premium');
-      expect(['anthropic', 'openai']).toContain(route.provider);
-    });
-
-    it('should_route_multi_step_reasoning_to_reasoning_model', async () => {
-      const query = `
-        Given a portfolio of BTC (40%), ETH (30%), SOL (20%), LINK (10%),
-        and current market conditions showing RSI divergence on BTC,
-        accumulation patterns on ETH, and SOL in a descending channel,
-        create a step-by-step rebalancing plan that minimizes tax impact
-        while maximizing risk-adjusted returns over 6 months.
-      `;
-
-      const route = await router.classify(query);
-
-      expect(route.tier).toBe('reasoning');
-      expect(route.model).toBe('o3');
-    });
-
-    it('should_route_latency_sensitive_queries_to_fast_model', async () => {
-      const query = 'Quick: Is RSI above 70?';
-
-      const route = await router.classify(query, { latencyPriority: true });
-
-      expect(route.tier).toBe('fast');
-      expect(route.provider).toBe('groq');
-    });
-
-    it('should_route_sentiment_analysis_to_balanced_model', async () => {
-      const query = 'Analyze the sentiment of this tweet: "BTC to 100k soon! 🚀"';
-
-      const route = await router.classify(query);
-
-      expect(['cheap', 'balanced']).toContain(route.tier);
-    });
-  });
-
-  describe('Cost Optimization', () => {
-    it('should_prefer_cheaper_model_when_confidence_is_high', async () => {
-      // Train router with successful cheap model responses
-      for (let i = 0; i < 10; i++) {
-        await router.recordSuccess('cheap', {
-          queryType: 'price_check',
-          latency: 200,
-          quality: 0.95
-        });
-      }
-
-      const route = await router.classify('What is ETH price?');
-
-      expect(route.tier).toBe('cheap');
-      expect(route.confidence).toBeGreaterThan(0.9);
-    });
-
-    it('should_upgrade_to_better_model_after_failures', async () => {
-      // Record failures from cheap model
-      for (let i = 0; i < 5; i++) {
-        await router.recordFailure('cheap', {
-          queryType: 'market_analysis',
-          error: 'low_quality_response'
-        });
-      }
-
-      const route = await router.classify('Analyze the market');
-
-      expect(['balanced', 'premium']).toContain(route.tier);
-    });
-
-    it('should_estimate_cost_before_routing', async () => {
-      const query = 'Detailed market analysis for BTC';
-
-      const route = await router.classify(query);
-
-      expect(route.estimatedCost).toBeDefined();
-      expect(route.estimatedCost).toBeGreaterThan(0);
-      expect(route.estimatedTokens).toBeDefined();
-    });
-  });
-
-  describe('User Budget Awareness', () => {
-    it('should_respect_user_cost_limit', async () => {
-      router.setUserBudget({
-        dailyLimit: 1.00, // $1/day
-        currentSpend: 0.95 // Already spent $0.95
-      });
-
-      const route = await router.classify('Complex analysis needed');
-
-      expect(route.tier).toBe('cheap'); // Forced to cheap
-      expect(route.budgetWarning).toBe(true);
-    });
-
-    it('should_suggest_local_model_when_budget_exhausted', async () => {
-      router.setUserBudget({
-        dailyLimit: 1.00,
-        currentSpend: 1.00
-      });
-
-      const route = await router.classify('Any analysis');
-
-      expect(route.tier).toBe('local');
-      expect(route.provider).toBe('ollama');
-      expect(route.message).toContain('budget');
-    });
-  });
-
-  describe('Learning', () => {
-    it('should_learn_optimal_routing_from_feedback', async () => {
-      // Simulate: user rates responses
-      for (let i = 0; i < 20; i++) {
-        const query = 'Analyze momentum indicators';
-        const route = await router.classify(query);
-
-        // Provide feedback
-        await router.recordFeedback(route.requestId, {
-          rating: route.tier === 'balanced' ? 5 : 3,
-          useful: route.tier === 'balanced'
-        });
-      }
-
-      // After learning, should prefer balanced for this query type
-      const finalRoute = await router.classify('Analyze momentum indicators');
-
-      expect(finalRoute.tier).toBe('balanced');
-    });
-  });
-});
-```
+- Ingestion jobs for strategies, backtests, trades, and regimes.
+- CLI / dev endpoint to **rebuild pattern graph** for a tenant from Neon.
 
 ---
 
-## 21.5 Multi-Asset Correlation Graph (Test-First)
+## 4. AI Routing – RuVector‑Backed Provider Selection
 
-**Test File**: `src/memory/AssetCorrelationGraph.test.ts`
+**Objective:** Use RuVector to pick the best AI provider/model per request with priorities:
 
-```typescript
-import { describe, it, expect, beforeEach } from 'vitest';
-import { AssetCorrelationGraph } from './AssetCorrelationGraph';
+> **Accuracy > Latency > Cost > Privacy**
 
-describe('AssetCorrelationGraph', () => {
-  let graph: AssetCorrelationGraph;
+### 4.1 Routing Model
 
-  beforeEach(async () => {
-    graph = new AssetCorrelationGraph({
-      userId: 'user_1'
-    });
-    await graph.initialize();
-  });
+- Input features:
+  - Task type (signals, risk commentary, explanations, docs Q&A),
+  - Prompt size / complexity,
+  - Historical success metrics (PnL impact, user rating, error rates),
+  - Latency and cost history per provider,
+  - Tenant/user preferences.
+- RuVector usage:
+  - Store AI call logs as nodes: `(:AICall {provider, model, latency, tokens, successScore})`.
+  - Edges: `(:AICall)-[:FOR_TASK]->(:TaskType)`, `(:AICall)-[:AFFECTED_STRATEGY]->(:Strategy)`.
+  - Learned graph used to:
+    - Retrieve top historical calls for similar tasks,
+    - Feed a routing head (Tiny Dancer / SONA) to pick provider/model.
 
-  describe('Asset Nodes', () => {
-    it('should_create_asset_nodes', async () => {
-      await graph.addAsset('BTC/USDT', {
-        sector: 'large_cap',
-        category: 'store_of_value'
-      });
+### 4.2 Integration Points
 
-      const node = await graph.getAsset('BTC/USDT');
+- New `AIRoutingService`:
+  - `selectProvider(task: AITaskContext): { provider, model }`.
+  - Called by `NeonAIAdapterService` before instantiating provider adapter.
 
-      expect(node).toBeDefined();
-      expect(node.metadata.sector).toBe('large_cap');
-    });
-  });
+### 4.3 TDD
 
-  describe('Correlation Edges', () => {
-    it('should_track_correlation_between_assets', async () => {
-      await graph.addAsset('BTC/USDT', {});
-      await graph.addAsset('ETH/USDT', {});
+- Simulated provider log data in RuVector:
+  - Tests that:
+    - For “high‑stakes risk commentary”, picks historically most accurate provider,
+    - For long, low‑stakes docs Q&A, picks cheaper/faster provider,
+    - Respects tenant overrides (e.g., “Anthropic only”).
 
-      await graph.updateCorrelation('BTC/USDT', 'ETH/USDT', {
-        correlation: 0.85,
-        timeframe: '7d',
-        sampleSize: 168 // hourly data
-      });
+**Deliverables**
 
-      const correlation = await graph.getCorrelation('BTC/USDT', 'ETH/USDT');
-
-      expect(correlation.value).toBe(0.85);
-      expect(correlation.timeframe).toBe('7d');
-    });
-
-    it('should_query_highly_correlated_assets', async () => {
-      await graph.addAsset('BTC/USDT', {});
-      await graph.addAsset('ETH/USDT', {});
-      await graph.addAsset('SOL/USDT', {});
-      await graph.addAsset('DOGE/USDT', {});
-
-      await graph.updateCorrelation('BTC/USDT', 'ETH/USDT', { correlation: 0.88 });
-      await graph.updateCorrelation('BTC/USDT', 'SOL/USDT', { correlation: 0.72 });
-      await graph.updateCorrelation('BTC/USDT', 'DOGE/USDT', { correlation: 0.45 });
-
-      const correlated = await graph.findCorrelatedAssets('BTC/USDT', {
-        minCorrelation: 0.7
-      });
-
-      expect(correlated.length).toBe(2);
-      expect(correlated.map(a => a.symbol)).toContain('ETH/USDT');
-      expect(correlated.map(a => a.symbol)).toContain('SOL/USDT');
-    });
-
-    it('should_find_inversely_correlated_assets', async () => {
-      await graph.addAsset('BTC/USDT', {});
-      await graph.addAsset('USDT/USD', {});
-
-      await graph.updateCorrelation('BTC/USDT', 'USDT/USD', { correlation: -0.65 });
-
-      const hedges = await graph.findHedgeAssets('BTC/USDT');
-
-      expect(hedges.length).toBeGreaterThan(0);
-      expect(hedges[0].correlation).toBeLessThan(0);
-    });
-  });
-
-  describe('Graph Queries', () => {
-    it('should_answer_what_happens_when_btc_drops', async () => {
-      // Build graph with historical data
-      await graph.addAsset('BTC/USDT', { historicalDrawdowns: [{ drop: -0.20, date: '2024-08' }] });
-      await graph.addAsset('ETH/USDT', {});
-      await graph.addAsset('SOL/USDT', {});
-
-      await graph.recordEvent({
-        trigger: { asset: 'BTC/USDT', action: 'drop', magnitude: -0.20 },
-        effects: [
-          { asset: 'ETH/USDT', change: -0.25, lag: '2h' },
-          { asset: 'SOL/USDT', change: -0.35, lag: '4h' }
-        ]
-      });
-
-      const prediction = await graph.predictImpact({
-        asset: 'BTC/USDT',
-        scenario: 'drop',
-        magnitude: -0.10
-      });
-
-      expect(prediction.effects.length).toBeGreaterThan(0);
-      expect(prediction.effects.find(e => e.asset === 'ETH/USDT')).toBeDefined();
-    });
-  });
-});
-```
+- Production routing path for all `/api/ai/*` endpoints.
+- Feature flag to **enable/disable RuVector routing** per environment.
 
 ---
 
-## 21.6 Strategy Embeddings (Test-First)
+## 5. Strategy Intelligence – Recommender & Auto‑Generated Strategies
 
-**Test File**: `src/memory/StrategyEmbeddings.test.ts`
+**Objective:** Make RuVector a **strategy brain** that:
 
-```typescript
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { StrategyEmbeddings } from './StrategyEmbeddings';
+- Ranks existing strategies for current market conditions, and
+- Proposes new strategies automatically.
 
-describe('StrategyEmbeddings', () => {
-  let embeddings: StrategyEmbeddings;
-  let mockAIProvider: any;
+### 5.1 Strategy Recommender
 
-  beforeEach(async () => {
-    mockAIProvider = {
-      getEmbedding: vi.fn().mockResolvedValue(new Float32Array(1536).fill(0.5))
-    };
+- Backend `StrategyGraphService`:
+  - `recommendForUser(userId, context) → Strategy[]`:
+    - Uses RuVector to:
+      - Find regimes similar to current market state,
+      - Find strategies with strong performance in those regimes,
+      - Rank by expected edge for the user (tier, exchange connectivity, risk profile).
+- UI:
+  - Next.js **Strategy Recommender** panel:
+    - Shows “Top N strategies for current regime”,
+    - Includes short explanation: “Similar to past period X/Y, this strategy returned Z% with DD W%”.
 
-    embeddings = new StrategyEmbeddings({
-      userId: 'user_1',
-      aiProvider: mockAIProvider
-    });
-    await embeddings.initialize();
-  });
+### 5.2 Auto‑Generated Strategies
 
-  describe('Strategy Storage', () => {
-    it('should_embed_strategy_configuration', async () => {
-      const strategy = {
-        id: 'strat_1',
-        name: 'RSI Momentum',
-        type: 'momentum',
-        config: {
-          rsiPeriod: 14,
-          oversoldThreshold: 30,
-          overboughtThreshold: 70,
-          symbols: ['BTC/USDT', 'ETH/USDT']
-        },
-        performance: {
-          sharpeRatio: 1.8,
-          winRate: 0.65,
-          maxDrawdown: -0.12
-        }
-      };
+- Flow:
+  1. User clicks “Generate strategy idea”.
+  2. Backend uses RuVector to:
+     - Retrieve patterns: profitable patterns for chosen symbols/regimes,
+     - Provide these as context to an LLM.
+  3. LLM produces a structured strategy config draft.
+  4. System validates config, stores as **draft strategy**, and schedules backtest.
+- Safety:
+  - Auto strategies start as **paper** + must pass existing backtest + risk gates before live.
 
-      const stored = await embeddings.storeStrategy(strategy);
+### 5.3 TDD
 
-      expect(stored.id).toBeDefined();
-      expect(mockAIProvider.getEmbedding).toHaveBeenCalled();
-    });
-  });
+- Tests for `StrategyGraphService` with synthetic RuVector graph:
+  - `should_recommend_strategies_with_positive_regime_performance`,
+  - `should_explain_recommendation_with_regime_and_metrics`.
+- Auto strategy generator:
+  - Tests treat LLM as mocked; verify:
+    - We call LLM with RuVector‑retrieved context,
+    - Produced config is validated and saved as `status = 'draft'`.
 
-  describe('Strategy Search', () => {
-    it('should_find_similar_successful_strategies', async () => {
-      // Store multiple strategies
-      await embeddings.storeStrategy({
-        id: 'good_1',
-        type: 'momentum',
-        config: { rsiPeriod: 14 },
-        performance: { sharpeRatio: 2.1, winRate: 0.70 }
-      });
+**Deliverables**
 
-      await embeddings.storeStrategy({
-        id: 'good_2',
-        type: 'momentum',
-        config: { rsiPeriod: 21 },
-        performance: { sharpeRatio: 1.9, winRate: 0.68 }
-      });
-
-      await embeddings.storeStrategy({
-        id: 'bad_1',
-        type: 'mean_reversion',
-        config: { rsiPeriod: 7 },
-        performance: { sharpeRatio: 0.5, winRate: 0.45 }
-      });
-
-      // Query for similar strategies
-      const query = {
-        type: 'momentum',
-        config: { rsiPeriod: 14 }
-      };
-
-      const similar = await embeddings.findSimilar(query, {
-        topK: 5,
-        minSharpe: 1.5
-      });
-
-      expect(similar.length).toBe(2);
-      expect(similar.every(s => s.performance.sharpeRatio >= 1.5)).toBe(true);
-    });
-
-    it('should_recommend_strategy_improvements', async () => {
-      // Store a user's underperforming strategy
-      const userStrategy = await embeddings.storeStrategy({
-        id: 'user_strat',
-        type: 'momentum',
-        config: { rsiPeriod: 7 }, // Too short
-        performance: { sharpeRatio: 0.8, winRate: 0.52 }
-      });
-
-      // Store community best practices
-      await embeddings.storeStrategy({
-        id: 'community_best',
-        type: 'momentum',
-        config: { rsiPeriod: 14 },
-        performance: { sharpeRatio: 2.0, winRate: 0.68 }
-      });
-
-      const recommendations = await embeddings.getImprovementSuggestions('user_strat');
-
-      expect(recommendations.length).toBeGreaterThan(0);
-      expect(recommendations[0].suggestion).toContain('rsiPeriod');
-    });
-  });
-
-  describe('Market Condition Matching', () => {
-    it('should_find_strategies_that_worked_in_similar_conditions', async () => {
-      // Store strategies with market condition tags
-      await embeddings.storeStrategy({
-        id: 'bull_strat',
-        type: 'trend_following',
-        marketConditions: { trend: 'bullish', volatility: 'high' },
-        performance: { sharpeRatio: 2.5 }
-      });
-
-      await embeddings.storeStrategy({
-        id: 'bear_strat',
-        type: 'mean_reversion',
-        marketConditions: { trend: 'bearish', volatility: 'low' },
-        performance: { sharpeRatio: 1.8 }
-      });
-
-      // Query for current conditions
-      const currentConditions = {
-        trend: 'bullish',
-        volatility: 'high'
-      };
-
-      const matches = await embeddings.findByConditions(currentConditions);
-
-      expect(matches[0].id).toBe('bull_strat');
-    });
-  });
-});
-```
+- `/api/patterns/strategies/recommend` endpoint.
+- `/api/patterns/strategies/generate` endpoint.
+- Next.js Strategy Recommender UI (Phase 21 priority view #1).
 
 ---
 
-## Implementation Timeline
+## 6. Risk Graph View – Graph‑Enhanced Risk Scoring
 
-| Week | Focus | Deliverables |
-|------|-------|--------------|
-| 29 | Core Setup | RuVectorStore, Pattern Memory |
-| 30 | Learning | GNN Self-Learning, Feedback loops |
-| 31 | Routing | Semantic AI Router, Cost optimization |
-| 32 | Graphs | Asset Correlation, Strategy Embeddings |
+**Objective:** Layer a RuVector‑backed **graph risk score** on top of existing numeric tier limits, but let the user choose whether it can **block trades**.
 
-## Success Criteria
+### 6.1 RiskGraphService
 
-| Metric | Target |
-|--------|--------|
-| Search Latency | < 100ms (p95) |
-| Pattern Accuracy | Improve 10% over baseline after 1000 trades |
-| Cost Savings | 40% reduction via smart routing |
-| Test Coverage | 90%+ |
-| Tests | 30+ |
+- Inputs:
+  - User’s positions, orders, leverage (from Neon),
+  - Graph context (correlations, regime, user cluster, crowded trades) from RuVector.
+- Outputs:
+  - `graphRiskScore` (0–100),
+  - `factors[]` (e.g., “High correlation with BTC momentum cluster that crashed in May 2021”),
+  - Suggested actions (reduce exposure, diversify symbols).
 
-## Dependencies
+### 6.2 User Controls
 
-- Phase 17: AI Provider Adapters (for embeddings and routing)
-- Phase 18: AI Key Security (for secure embedding calls)
+- New risk setting in Neon `user_settings`:
+  - `graphRiskMode: 'off' | 'warn' | 'block'`.
+  - “Let the user decide”:
+    - `off`: RuVector risk not consulted.
+    - `warn`: `/api/risk/status` surfaces warnings but `/api/orders` doesn’t block.
+    - `block`: `/api/orders` refuses trades above risk threshold.
+
+### 6.3 UI – Risk Graph View (Priority View #2)
+
+- Next.js component:
+  - Shows:
+    - Graph risk score bar,
+    - Key graph factors / explanations,
+    - Simple visual representation (e.g., top 5 nodes causing risk).
+
+### 6.4 TDD
+
+- RiskGraphService unit tests with synthetic graphs:
+  - `should_raise_risk_score_for_highly_correlated_positions`,
+  - `should_surface_explanations_for_top_risk_factors`.
+- Order route tests:
+  - For `graphRiskMode = 'block'`, orders rejected when score exceeds threshold.
+
+**Deliverables**
+
+- `/api/risk/graph` endpoint returning structured graph risk summary.
+- Frontend Risk Graph view integrated with existing `/api/risk/status`.
+
+---
+
+## 7. Explain My Strategy – Knowledge Graph & Narrative
+
+**Objective:** Build a **knowledge graph** that can answer “Why does this strategy behave this way?” and show users a narrative explanation.
+
+### 7.1 Knowledge Graph
+
+- Nodes:
+  - `Strategy`, `Backtest`, `Indicator`, `DocSection`, `CodeSnippet`, `TradePattern`.
+- Edges:
+  - `(:Strategy)-[:DESCRIBED_IN]->(:DocSection)`,
+  - `(:Strategy)-[:IMPLEMENTED_BY]->(:CodeSnippet)`,
+  - `(:Strategy)-[:PERFORMS_WELL_IN]->(:Regime)`.
+
+### 7.2 ExplainService
+
+- `explainStrategy(strategyId, perspective)`:
+  - Uses RuVector to retrieve:
+    - Key backtest metrics,
+    - Typical regimes where it wins/loses,
+    - Related docs/commentary,
+    - Representative trades.
+  - Calls an LLM (via AI routing) to generate a concise explanation including risks.
+
+### 7.3 UI – “Explain My Strategy” (Priority View #3)
+
+- On the strategy details page:
+  - “Explain this strategy” button:
+    - Shows explanation + supporting data points,
+    - Shows a short graph‑style summary: “This strategy is similar to X and Y; it tends to win in A regime and lose in B”.
+
+### 7.4 TDD
+
+- Tests with RuVector + LLM mocked:
+  - Ensure:
+    - We request the right graph context,
+    - Responses include backtest metrics and regimes,
+    - Explanation is cached per strategy + regime snapshot.
+
+**Deliverables**
+
+- `/api/patterns/strategies/:id/explain` endpoint.
+- Frontend “Explain my strategy” panel.
+
+---
+
+## 8. Swarm + RuVector – Agent Memory & Leaderboard
+
+**Objective:** Give the swarm a **long‑term memory** and transparent weighting:
+
+- Auto‑weight agents based on performance,
+- Always **show changes and reasons** (no silent muting).
+
+### 8.1 SwarmMemoryService
+
+- Stores records in RuVector:
+  - `(:AgentAction {agentId, symbol, side, confidence, pnlImpact})`.
+- Computes:
+  - Per‑agent performance by symbol/regime,
+  - Suggested weight adjustments.
+
+### 8.2 SwarmCoordinator Integration
+
+- Before coordination:
+  - Fetch agent weights from SwarmMemoryService,
+  - Apply weights to `confidence` scores.
+- After coordination:
+  - Log resulting actions and realized PnL back into RuVector.
+
+### 8.3 UI – Agent Leaderboard
+
+- Shows:
+  - Agent names, roles,
+  - Historical PnL contribution,
+  - Current weight,
+  - “Why this weight?” explanation from RuVector graph.
+
+**Deliverables**
+
+- `/api/swarm/agents/summary` endpoint.
+- Optional Next.js “Agent Leaderboard” card on dashboard.
+
+---
+
+## 9. Multi‑Asset Readiness & Multi‑Tenant Hardening
+
+**Objective:** Make sure the RuVector integration can expand beyond crypto and support multi‑tenant at scale.
+
+### 9.1 Multi‑Asset Schema Extensions
+
+- Extend `Symbol` nodes to carry asset type:
+  - `assetType: 'crypto' | 'equity' | 'forex' | 'option'`.
+- Ensure:
+  - All ingestion and queries filter by tenant and asset type.
+
+### 9.2 Multi‑Tenant Protections
+
+- Add tests:
+  - RuVector queries **never** mix data between tenants,
+  - Admin tools can export/delete a tenant’s graph.
+
+**Deliverables**
+
+- Documented multi‑tenant scheme for RuVector indices.
+- Tests for tenant isolation across pattern queries.
+
+---
+
+## 10. Observability, SLOs, and Final Readiness
+
+**Objective:** Treat RuVector as a first‑class production dependency with clear SLOs.
+
+### 10.1 Metrics & Alerts
+
+- Add monitoring for:
+  - RuVector latency (P50/P95) on key queries,
+  - Error rates for AI routing and strategy recommendations,
+  - Ingestion lag (Neon → RuVector).
+
+### 10.2 SLOs & Fallbacks
+
+- Define SLOs:
+  - AI routing decisions under X ms,
+  - Strategy recommendations under Y ms,
+  - Risk graph responses under Z ms.
+- Fallback behavior:
+  - If RuVector unavailable:
+    - Use static provider routing,
+    - Disable strategy recommender + graph risk, but allow core trading to continue safely.
+
+**Deliverables**
+
+- Monitoring dashboards or logs for RuVector endpoints.
+- Documented runbook: “What happens if RuVector is down?”.
+
+---
+
+## 11. Summary – From Here to “One of the Most Powerful Traders”
+
+By completing this phase, TradeZZZ will:
+
+- **Understand patterns** across all strategies, trades, regimes, and users,
+- **Route AI intelligently** across providers for each task,
+- **Recommend and explain strategies** in the context of real market regimes,
+- **Quantify and visualize risk** using a graph‑aware, learning engine,
+- **Continuously improve** via RuVector’s GNN, SONA, and attention mechanisms,
+- While remaining:
+  - **Safe** (user‑controlled risk blocking, kill switch, tier limits),
+  - **Multi‑tenant**, and
+  - **Ready to extend** beyond crypto to multi‑asset markets.
+
+This file is the implementation map from today’s ~90/100 production‑ready system to a **RuVector‑powered, elite trading platform** that learns and adapts with every tick, trade, and strategy.  
+

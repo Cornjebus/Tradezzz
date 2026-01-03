@@ -10,6 +10,7 @@ import { createAuthMiddleware } from '../middleware/auth.middleware';
 import { asyncHandler, NotFoundError } from '../middleware/error.middleware';
 import { validate } from '../middleware/validation.middleware';
 import { z } from 'zod';
+import type { BacktestService, BacktestResult } from '../../backtesting/BacktestService';
 
 // ============================================================================
 // Validation Schemas
@@ -26,6 +27,7 @@ const updateStrategySchema = z.object({
   name: z.string().min(1).optional(),
   description: z.string().optional(),
   config: z.object({}).passthrough().optional(),
+  executionMode: z.enum(['manual', 'auto']).optional(),
 });
 
 const updateStatusSchema = z.object({
@@ -42,7 +44,8 @@ const cloneStrategySchema = z.object({
 
 export function createStrategyRouter(
   strategyService: StrategyService,
-  authService: AuthService
+  authService: AuthService,
+  backtestService?: BacktestService
 ): Router {
   const router = Router();
   const requireAuth = createAuthMiddleware(authService);
@@ -289,6 +292,92 @@ export function createStrategyRouter(
       res.json({
         success: true,
         data: stats,
+      });
+    })
+  );
+
+  // ============================================================================
+  // GET /:id/live-eligibility - Live Trading Eligibility
+  // ============================================================================
+
+  router.get(
+    '/:id/live-eligibility',
+    requireAuth,
+    asyncHandler(async (req: Request, res: Response) => {
+      const { id } = req.params;
+      const userId = req.userId!;
+
+      const strategy = await strategyService.getStrategy(id);
+
+      if (!strategy) {
+        throw new NotFoundError('Strategy not found');
+      }
+      if (strategy.userId !== userId) {
+        res.status(403).json({
+          success: false,
+          error: 'Access denied',
+        });
+        return;
+      }
+
+      if (!backtestService) {
+        res.json({
+          success: true,
+          data: {
+            eligible: false,
+            reason: 'Backtest service unavailable; eligibility unknown',
+          },
+        });
+        return;
+      }
+
+      const history: BacktestResult[] = await backtestService.getBacktestHistory(id);
+      const completed = history.filter(result => result.status === 'completed');
+
+      if (completed.length === 0) {
+        res.json({
+          success: true,
+          data: {
+            eligible: false,
+            reason: 'No completed backtests found for this strategy',
+          },
+        });
+        return;
+      }
+
+      const latest = completed[completed.length - 1];
+      const metrics: any = latest.metrics || {};
+      const totalReturn = metrics.totalReturn;
+      const maxDrawdown = metrics.maxDrawdown;
+
+      let eligible = true;
+      let reason: string | undefined;
+
+      if (typeof totalReturn !== 'number' || typeof maxDrawdown !== 'number') {
+        eligible = false;
+        reason = 'Latest backtest metrics are invalid or incomplete';
+      } else if (totalReturn < 0) {
+        eligible = false;
+        reason = 'Latest backtest has negative return';
+      } else if (maxDrawdown > 30) {
+        eligible = false;
+        reason = 'Latest backtest max drawdown exceeds 30%';
+      }
+
+      res.json({
+        success: true,
+        data: {
+          eligible,
+          reason,
+          latestBacktest: {
+            id: latest.id,
+            completedAt: latest.endDate || latest.createdAt,
+            metrics: {
+              totalReturn,
+              maxDrawdown,
+            },
+          },
+        },
       });
     })
   );

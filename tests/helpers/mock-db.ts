@@ -180,6 +180,7 @@ export class MockDatabase {
         type: input.type,
         config: input.config,
         status: input.status || 'draft',
+        executionMode: input.executionMode,
         createdAt: now,
         updatedAt: now,
       };

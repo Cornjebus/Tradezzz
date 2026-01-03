@@ -6,93 +6,175 @@
 import { Pool, PoolClient } from "pg";
 
 // ============================================
-// TYPE DEFINITIONS
+// SNAKE_CASE TO CAMELCASE MAPPER
+// ============================================
+
+/**
+ * Convert snake_case string to camelCase
+ */
+function snakeToCamel(str: string): string {
+  return str.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+}
+
+/**
+ * Convert object keys from snake_case to camelCase
+ */
+function mapRowToCamelCase<T>(row: Record<string, unknown>): T {
+  if (!row) return row as T;
+
+  const mapped: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(row)) {
+    const camelKey = snakeToCamel(key);
+    mapped[camelKey] = value;
+  }
+  return mapped as T;
+}
+
+/**
+ * Convert array of objects from snake_case to camelCase
+ */
+function mapRowsToCamelCase<T>(rows: Record<string, unknown>[]): T[] {
+  return rows.map(row => mapRowToCamelCase<T>(row));
+}
+
+// ============================================
+// TYPE DEFINITIONS (camelCase)
 // ============================================
 
 export interface User {
   id: string;
-  clerk_id?: string;
+  clerkId?: string;
   email: string;
   tier: string;
-  is_active: boolean;
-  created_at: Date;
-  updated_at: Date;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface Strategy {
   id: string;
-  user_id: string;
+  userId: string;
   name: string;
   description?: string;
   type: string;
   status: string;
   config: Record<string, unknown>;
-  created_at: Date;
-  updated_at: Date;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface ExchangeConnection {
   id: string;
-  user_id: string;
+  userId: string;
   exchange: string;
   name: string;
   status: string;
-  encrypted_api_key: string;
-  encrypted_api_secret: string;
-  encrypted_passphrase?: string;
-  last_used_at?: Date;
-  created_at: Date;
-  updated_at: Date;
+  encryptedApiKey: string;
+  encryptedApiSecret: string;
+  encryptedPassphrase?: string;
+  lastUsedAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface AIProvider {
   id: string;
-  user_id: string;
+  userId: string;
   provider: string;
   name: string;
   status: string;
-  default_model?: string;
-  encrypted_api_key: string;
-  total_tokens_used: number;
-  total_requests: number;
-  last_used_at?: Date;
-  created_at: Date;
-  updated_at: Date;
+  defaultModel?: string;
+  encryptedApiKey: string;
+  totalTokensUsed: number;
+  totalRequests: number;
+  lastUsedAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface Order {
   id: string;
-  user_id: string;
-  strategy_id?: string;
-  exchange_connection_id?: string;
+  userId: string;
+  strategyId?: string;
+  exchangeConnectionId?: string;
   symbol: string;
   side: string;
   type: string;
   quantity: number;
   price?: number;
-  stop_price?: number;
+  stopPrice?: number;
   status: string;
   mode: string;
-  filled_price?: number;
-  filled_quantity?: number;
+  filledPrice?: number;
+  filledQuantity?: number;
   fee?: number;
-  exchange_order_id?: string;
-  filled_at?: Date;
-  created_at: Date;
-  updated_at: Date;
+  exchangeOrderId?: string;
+  filledAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ApiKey {
+  id: string;
+  userId: string;
+  keyType: string;
+  providerId: string;
+  encryptedKey: string;
+  keyVersion: number;
+  metadata?: Record<string, unknown>;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface AuditLog {
+  id: string;
+  userId: string;
+  keyId?: string;
+  action: string;
+  details?: Record<string, unknown>;
+  ipAddress?: string;
+  timestamp: Date;
+}
+
+export interface UsageRecord {
+  id: string;
+  userId: string;
+  providerId: string;
+  provider: string;
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+  operation: string;
+  estimatedCost: number;
+  latencyMs?: number;
+  metadata?: Record<string, unknown>;
+  createdAt: Date;
+}
+
+export interface UsageLimit {
+  id: string;
+  userId: string;
+  dailyTokenLimit: number;
+  dailyCostLimit: number;
+  monthlyTokenLimit?: number;
+  monthlyCostLimit?: number;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface UserSettings {
   id: string;
-  user_id: string;
+  userId: string;
   timezone: string;
-  notifications_enabled: boolean;
-  email_alerts: boolean;
-  default_exchange?: string;
-  default_ai_provider?: string;
-  risk_level: string;
-  created_at: Date;
-  updated_at: Date;
+  notificationsEnabled: boolean;
+  emailAlerts: boolean;
+  defaultExchange?: string;
+  defaultAiProvider?: string;
+  riskLevel: string;
+  graphRiskMode?: "off" | "warn" | "block";
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 // ============================================
@@ -128,12 +210,13 @@ class Database {
 
   async query<T = unknown>(text: string, values?: unknown[]): Promise<T[]> {
     const result = await this.getPool().query(text, values);
-    return result.rows;
+    return mapRowsToCamelCase<T>(result.rows);
   }
 
   async queryOne<T = unknown>(text: string, values?: unknown[]): Promise<T | null> {
-    const rows = await this.query<T>(text, values);
-    return rows[0] || null;
+    const result = await this.getPool().query(text, values);
+    const row = result.rows[0];
+    return row ? mapRowToCamelCase<T>(row) : null;
   }
 
   // ============================================
@@ -179,9 +262,9 @@ class Database {
         fields.push(`tier = $${paramIndex++}`);
         values.push(data.tier);
       }
-      if (data.is_active !== undefined) {
+      if (data.isActive !== undefined) {
         fields.push(`is_active = $${paramIndex++}`);
-        values.push(data.is_active);
+        values.push(data.isActive);
       }
 
       if (fields.length === 0) return this.users.findById(id);
@@ -209,22 +292,28 @@ class Database {
 
     upsert: async (userId: string, data: Partial<UserSettings>): Promise<UserSettings | null> => {
       return this.queryOne<UserSettings>(`
-        INSERT INTO user_settings (user_id, timezone, notifications_enabled, email_alerts, risk_level)
-        VALUES ($1, $2, $3, $4, $5)
+        INSERT INTO user_settings (user_id, timezone, notifications_enabled, email_alerts, risk_level, graph_risk_mode)
+        VALUES ($1, $2, $3, $4, $5, $6)
         ON CONFLICT (user_id) DO UPDATE SET
           timezone = COALESCE($2, user_settings.timezone),
           notifications_enabled = COALESCE($3, user_settings.notifications_enabled),
           email_alerts = COALESCE($4, user_settings.email_alerts),
           risk_level = COALESCE($5, user_settings.risk_level),
+          graph_risk_mode = COALESCE($6, user_settings.graph_risk_mode),
           updated_at = NOW()
         RETURNING *
       `, [
         userId,
         data.timezone || "UTC",
-        data.notifications_enabled ?? true,
-        data.email_alerts ?? true,
-        data.risk_level || "medium",
+        data.notificationsEnabled ?? true,
+        data.emailAlerts ?? true,
+        data.riskLevel || "medium",
+        data.graphRiskMode || "warn",
       ]);
+    },
+
+    deleteByUserId: async (userId: string): Promise<void> => {
+      await this.query(`DELETE FROM user_settings WHERE user_id = $1`, [userId]);
     },
   };
 
@@ -341,9 +430,9 @@ class Database {
         fields.push(`status = $${paramIndex++}`);
         values.push(data.status);
       }
-      if (data.default_model) {
+      if (data.defaultModel) {
         fields.push(`default_model = $${paramIndex++}`);
-        values.push(data.default_model);
+        values.push(data.defaultModel);
       }
 
       if (fields.length === 0) return this.aiProviders.findById(id);
@@ -503,13 +592,13 @@ class Database {
         fields.push(`status = $${paramIndex++}`);
         values.push(data.status);
       }
-      if (data.filled_price !== undefined) {
+      if (data.filledPrice !== undefined) {
         fields.push(`filled_price = $${paramIndex++}`);
-        values.push(data.filled_price);
+        values.push(data.filledPrice);
       }
-      if (data.filled_quantity !== undefined) {
+      if (data.filledQuantity !== undefined) {
         fields.push(`filled_quantity = $${paramIndex++}`);
-        values.push(data.filled_quantity);
+        values.push(data.filledQuantity);
       }
 
       if (fields.length === 0) return this.orders.findById(id);
@@ -521,7 +610,217 @@ class Database {
         RETURNING *
       `, values);
     },
+
+    delete: async (id: string): Promise<void> => {
+      await this.query(`DELETE FROM orders WHERE id = $1`, [id]);
+    },
+
+    deleteByUserId: async (userId: string): Promise<void> => {
+      await this.query(`DELETE FROM orders WHERE user_id = $1`, [userId]);
+    },
   };
+
+  // ============================================
+  // API KEYS (KEYVAULT) REPOSITORY
+  // ============================================
+
+  apiKeys = {
+    create: async (data: {
+      id?: string;
+      userId: string;
+      keyType: string;
+      providerId: string;
+      encryptedKey: string;
+      metadata?: Record<string, unknown>;
+    }): Promise<ApiKey | null> => {
+      const id = data.id || uuidv4();
+      return this.queryOne<ApiKey>(`
+        INSERT INTO api_keys (id, user_id, key_type, provider_id, encrypted_key, key_version, metadata)
+        VALUES ($1, $2, $3, $4, $5, 1, $6)
+        ON CONFLICT (user_id, key_type, provider_id) DO UPDATE SET
+          encrypted_key = EXCLUDED.encrypted_key,
+          key_version = api_keys.key_version + 1,
+          metadata = EXCLUDED.metadata,
+          updated_at = NOW()
+        RETURNING *
+      `, [id, data.userId, data.keyType, data.providerId, data.encryptedKey, data.metadata ? JSON.stringify(data.metadata) : null]);
+    },
+
+    findById: async (id: string): Promise<ApiKey | null> => {
+      return this.queryOne<ApiKey>(
+        `SELECT * FROM api_keys WHERE id = $1`,
+        [id]
+      );
+    },
+
+    findByUserId: async (userId: string, options?: { keyType?: string; providerId?: string }): Promise<ApiKey[]> => {
+      let query = `SELECT * FROM api_keys WHERE user_id = $1`;
+      const values: unknown[] = [userId];
+      let paramIndex = 2;
+
+      if (options?.keyType) {
+        query += ` AND key_type = $${paramIndex++}`;
+        values.push(options.keyType);
+      }
+      if (options?.providerId) {
+        query += ` AND provider_id = $${paramIndex++}`;
+        values.push(options.providerId);
+      }
+
+      query += ` ORDER BY created_at DESC`;
+      return this.query<ApiKey>(query, values);
+    },
+
+    update: async (id: string, data: { encryptedKey?: string; metadata?: Record<string, unknown> }): Promise<ApiKey | null> => {
+      const fields: string[] = [];
+      const values: unknown[] = [];
+      let paramIndex = 1;
+
+      if (data.encryptedKey) {
+        fields.push(`encrypted_key = $${paramIndex++}`);
+        values.push(data.encryptedKey);
+        fields.push(`key_version = key_version + 1`);
+      }
+      if (data.metadata !== undefined) {
+        fields.push(`metadata = $${paramIndex++}`);
+        values.push(JSON.stringify(data.metadata));
+      }
+
+      if (fields.length === 0) return this.apiKeys.findById(id);
+
+      values.push(id);
+      return this.queryOne<ApiKey>(`
+        UPDATE api_keys SET ${fields.join(", ")}, updated_at = NOW()
+        WHERE id = $${paramIndex}
+        RETURNING *
+      `, values);
+    },
+
+    delete: async (id: string): Promise<void> => {
+      await this.query(`DELETE FROM api_keys WHERE id = $1`, [id]);
+    },
+  };
+
+  // ============================================
+  // AUDIT LOGS REPOSITORY
+  // ============================================
+
+  auditLogs = {
+    create: async (data: {
+      userId: string;
+      keyId?: string;
+      action: string;
+      details?: Record<string, unknown>;
+      ipAddress?: string;
+    }): Promise<AuditLog | null> => {
+      return this.queryOne<AuditLog>(`
+        INSERT INTO audit_logs (id, user_id, key_id, action, details, ip_address)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        RETURNING *
+      `, [uuidv4(), data.userId, data.keyId, data.action, data.details ? JSON.stringify(data.details) : null, data.ipAddress]);
+    },
+
+    findByUserId: async (userId: string, options?: { limit?: number; offset?: number }): Promise<AuditLog[]> => {
+      const limit = options?.limit || 100;
+      const offset = options?.offset || 0;
+      return this.query<AuditLog>(
+        `SELECT * FROM audit_logs WHERE user_id = $1 ORDER BY timestamp DESC LIMIT $2 OFFSET $3`,
+        [userId, limit, offset]
+      );
+    },
+  };
+
+  // ============================================
+  // USAGE RECORDS REPOSITORY
+  // ============================================
+
+  usageRecords = {
+    create: async (data: {
+      userId: string;
+      providerId: string;
+      provider: string;
+      model: string;
+      inputTokens: number;
+      outputTokens: number;
+      totalTokens: number;
+      operation: string;
+      estimatedCost: number;
+      latencyMs?: number;
+      metadata?: Record<string, unknown>;
+    }): Promise<UsageRecord | null> => {
+      return this.queryOne<UsageRecord>(`
+        INSERT INTO usage_records (id, user_id, provider_id, provider, model, input_tokens, output_tokens, total_tokens, operation, estimated_cost, latency_ms, metadata)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+        RETURNING *
+      `, [uuidv4(), data.userId, data.providerId, data.provider, data.model, data.inputTokens, data.outputTokens, data.totalTokens, data.operation, data.estimatedCost, data.latencyMs, data.metadata ? JSON.stringify(data.metadata) : null]);
+    },
+
+    findByUserId: async (userId: string, startDate?: Date, endDate?: Date): Promise<UsageRecord[]> => {
+      let query = `SELECT * FROM usage_records WHERE user_id = $1`;
+      const values: unknown[] = [userId];
+      let paramIndex = 2;
+
+      if (startDate) {
+        query += ` AND created_at >= $${paramIndex++}`;
+        values.push(startDate);
+      }
+      if (endDate) {
+        query += ` AND created_at <= $${paramIndex++}`;
+        values.push(endDate);
+      }
+
+      query += ` ORDER BY created_at DESC`;
+      return this.query<UsageRecord>(query, values);
+    },
+
+    findByProviderId: async (userId: string, providerId: string): Promise<UsageRecord[]> => {
+      return this.query<UsageRecord>(
+        `SELECT * FROM usage_records WHERE user_id = $1 AND provider_id = $2 ORDER BY created_at DESC`,
+        [userId, providerId]
+      );
+    },
+  };
+
+  // ============================================
+  // USAGE LIMITS REPOSITORY
+  // ============================================
+
+  usageLimits = {
+    findByUserId: async (userId: string): Promise<UsageLimit | null> => {
+      return this.queryOne<UsageLimit>(
+        `SELECT * FROM usage_limits WHERE user_id = $1`,
+        [userId]
+      );
+    },
+
+    upsert: async (userId: string, data: {
+      dailyTokenLimit: number;
+      dailyCostLimit: number;
+      monthlyTokenLimit?: number;
+      monthlyCostLimit?: number;
+    }): Promise<UsageLimit | null> => {
+      return this.queryOne<UsageLimit>(`
+        INSERT INTO usage_limits (id, user_id, daily_token_limit, daily_cost_limit, monthly_token_limit, monthly_cost_limit)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        ON CONFLICT (user_id) DO UPDATE SET
+          daily_token_limit = EXCLUDED.daily_token_limit,
+          daily_cost_limit = EXCLUDED.daily_cost_limit,
+          monthly_token_limit = EXCLUDED.monthly_token_limit,
+          monthly_cost_limit = EXCLUDED.monthly_cost_limit,
+          updated_at = NOW()
+        RETURNING *
+      `, [uuidv4(), userId, data.dailyTokenLimit, data.dailyCostLimit, data.monthlyTokenLimit, data.monthlyCostLimit]);
+    },
+  };
+}
+
+// Helper for uuidv4
+function uuidv4(): string {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
 }
 
 // Singleton instance

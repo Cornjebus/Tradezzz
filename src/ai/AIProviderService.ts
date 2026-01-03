@@ -6,12 +6,20 @@
 import { v4 as uuidv4 } from 'uuid';
 import * as crypto from 'crypto';
 import { ConfigService } from '../config/ConfigService';
+import type { AIAdapter } from './adapters';
 
 // ============================================================================
 // Types
 // ============================================================================
 
-export type AIProviderType = 'openai' | 'anthropic' | 'deepseek' | 'google' | 'cohere' | 'mistral';
+export type AIProviderType =
+  | 'openai'
+  | 'anthropic'
+  | 'deepseek'
+  | 'google'
+  | 'cohere'
+  | 'mistral'
+  | 'grok';
 export type ProviderStatus = 'active' | 'inactive' | 'error';
 export type SentimentType = 'bullish' | 'bearish' | 'neutral';
 export type SignalAction = 'buy' | 'sell' | 'hold';
@@ -149,6 +157,11 @@ export interface AIProviderServiceOptions {
   db: any;
   configService: ConfigService;
   encryptionKey: string;
+  /**
+   * Optional factory for real AI adapters (OpenAI, Anthropic, Grok, etc.).
+   * When omitted, AIProviderService uses its simulated implementations.
+   */
+  adapterFactory?: (provider: AIProviderType, config: { apiKey: string; model?: string }) => AIAdapter | null;
 }
 
 // ============================================================================
@@ -192,6 +205,12 @@ const PROVIDER_INFO: Record<AIProviderType, ProviderInfo> = {
     models: ['mistral-tiny', 'mistral-small', 'mistral-medium', 'mistral-large'],
     features: ['chat', 'function_calling'],
   },
+  grok: {
+    id: 'grok',
+    name: 'Grok (xAI)',
+    models: ['grok-2', 'grok-2-mini'],
+    features: ['chat', 'reasoning', 'code'],
+  },
 };
 
 const MODEL_PRICING: Record<string, Record<string, ModelPricing>> = {
@@ -226,11 +245,23 @@ export class AIProviderService {
   private encryptionKey: Buffer;
   private providers: Map<string, AIProvider> = new Map();
   private providerUsage: Map<string, ProviderUsage> = new Map();
+  private adapterFactory?: (provider: AIProviderType, config: { apiKey: string; model?: string }) => AIAdapter | null;
 
   constructor(options: AIProviderServiceOptions) {
     this.db = options.db;
     this.configService = options.configService;
     this.encryptionKey = crypto.scryptSync(options.encryptionKey, 'salt', 32);
+    this.adapterFactory = options.adapterFactory;
+  }
+
+  /**
+   * Runtime status for observability/debugging.
+   * Indicates whether a real AI adapter factory is configured.
+   */
+  getRuntimeStatus(): { adapterFactoryConfigured: boolean } {
+    return {
+      adapterFactoryConfigured: !!this.adapterFactory,
+    };
   }
 
   // ============================================================================
@@ -445,6 +476,24 @@ export class AIProviderService {
     return provider;
   }
 
+  private async getAdapterForProvider(
+    provider: AIProvider,
+    model?: string
+  ): Promise<AIAdapter | null> {
+    if (!this.adapterFactory) {
+      return null;
+    }
+
+    // Only providers that have a concrete adapter should go through this path.
+    const apiKey = await this.getDecryptedApiKey(provider.id);
+    const adapter = this.adapterFactory(provider.provider, {
+      apiKey,
+      model: model || provider.defaultModel,
+    });
+
+    return adapter || null;
+  }
+
   // ============================================================================
   // Sentiment Analysis
   // ============================================================================
@@ -453,9 +502,27 @@ export class AIProviderService {
     providerId: string,
     params: { text: string; symbol: string }
   ): Promise<SentimentAnalysis> {
-    await this.ensureActiveProvider(providerId);
+    const provider = await this.ensureActiveProvider(providerId);
+    const adapter = await this.getAdapterForProvider(provider);
 
-    // Simulated sentiment analysis
+    if (adapter) {
+      const result = await adapter.analyzeSentiment({
+        text: params.text,
+        symbol: params.symbol,
+      });
+
+      // Approximate usage tracking; adapters don't expose token counts here.
+      this.trackUsage(providerId, 100, 50);
+
+      return {
+        sentiment: result.sentiment,
+        confidence: result.confidence,
+        score: result.score,
+        reasoning: result.reasoning,
+      };
+    }
+
+    // Fallback: simulated sentiment analysis
     const keywords = params.text.toLowerCase();
     let score = 0;
 
@@ -556,13 +623,76 @@ export class AIProviderService {
       indicators?: Record<string, any>;
     }
   ): Promise<AISignal> {
-    await this.ensureActiveProvider(providerId);
+    const provider = await this.ensureActiveProvider(providerId);
 
     const lastCandle = params.priceData[params.priceData.length - 1];
     const prevCandle = params.priceData.length > 1 ? params.priceData[params.priceData.length - 2] : lastCandle;
 
     const priceChange = (lastCandle.close - prevCandle.close) / prevCandle.close;
     const rsi = params.indicators?.rsi || 50;
+
+    const adapter = await this.getAdapterForProvider(provider);
+
+    // If a real adapter is available, delegate to it for signal generation and
+    // map the result back into our AISignal shape. This keeps the existing
+    // heuristic implementation as a fallback when no adapter is configured.
+    if (adapter) {
+      const result = await adapter.generateSignal({
+        symbol: params.symbol,
+        price: lastCandle.close,
+        indicators: {
+          ...(params.indicators || {}),
+          timeframe: params.timeframe,
+          priceChange,
+        },
+        context: `Timeframe=${params.timeframe}, candles=${params.priceData.length}`,
+      });
+
+      // Approximate usage; adapters don't expose token counts here.
+      this.trackUsage(providerId, 300, 200);
+
+      const signal: AISignal = {
+        action: result.action as SignalAction,
+        confidence: result.confidence,
+        reasoning: result.reasoning,
+      };
+
+      signal.entryPrice = lastCandle.close;
+      if (typeof result.stopLoss === 'number') {
+        signal.stopLoss = result.stopLoss;
+      }
+      if (typeof result.takeProfit === 'number') {
+        signal.takeProfit = result.takeProfit;
+      }
+
+      if (
+        signal.entryPrice !== undefined &&
+        signal.stopLoss !== undefined &&
+        signal.takeProfit !== undefined &&
+        signal.stopLoss !== signal.entryPrice
+      ) {
+        const entry = signal.entryPrice;
+        const stop = signal.stopLoss;
+        const take = signal.takeProfit;
+
+        let risk = 0;
+        let reward = 0;
+
+        if (signal.action === 'buy') {
+          risk = entry - stop;
+          reward = take - entry;
+        } else if (signal.action === 'sell') {
+          risk = stop - entry;
+          reward = entry - take;
+        }
+
+        if (risk > 0 && reward > 0) {
+          signal.riskRewardRatio = reward / risk;
+        }
+      }
+
+      return signal;
+    }
 
     let action: SignalAction = 'hold';
     let confidence = 0.5;
@@ -643,8 +773,33 @@ export class AIProviderService {
   ): Promise<ChatResponse> {
     const provider = await this.ensureActiveProvider(providerId);
     const model = params.model || provider.defaultModel || PROVIDER_INFO[provider.provider].models[0];
+    const adapter = await this.getAdapterForProvider(provider, model);
 
-    // Simulated response
+    if (adapter) {
+      const result = await adapter.chat({
+        messages: params.messages,
+        model,
+      });
+
+      this.trackUsage(
+        providerId,
+        result.usage.promptTokens,
+        result.usage.completionTokens,
+      );
+
+      return {
+        content: result.content,
+        role: 'assistant',
+        model: result.model,
+        usage: {
+          promptTokens: result.usage.promptTokens,
+          completionTokens: result.usage.completionTokens,
+          totalTokens: result.usage.totalTokens,
+        },
+      };
+    }
+
+    // Fallback: simulated response
     const promptTokens = params.messages.reduce((sum, m) => sum + m.content.length / 4, 0);
     const completionTokens = 50;
 

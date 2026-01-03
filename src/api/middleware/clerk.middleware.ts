@@ -28,28 +28,9 @@ declare global {
 
 /**
  * Middleware to verify Clerk JWT and attach user to request
+ * SECURITY: All requests must include valid Authorization header
  */
 export async function requireAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
-  // Dev mode bypass - skip auth entirely
-  if (process.env.NODE_ENV === 'development' || !process.env.CLERK_SECRET_KEY) {
-    req.auth = {
-      userId: 'dev-user-1',
-      clerkId: 'dev_clerk_id',
-      user: {
-        id: 'dev-user-1',
-        clerk_id: 'dev_clerk_id',
-        email: 'dev@tradezzz.local',
-        name: 'Dev User',
-        role: 'admin',
-        tier: 'premium',
-        created_at: new Date(),
-        updated_at: new Date(),
-      } as any,
-      sessionId: 'dev-session',
-    };
-    return next();
-  }
-
   try {
     const authHeader = req.headers.authorization;
 
@@ -175,6 +156,9 @@ export const TIER_LIMITS = {
     exchanges: 1,
     backtestsPerDay: 5,
     liveTrading: false,
+    maxOpenLiveOrders: 0,
+    maxDailyLoss: 100,
+    maxStrategyNotional: 1000,
   },
   pro: {
     strategies: 5,
@@ -182,6 +166,9 @@ export const TIER_LIMITS = {
     exchanges: 3,
     backtestsPerDay: 50,
     liveTrading: true,
+    maxOpenLiveOrders: 10,
+    maxDailyLoss: 1000,
+    maxStrategyNotional: 50000,
   },
   elite: {
     strategies: 20,
@@ -189,6 +176,9 @@ export const TIER_LIMITS = {
     exchanges: 10,
     backtestsPerDay: Infinity,
     liveTrading: true,
+    maxOpenLiveOrders: 50,
+    maxDailyLoss: 10000,
+    maxStrategyNotional: 500000,
   },
   institutional: {
     strategies: Infinity,
@@ -196,6 +186,9 @@ export const TIER_LIMITS = {
     exchanges: Infinity,
     backtestsPerDay: Infinity,
     liveTrading: true,
+    maxOpenLiveOrders: 200,
+    maxDailyLoss: -1, // Unlimited
+    maxStrategyNotional: Infinity,
   },
 };
 

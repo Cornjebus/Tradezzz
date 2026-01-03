@@ -6,6 +6,8 @@
 import { v4 as uuidv4 } from 'uuid';
 import { StrategyService } from '../strategies/StrategyService';
 import { ConfigService } from '../config/ConfigService';
+import type { StrategyExecutionMode } from '../database/types';
+import type { BacktestService, BacktestResult } from '../backtesting/BacktestService';
 
 // ============================================================================
 // Types
@@ -16,6 +18,26 @@ export type OrderSide = 'buy' | 'sell';
 export type OrderStatus = 'pending' | 'filled' | 'cancelled' | 'rejected' | 'expired';
 export type OrderMode = 'paper' | 'live';
 export type PositionSide = 'long' | 'short';
+
+export type OrderApprovalStatus = 'pending' | 'approved' | 'rejected';
+
+export interface OrderApprovalRequest {
+  id: string;
+  userId: string;
+  strategyId: string;
+  symbol: string;
+  side: OrderSide;
+  type: OrderType;
+  quantity: number;
+  price?: number;
+  stopPrice?: number;
+  mode: OrderMode;
+  exchangeId?: string;
+  status: OrderApprovalStatus;
+  createdAt: Date;
+  decidedAt?: Date;
+  orderId?: string;
+}
 
 export interface Order {
   id: string;
@@ -98,6 +120,7 @@ export interface OrderServiceOptions {
   db: any;
   configService: ConfigService;
   strategyService: StrategyService;
+  backtestService?: BacktestService;
 }
 
 // ============================================================================
@@ -119,14 +142,17 @@ export class OrderService {
   private db: any;
   private configService: ConfigService;
   private strategyService: StrategyService;
+  private backtestService?: BacktestService;
   private orders: Map<string, Order> = new Map();
   private positions: Map<string, Position[]> = new Map();
   private dailyLosses: Map<string, number> = new Map();
+  private approvals: Map<string, OrderApprovalRequest> = new Map();
 
   constructor(options: OrderServiceOptions) {
     this.db = options.db;
     this.configService = options.configService;
     this.strategyService = options.strategyService;
+    this.backtestService = options.backtestService;
   }
 
   // ============================================================================
@@ -134,6 +160,13 @@ export class OrderService {
   // ============================================================================
 
   async createOrder(params: CreateOrderParams): Promise<Order> {
+    return this.createOrderInternal(params);
+  }
+
+  private async createOrderInternal(
+    params: CreateOrderParams,
+    options?: { allowManualLive?: boolean }
+  ): Promise<Order> {
     // Validate quantity
     if (params.quantity <= 0) {
       throw new Error('Quantity must be positive');
@@ -160,6 +193,24 @@ export class OrderService {
       throw new Error('User not found');
     }
 
+    // Fetch strategy to inspect execution mode for live safety
+    const strategy = await this.strategyService.getStrategy(params.strategyId);
+    if (!strategy) {
+      throw new Error('Strategy not found');
+    }
+
+    const executionMode: StrategyExecutionMode = (strategy.executionMode as StrategyExecutionMode) || 'manual';
+
+    // Global kill switch for live trading (safety guardrail)
+    if (params.mode === 'live' && process.env.LIVE_TRADING_DISABLED === 'true') {
+      throw new Error('Live trading is temporarily disabled');
+    }
+
+    // For safety, reject fully automatic live orders for manual strategies
+    if (params.mode === 'live' && executionMode === 'manual' && !options?.allowManualLive) {
+      throw new Error('This strategy is configured for manual execution only. Enable autonomous mode before placing live orders.');
+    }
+
     // Check tier for live trading
     if (params.mode === 'live') {
       const tierFeatures = this.configService.getTierFeatures(user.tier);
@@ -168,7 +219,6 @@ export class OrderService {
       }
 
       // Validate strategy is active
-      const strategy = await this.strategyService.getStrategy(params.strategyId);
       if (!strategy || strategy.status !== 'active') {
         throw new Error('Strategy must be active for live trading');
       }
@@ -178,6 +228,10 @@ export class OrderService {
       if (exchangeConnections.length === 0) {
         throw new Error('Exchange connection required for live trading');
       }
+
+      // Enforce backtest gate: strategy must have at least one successful
+      // backtest meeting minimum performance criteria before live trading.
+      await this.enforceBacktestGate(params.strategyId);
     }
 
     // Check daily loss limit
@@ -209,6 +263,100 @@ export class OrderService {
 
     this.orders.set(order.id, order);
     return order;
+  }
+
+  // ============================================================================
+  // Manual Execution Approvals
+  // ============================================================================
+
+  async createApprovalRequest(params: CreateOrderParams): Promise<OrderApprovalRequest> {
+    if (params.mode !== 'live') {
+      throw new Error('Approval requests are only supported for live orders');
+    }
+
+    const approval: OrderApprovalRequest = {
+      id: uuidv4(),
+      userId: params.userId,
+      strategyId: params.strategyId,
+      symbol: params.symbol,
+      side: params.side,
+      type: params.type,
+      quantity: params.quantity,
+      price: params.price,
+      stopPrice: params.stopPrice,
+      mode: params.mode,
+      exchangeId: params.exchangeId,
+      status: 'pending',
+      createdAt: new Date(),
+    };
+
+    this.approvals.set(approval.id, approval);
+    return approval;
+  }
+
+  async getUserApprovals(userId: string, status?: OrderApprovalStatus): Promise<OrderApprovalRequest[]> {
+    let approvals = Array.from(this.approvals.values()).filter(a => a.userId === userId);
+    if (status) {
+      approvals = approvals.filter(a => a.status === status);
+    }
+    return approvals;
+  }
+
+  async approveLiveOrder(
+    userId: string,
+    approvalId: string
+  ): Promise<{ approval: OrderApprovalRequest; order: Order }> {
+    const approval = this.approvals.get(approvalId);
+    if (!approval) {
+      throw new Error('Approval request not found');
+    }
+    if (approval.userId !== userId) {
+      throw new Error('Cannot modify another user\'s approval request');
+    }
+    if (approval.status !== 'pending') {
+      throw new Error('Approval request is not pending');
+    }
+
+    const order = await this.createOrderInternal(
+      {
+        userId: approval.userId,
+        strategyId: approval.strategyId,
+        symbol: approval.symbol,
+        side: approval.side,
+        type: approval.type,
+        quantity: approval.quantity,
+        price: approval.price,
+        stopPrice: approval.stopPrice,
+        mode: approval.mode,
+        exchangeId: approval.exchangeId,
+      },
+      { allowManualLive: true }
+    );
+
+    approval.status = 'approved';
+    approval.decidedAt = new Date();
+    approval.orderId = order.id;
+    this.approvals.set(approval.id, approval);
+
+    return { approval, order };
+  }
+
+  async rejectApproval(userId: string, approvalId: string): Promise<OrderApprovalRequest> {
+    const approval = this.approvals.get(approvalId);
+    if (!approval) {
+      throw new Error('Approval request not found');
+    }
+    if (approval.userId !== userId) {
+      throw new Error('Cannot modify another user\'s approval request');
+    }
+    if (approval.status !== 'pending') {
+      throw new Error('Approval request is not pending');
+    }
+
+    approval.status = 'rejected';
+    approval.decidedAt = new Date();
+    this.approvals.set(approval.id, approval);
+    return approval;
   }
 
   private async checkDailyLossLimit(userId: string, tier: string): Promise<void> {
@@ -251,6 +399,45 @@ export class OrderService {
 
     if (Math.abs(newTotal) > strategy.config.maxPositionSize) {
       throw new Error('Order would exceed maximum position size');
+    }
+  }
+
+  // ============================================================================
+  // Backtest Gate for Live Trading
+  // ============================================================================
+
+  private async enforceBacktestGate(strategyId: string): Promise<void> {
+    if (!this.backtestService) {
+      // In environments without BacktestService (e.g., some tests), skip gate.
+      return;
+    }
+
+    const history: BacktestResult[] = await this.backtestService.getBacktestHistory(strategyId);
+    const completed = history.filter(result => result.status === 'completed');
+
+    if (completed.length === 0) {
+      throw new Error('Strategy must pass a successful backtest before live trading');
+    }
+
+    const latest = completed[completed.length - 1];
+    const metrics = latest.metrics;
+
+    if (!metrics) {
+      throw new Error('Latest backtest metrics are missing; re-run backtest before live trading');
+    }
+
+    const { totalReturn, maxDrawdown } = metrics as any;
+
+    if (typeof totalReturn !== 'number' || typeof maxDrawdown !== 'number') {
+      throw new Error('Latest backtest metrics are invalid; re-run backtest before live trading');
+    }
+
+    if (totalReturn < 0) {
+      throw new Error('Latest backtest has negative return; adjust strategy before enabling live trading');
+    }
+
+    if (maxDrawdown > 30) {
+      throw new Error('Latest backtest max drawdown exceeds 30%; reduce risk before enabling live trading');
     }
   }
 

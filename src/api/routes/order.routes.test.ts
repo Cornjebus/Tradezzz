@@ -26,7 +26,7 @@ describe('Order Routes', () => {
   let strategyId: string;
 
   beforeEach(async () => {
-    vi.stubEnv('NODE_ENV', 'development');
+    vi.stubEnv('NODE_ENV', 'test');
     db = createMockDatabase();
     configService = new ConfigService({ db });
     authService = new AuthService({

@@ -76,6 +76,31 @@ export function createOrderRouter(
         return;
       }
 
+      // Manual strategies: create approval request instead of immediate live order
+      if (mode === 'live' && strategy.executionMode !== 'auto') {
+        const approval = await orderService.createApprovalRequest({
+          userId,
+          strategyId,
+          symbol,
+          side,
+          type,
+          quantity,
+          price,
+          stopPrice,
+          mode,
+          exchangeId,
+        });
+
+        res.status(202).json({
+          success: true,
+          data: approval,
+          meta: {
+            requiresApproval: true,
+          },
+        });
+        return;
+      }
+
       const order = await orderService.createOrder({
         userId,
         strategyId,
@@ -279,6 +304,67 @@ export function createOrderRouter(
       res.json({
         success: true,
         message: `All pending orders for ${symbol} cancelled`,
+      });
+    })
+  );
+
+  // ============================================================================
+  // GET /approvals - List Pending Approval Requests
+  // ============================================================================
+
+  router.get(
+    '/approvals',
+    requireAuth,
+    asyncHandler(async (req: Request, res: Response) => {
+      const userId = req.userId!;
+      const approvals = await orderService.getUserApprovals(userId, 'pending');
+
+      res.json({
+        success: true,
+        data: approvals,
+      });
+    })
+  );
+
+  // ============================================================================
+  // POST /approvals/:id/approve - Approve Live Order
+  // ============================================================================
+
+  router.post(
+    '/approvals/:id/approve',
+    requireAuth,
+    asyncHandler(async (req: Request, res: Response) => {
+      const userId = req.userId!;
+      const { id } = req.params;
+
+      const { approval, order } = await orderService.approveLiveOrder(userId, id);
+
+      res.json({
+        success: true,
+        data: {
+          approval,
+          order,
+        },
+      });
+    })
+  );
+
+  // ============================================================================
+  // POST /approvals/:id/reject - Reject Live Order
+  // ============================================================================
+
+  router.post(
+    '/approvals/:id/reject',
+    requireAuth,
+    asyncHandler(async (req: Request, res: Response) => {
+      const userId = req.userId!;
+      const { id } = req.params;
+
+      const approval = await orderService.rejectApproval(userId, id);
+
+      res.json({
+        success: true,
+        data: approval,
       });
     })
   );

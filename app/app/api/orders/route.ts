@@ -139,7 +139,7 @@ export async function PUT(request: NextRequest) {
 
     // Verify ownership
     const existingOrder = await db.orders.findById(id);
-    if (!existingOrder || existingOrder.user_id !== authUser.dbUser.id) {
+    if (!existingOrder || existingOrder.userId !== authUser.dbUser.id) {
       return NextResponse.json(
         { error: "Order not found" },
         { status: 404 }

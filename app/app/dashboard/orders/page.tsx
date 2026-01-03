@@ -24,8 +24,8 @@ interface Order {
   price: number;
   status: "filled" | "pending" | "cancelled" | "rejected";
   mode: "paper" | "live";
-  created_at: string;
-  filled_at?: string;
+  createdAt: string;
+  filledAt?: string;
 }
 
 interface Trade {
@@ -96,7 +96,7 @@ export default function OrdersPage() {
       quantity: o.quantity,
       price: o.price || 0,
       status: o.status,
-      timestamp: o.created_at,
+      timestamp: o.createdAt,
       source: "database" as const,
     })),
     ...trades.map(t => ({

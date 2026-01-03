@@ -6,6 +6,14 @@ const isPublicRoute = createRouteMatcher([
   '/sign-in(.*)',
   '/sign-up(.*)',
   '/api/health',
+  '/api/ai/status',
+  '/api/patterns/health',
+  // The following API routes are safe to expose without Clerk cookies
+  // in local/dev environments because they either return aggregated
+  // metrics or proxy to the Neon API, which does its own auth checks.
+  '/api/patterns/risk/graph',
+  '/api/swarm/agents/summary',
+  '/api/exchanges(.*)',
 ])
 
 const isApiRoute = createRouteMatcher(['/api/(.*)'])

@@ -37,11 +37,11 @@ export async function GET(request: NextRequest) {
       provider: provider.provider,
       name: provider.name,
       status: provider.status,
-      defaultModel: provider.default_model,
-      totalTokensUsed: provider.total_tokens_used,
-      totalRequests: provider.total_requests,
-      lastUsedAt: provider.last_used_at,
-      createdAt: provider.created_at,
+      defaultModel: provider.defaultModel,
+      totalTokensUsed: provider.totalTokensUsed,
+      totalRequests: provider.totalRequests,
+      lastUsedAt: provider.lastUsedAt,
+      createdAt: provider.createdAt,
     }));
 
     return NextResponse.json({ providers: safeProviders });
@@ -112,14 +112,48 @@ export async function POST(request: NextRequest) {
         provider: newProvider.provider,
         name: newProvider.name,
         status: newProvider.status,
-        defaultModel: newProvider.default_model,
-        createdAt: newProvider.created_at,
+        defaultModel: newProvider.defaultModel,
+        createdAt: newProvider.createdAt,
       },
     }, { status: 201 });
   } catch (error) {
     console.error("Create AI provider error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
+// PUT /api/ai-providers - Proxy test connection to Neon API
+export async function PUT(request: NextRequest) {
+  try {
+    const body = await request.json().catch(() => null);
+    const id = body?.id as string | undefined;
+    const action = body?.action as string | undefined;
+
+    if (!id || action !== "test") {
+      return NextResponse.json(
+        { error: "Unsupported action" },
+        { status: 400 }
+      );
+    }
+
+    const baseUrl = process.env.NEURAL_TRADING_API_URL || "http://localhost:3001";
+    const res = await fetch(
+      `${baseUrl.replace(/\/+$/, "")}/api/ai/providers/${encodeURIComponent(id)}/test`,
+      {
+        method: "POST",
+        cache: "no-store",
+      },
+    );
+
+    const json = await res.json().catch(() => ({}));
+    return NextResponse.json(json, { status: res.status });
+  } catch (error) {
+    console.error("Test AI provider proxy error:", error);
+    return NextResponse.json(
+      { error: "Failed to test AI provider" },
       { status: 500 }
     );
   }
@@ -146,7 +180,7 @@ export async function DELETE(request: NextRequest) {
 
     // Verify ownership
     const provider = await db.aiProviders.findById(id);
-    if (!provider || provider.user_id !== authUser.dbUser.id) {
+    if (!provider || provider.userId !== authUser.dbUser.id) {
       return NextResponse.json(
         { error: "Provider not found" },
         { status: 404 }

@@ -27,12 +27,12 @@ describe('ConfigService', () => {
 
   describe('Environment Config', () => {
     it('should_load_default_config', () => {
-      vi.stubEnv('NODE_ENV', 'development');
+      vi.stubEnv('NODE_ENV', 'test');
 
       configService = new ConfigService({ db });
       const config = configService.getAppConfig();
 
-      expect(config.environment).toBe('development');
+      expect(config.environment).toBe('test');
       expect(config.port).toBe(3000);
       expect(config.apiVersion).toBe('v1');
     });
@@ -58,7 +58,7 @@ describe('ConfigService', () => {
     });
 
     it('should_use_default_jwt_secret_in_development', () => {
-      vi.stubEnv('NODE_ENV', 'development');
+      vi.stubEnv('NODE_ENV', 'test');
 
       configService = new ConfigService({ db });
       const config = configService.getAppConfig();

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, LineChart, Play, Pause, Trash2, Copy, Settings, TrendingUp, RefreshCw } from "lucide-react";
+import { Plus, LineChart, Play, Pause, Trash2, Copy, Settings, TrendingUp, RefreshCw, Bot } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -45,7 +45,13 @@ interface Strategy {
   description?: string;
   status: string;
   config?: Record<string, unknown>;
-  created_at: string;
+  createdAt: string;
+}
+
+interface PatternHealth {
+  status: "ok" | "degraded" | "unhealthy" | "unconfigured";
+  latencyMs?: number;
+  version?: string;
 }
 
 export default function StrategiesPage() {
@@ -59,6 +65,26 @@ export default function StrategiesPage() {
   const [strategyDescription, setStrategyDescription] = useState("");
   const [isCreating, setIsCreating] = useState(false);
   const { toast } = useToast();
+  const [recommendations, setRecommendations] = useState<
+    {
+      strategyId: string;
+      name: string;
+      score: number;
+      symbols: string[];
+      metrics: { totalReturn: number | null; maxDrawdown: number | null; winRate: number | null; sharpeRatio: number | null };
+      reason?: string;
+    }[]
+  >([]);
+  const [recsLoading, setRecsLoading] = useState(false);
+  const [explainDialogOpen, setExplainDialogOpen] = useState(false);
+  const [explainLoading, setExplainLoading] = useState(false);
+  const [explainText, setExplainText] = useState<string | null>(null);
+  const [explainedStrategy, setExplainedStrategy] = useState<Strategy | null>(null);
+  const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
+  const [generateSymbol, setGenerateSymbol] = useState("");
+  const [generateRisk, setGenerateRisk] = useState("");
+  const [generateLoading, setGenerateLoading] = useState(false);
+  const [patternHealth, setPatternHealth] = useState<PatternHealth | null>(null);
 
   const fetchStrategies = async () => {
     try {
@@ -82,6 +108,120 @@ export default function StrategiesPage() {
   useEffect(() => {
     fetchStrategies();
   }, []);
+
+  const fetchRecommendations = async () => {
+    setRecsLoading(true);
+    try {
+      const res = await fetch("/api/patterns/strategies/recommend");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && Array.isArray(data.data)) {
+          setRecommendations(data.data);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch recommendations:", error);
+    } finally {
+      setRecsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRecommendations();
+  }, []);
+
+  useEffect(() => {
+    const fetchPatternHealth = async () => {
+      try {
+        const res = await fetch("/api/patterns/health");
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.success && data.data) {
+          setPatternHealth(data.data as PatternHealth);
+        }
+      } catch (error) {
+        console.error("Failed to fetch pattern engine health:", error);
+      }
+    };
+    fetchPatternHealth();
+  }, []);
+
+  const handleGenerate = async () => {
+    if (generateLoading) return;
+    setGenerateLoading(true);
+    try {
+      const res = await fetch("/api/patterns/strategies/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          symbols: generateSymbol ? [generateSymbol] : undefined,
+          riskLevel: generateRisk || undefined,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success && data.data) {
+        toast({
+          title: "Strategy generated",
+          description: `Created ${data.data.name}`,
+        });
+        setGenerateDialogOpen(false);
+        setGenerateSymbol("");
+        setGenerateRisk("");
+        fetchStrategies();
+        fetchRecommendations();
+      } else {
+        toast({
+          title: "Generation failed",
+          description: data.error || "Failed to generate strategy",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Generate strategy error:", error);
+      toast({
+        title: "Generation failed",
+        description: "Network error while generating strategy",
+        variant: "destructive",
+      });
+    } finally {
+      setGenerateLoading(false);
+    }
+  };
+
+  const handleExplain = async (strategy: Strategy) => {
+    setExplainedStrategy(strategy);
+    setExplainText(null);
+    setExplainLoading(true);
+    setExplainDialogOpen(true);
+
+    try {
+      const res = await fetch(`/api/patterns/strategies/explain?id=${encodeURIComponent(strategy.id)}`);
+      const data = await res.json();
+
+      if (res.ok && data.success && data.data) {
+        setExplainText(data.data.explanation || "No explanation was returned.");
+      } else {
+        const message = data.error || "Failed to explain strategy";
+        setExplainText(message);
+        toast({
+          title: "Explain failed",
+          description: message,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Explain strategy error:", error);
+      setExplainText("Failed to explain strategy due to a network error.");
+      toast({
+        title: "Explain failed",
+        description: "Network error while explaining strategy",
+        variant: "destructive",
+      });
+    } finally {
+      setExplainLoading(false);
+    }
+  };
 
   const handleCreate = async () => {
     if (!strategyName || !strategyType) return;
@@ -216,9 +356,89 @@ export default function StrategiesPage() {
           <p className="text-muted-foreground mt-1">
             Create and manage your AI-powered trading strategies
           </p>
+          {patternHealth && (
+            <p className="text-xs mt-2 flex items-center gap-2">
+              <span
+                className={`inline-flex h-2 w-2 rounded-full ${
+                  patternHealth.status === "ok"
+                    ? "bg-green-400"
+                    : patternHealth.status === "unconfigured"
+                      ? "bg-muted-foreground/40"
+                      : "bg-yellow-400"
+                }`}
+              />
+              <span className="text-muted-foreground">
+                Pattern engine:{" "}
+                {patternHealth.status === "unconfigured"
+                  ? "Neon-only (RuVector not configured)"
+                  : patternHealth.status === "ok"
+                    ? "RuVector connected"
+                    : "degraded"}
+                {patternHealth.version && ` · v${patternHealth.version}`}
+                {typeof patternHealth.latencyMs === "number" &&
+                  ` · ${patternHealth.latencyMs.toFixed(0)} ms`}
+              </span>
+            </p>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
+          <Dialog open={generateDialogOpen} onOpenChange={setGenerateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                <Bot className="h-4 w-4 mr-2" />
+                Generate Strategy
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Generate Strategy Idea</DialogTitle>
+                <DialogDescription>
+                  Use your connected AI provider to propose a new draft strategy. You can refine it and backtest before going live.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label>Primary Symbol (optional)</Label>
+                  <Input
+                    placeholder="e.g. BTC/USDT"
+                    value={generateSymbol}
+                    onChange={(e) => setGenerateSymbol(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Risk Preference (optional)</Label>
+                  <Select value={generateRisk} onValueChange={setGenerateRisk}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a risk profile" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="conservative">Conservative</SelectItem>
+                      <SelectItem value="moderate">Moderate</SelectItem>
+                      <SelectItem value="aggressive">Aggressive</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button
+                  className="w-full"
+                  onClick={handleGenerate}
+                  disabled={generateLoading}
+                >
+                  {generateLoading ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Bot className="h-4 w-4 mr-2" />
+                      Generate Strategy
+                    </>
+                  )}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
           <Button variant="outline" onClick={fetchStrategies} disabled={loading}>
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
             Refresh
@@ -295,6 +515,47 @@ export default function StrategiesPage() {
         </div>
       </div>
 
+      {/* Recommendations */}
+      {recommendations.length > 0 && (
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+              <TrendingUp className="h-4 w-4" />
+              Recommended strategies for current market
+            </h2>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={fetchRecommendations}
+              disabled={recsLoading}
+            >
+              <RefreshCw className={`h-4 w-4 ${recsLoading ? "animate-spin" : ""}`} />
+            </Button>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2">
+            {recommendations.map((rec) => (
+              <Card key={rec.strategyId} className="border-indigo-500/30">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="font-semibold">{rec.name}</div>
+                    <Badge variant="outline">Score {rec.score.toFixed(1)}</Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mb-1">
+                    {rec.reason}
+                  </p>
+                  {rec.symbols && rec.symbols.length > 0 && (
+                    <p className="text-[11px] text-muted-foreground">
+                      Symbols: {rec.symbols.join(", ")}
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Strategies List */}
       {loading ? (
         <div className="grid gap-4">
@@ -338,7 +599,7 @@ export default function StrategiesPage() {
                           )}
                         </div>
                         <p className="text-xs text-muted-foreground mt-1">
-                          Created {new Date(strategy.created_at).toLocaleDateString()}
+                          Created {new Date(strategy.createdAt).toLocaleDateString()}
                         </p>
                       </div>
                     </div>
@@ -370,6 +631,13 @@ export default function StrategiesPage() {
                         }}
                       >
                         <Trash2 className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleExplain(strategy)}
+                      >
+                        <Bot className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
@@ -430,6 +698,37 @@ export default function StrategiesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Explain Strategy Dialog */}
+      <Dialog open={explainDialogOpen} onOpenChange={setExplainDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Bot className="h-5 w-5" />
+              {explainedStrategy ? `Explain: ${explainedStrategy.name}` : "Explain Strategy"}
+            </DialogTitle>
+            <DialogDescription>
+              Plain-language explanation of how this strategy behaves, when it may perform well or poorly, and key risks to understand.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4 max-h-[400px] overflow-y-auto text-sm whitespace-pre-wrap">
+            {explainLoading && (
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <RefreshCw className="h-4 w-4 animate-spin" />
+                Generating explanation...
+              </div>
+            )}
+            {!explainLoading && explainText && (
+              <p>{explainText}</p>
+            )}
+            {!explainLoading && !explainText && (
+              <p className="text-muted-foreground">
+                No explanation is available for this strategy yet.
+              </p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

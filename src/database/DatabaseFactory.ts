@@ -143,6 +143,7 @@ export interface CreateStrategyDTO {
   description?: string;
   type: Strategy['type'];
   config?: Record<string, unknown>;
+  executionMode?: 'manual' | 'auto';
 }
 
 export interface Order {
@@ -445,6 +446,7 @@ class MockDatabase implements IDatabase {
         type: dto.type,
         status: 'draft',
         config: dto.config || {},
+        executionMode: dto.executionMode || 'manual',
         createdAt: new Date(),
         updatedAt: new Date(),
       };

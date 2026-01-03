@@ -96,7 +96,7 @@ export async function DELETE(request: NextRequest) {
 
     // Verify ownership
     const strategy = await db.strategies.findById(id);
-    if (!strategy || strategy.user_id !== authUser.dbUser.id) {
+    if (!strategy || strategy.userId !== authUser.dbUser.id) {
       return NextResponse.json(
         { error: "Strategy not found" },
         { status: 404 }
@@ -136,7 +136,7 @@ export async function PUT(request: NextRequest) {
 
     // Verify ownership
     const existingStrategy = await db.strategies.findById(id);
-    if (!existingStrategy || existingStrategy.user_id !== authUser.dbUser.id) {
+    if (!existingStrategy || existingStrategy.userId !== authUser.dbUser.id) {
       return NextResponse.json(
         { error: "Strategy not found" },
         { status: 404 }

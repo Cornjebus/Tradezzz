@@ -45,6 +45,20 @@ interface RiskMetrics {
   warnings: Array<{ message: string; severity: string }>;
 }
 
+interface GraphRiskFactor {
+  label: string;
+  severity: "low" | "medium" | "high";
+  detail?: string;
+}
+
+interface GraphRiskSummary {
+  score: number;
+  factors: GraphRiskFactor[];
+  openLivePositions: number;
+  openLiveOrders: number;
+  totalNotional: number;
+}
+
 interface Trade {
   id: string;
   symbol: string;
@@ -52,6 +66,18 @@ interface Trade {
   price: number;
   quantity: number;
   timestamp: string;
+}
+
+interface AgentPerformanceSummary {
+  agentId: string;
+  trades: number;
+  cumulativePnl: number;
+  averagePnlPerTrade: number;
+}
+
+interface SwarmSummary {
+  agents: AgentPerformanceSummary[];
+  totalTrades: number;
 }
 
 // Trading state type
@@ -397,10 +423,17 @@ export default function DashboardOverview() {
   const [portfolio, setPortfolio] = useState<PortfolioData | null>(null);
   const [tradingState, setTradingState] = useState<TradingState | null>(null);
   const [riskMetrics, setRiskMetrics] = useState<RiskMetrics | null>(null);
+  const [graphRisk, setGraphRisk] = useState<GraphRiskSummary | null>(null);
   const [recentTrades, setRecentTrades] = useState<Trade[]>([]);
   const [exchangeCount, setExchangeCount] = useState(0);
   const [strategyCount, setStrategyCount] = useState(0);
   const [aiProviderCount, setAiProviderCount] = useState(0);
+  const [assistantMessages, setAssistantMessages] = useState<
+    { role: "user" | "assistant"; content: string }[]
+  >([]);
+  const [assistantInput, setAssistantInput] = useState("");
+  const [assistantLoading, setAssistantLoading] = useState(false);
+  const [swarmSummary, setSwarmSummary] = useState<SwarmSummary | null>(null);
 
   const fetchDashboardData = async () => {
     setLoading(true);
@@ -431,16 +464,29 @@ export default function DashboardOverview() {
       }
 
       // Fetch other data in parallel
-      const [riskRes, exchangesRes, strategiesRes, aiRes] = await Promise.all([
+      const [riskRes, patternRiskRes, exchangesRes, strategiesRes, aiRes, swarmRes] = await Promise.all([
         fetch("/api/risk"),
+        fetch("/api/patterns/risk/graph"),
         fetch("/api/exchanges"),
         fetch("/api/strategies"),
         fetch("/api/ai-providers"),
+        fetch("/api/swarm/agents/summary"),
       ]);
 
       if (riskRes.ok) {
         const data = await riskRes.json();
         setRiskMetrics(data.metrics);
+      }
+
+      if (patternRiskRes.ok) {
+        const data = await patternRiskRes.json();
+        if (data.success && data.data) {
+          setGraphRisk(data.data as GraphRiskSummary);
+        } else {
+          setGraphRisk(null);
+        }
+      } else {
+        setGraphRisk(null);
       }
 
       if (exchangesRes.ok) {
@@ -456,6 +502,17 @@ export default function DashboardOverview() {
       if (aiRes.ok) {
         const data = await aiRes.json();
         setAiProviderCount(data.providers?.length || 0);
+      }
+
+      if (swarmRes.ok) {
+        const data = await swarmRes.json();
+        if (data.success && data.data) {
+          setSwarmSummary(data.data as SwarmSummary);
+        } else {
+          setSwarmSummary(null);
+        }
+      } else {
+        setSwarmSummary(null);
       }
     } catch (error) {
       console.error("Failed to fetch dashboard data:", error);
@@ -476,6 +533,64 @@ export default function DashboardOverview() {
       style: "currency",
       currency: "USD",
     }).format(value);
+  };
+
+  const handleAssistantSend = async () => {
+    const text = assistantInput.trim();
+    if (!text || assistantLoading) return;
+
+    const nextMessages = [
+      ...assistantMessages,
+      { role: "user" as const, content: text },
+    ];
+    setAssistantMessages(nextMessages);
+    setAssistantInput("");
+    setAssistantLoading(true);
+
+    try {
+      const res = await fetch("/api/ai/auto/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: nextMessages,
+          taskType: "generic",
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success && data.data) {
+        const raw = data.data.content;
+        let content = "";
+        if (typeof raw === "string") {
+          content = raw;
+        } else if (Array.isArray(raw)) {
+          content = raw.map((p: any) => (typeof p === "string" ? p : p.text || "")).join("\n");
+        } else if (raw && typeof raw === "object" && typeof raw.text === "string") {
+          content = raw.text;
+        } else {
+          content = "Received a response but could not parse content.";
+        }
+
+        setAssistantMessages((prev) => [
+          ...prev,
+          { role: "assistant", content },
+        ]);
+      } else {
+        const message = data.error || "AI assistant call failed";
+        setAssistantMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: `Error: ${message}` },
+        ]);
+      }
+    } catch (error) {
+      console.error("Neural Assistant error:", error);
+      setAssistantMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: "Network error talking to AI assistant." },
+      ]);
+    } finally {
+      setAssistantLoading(false);
+    }
   };
 
   return (
@@ -569,6 +684,76 @@ export default function DashboardOverview() {
         />
       </div>
 
+      {/* Graph Risk Overview (Neon + RuVector path) */}
+      {graphRisk && (
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+            <Shield className="h-5 w-5 text-indigo-400" />
+            Graph Risk Overview
+          </h2>
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">
+                    RuVector-enhanced risk score (0 = safe, 100 = very risky)
+                  </p>
+                  <p className="text-3xl font-bold">
+                    {graphRisk.score.toFixed(0)} / 100
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Live positions: {graphRisk.openLivePositions} · Pending live orders: {graphRisk.openLiveOrders}
+                  </p>
+                </div>
+                <div className="w-full md:w-64">
+                  <div className="h-3 w-full rounded-full bg-muted overflow-hidden">
+                    <div
+                      className={`h-full rounded-full ${
+                        graphRisk.score < 30
+                          ? "bg-green-500"
+                          : graphRisk.score < 70
+                            ? "bg-yellow-500"
+                            : "bg-red-500"
+                      }`}
+                      style={{ width: `${Math.min(100, Math.max(0, graphRisk.score))}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+              {graphRisk.factors && graphRisk.factors.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium mb-1">Key factors</p>
+                  {graphRisk.factors.map((factor, idx) => (
+                    <div
+                      key={`${factor.label}-${idx}`}
+                      className="flex items-start justify-between gap-2 text-sm"
+                    >
+                      <div>
+                        <p className="font-medium">{factor.label}</p>
+                        {factor.detail && (
+                          <p className="text-muted-foreground text-xs">{factor.detail}</p>
+                        )}
+                      </div>
+                      <span
+                        className={`text-xs px-2 py-1 rounded-full ${
+                          factor.severity === "low"
+                            ? "bg-green-500/20 text-green-400"
+                            : factor.severity === "medium"
+                              ? "bg-yellow-500/20 text-yellow-400"
+                              : "bg-red-500/20 text-red-400"
+                        }`}
+                      >
+                        {factor.severity.toUpperCase()}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {/* Getting Started */}
       <div className="mb-8">
         <h2 className="text-xl font-semibold mb-4">Getting Started</h2>
@@ -599,6 +784,109 @@ export default function DashboardOverview() {
           />
         </div>
       </div>
+
+      {/* Neural Assistant */}
+      <div className="mb-8">
+        <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+          <Bot className="h-5 w-5 text-indigo-400" />
+          Neural Assistant
+        </h2>
+        <Card>
+          <CardContent className="p-4 space-y-4">
+            <div className="h-48 overflow-y-auto rounded-md border border-border/60 bg-muted/40 p-3 text-sm">
+              {assistantMessages.length === 0 ? (
+                <p className="text-muted-foreground">
+                  Ask anything about your strategies, risk, or the current market. The system will route your request to the best available AI provider.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {assistantMessages.map((msg, idx) => (
+                    <div
+                      key={idx}
+                      className={`flex ${
+                        msg.role === "user" ? "justify-end" : "justify-start"
+                      }`}
+                    >
+                      <div
+                        className={`max-w-[80%] rounded-lg px-3 py-2 text-xs ${
+                          msg.role === "user"
+                            ? "bg-indigo-600 text-white"
+                            : "bg-background border border-border/60"
+                        }`}
+                      >
+                        {msg.content}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <Input
+                placeholder="Ask the Neural Assistant..."
+                value={assistantInput}
+                onChange={(e) => setAssistantInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleAssistantSend();
+                  }
+                }}
+              />
+              <Button
+                onClick={handleAssistantSend}
+                disabled={assistantLoading || !assistantInput.trim()}
+              >
+                {assistantLoading ? (
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                ) : (
+                  "Send"
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Swarm Agent Leaderboard */}
+      {swarmSummary && swarmSummary.agents.length > 0 && (
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+            <Bot className="h-5 w-5 text-indigo-400" />
+            Swarm Agent Leaderboard
+          </h2>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-3 text-sm text-muted-foreground">
+                <span>Total live trades observed: {swarmSummary.totalTrades}</span>
+              </div>
+              <div className="space-y-2">
+                {swarmSummary.agents.map((agent) => (
+                  <div
+                    key={agent.agentId}
+                    className="flex items-center justify-between rounded-md border border-border/60 bg-muted/40 px-3 py-2 text-xs"
+                  >
+                    <div>
+                      <p className="font-medium">{agent.agentId}</p>
+                      <p className="text-muted-foreground">
+                        Trades: {agent.trades} · Avg PnL/trade: {agent.averagePnlPerTrade.toFixed(2)}
+                      </p>
+                    </div>
+                    <div
+                      className={`text-sm font-semibold ${
+                        agent.cumulativePnl >= 0 ? "text-green-400" : "text-red-400"
+                      }`}
+                    >
+                      {agent.cumulativePnl >= 0 ? "+" : ""}
+                      {agent.cumulativePnl.toFixed(2)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Recent Activity */}
       <div>

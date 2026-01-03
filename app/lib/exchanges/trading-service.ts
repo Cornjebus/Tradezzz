@@ -47,15 +47,15 @@ class TradingService {
   ): Promise<UserTradingState> {
     // Get exchange connection from database
     const connection = await db.exchangeConnections.findById(exchangeConnectionId);
-    if (!connection || connection.user_id !== userId) {
+    if (!connection || connection.userId !== userId) {
       throw new Error("Exchange connection not found");
     }
 
     // Decrypt credentials
-    const apiKey = decryptApiKey(connection.encrypted_api_key);
-    const apiSecret = decryptApiKey(connection.encrypted_api_secret);
-    const passphrase = connection.encrypted_passphrase
-      ? decryptApiKey(connection.encrypted_passphrase)
+    const apiKey = decryptApiKey(connection.encryptedApiKey);
+    const apiSecret = decryptApiKey(connection.encryptedApiSecret);
+    const passphrase = connection.encryptedPassphrase
+      ? decryptApiKey(connection.encryptedPassphrase)
       : undefined;
 
     const credentials: ExchangeCredentials = {

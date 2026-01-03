@@ -2,11 +2,11 @@
 
 ## Current State
 
-**Version**: 2.1.0
-**Last Updated**: December 15, 2024
-**Current Phase**: Phase 17 (AI Provider Adapters)
-**Tests Passing**: 566
-**Frontend Build**: ✅ Passing
+**Version**: 3.0.0
+**Last Updated**: January 2, 2025
+**Current Phase**: All 21 Phases Complete! 🎉
+**Tests Passing**: 1004
+**Frontend Build**: ✅ Passing (Next.js)
 
 ---
 
@@ -38,29 +38,73 @@
 ### Monitoring & AI (Phases 15-16)
 | Phase | Description | Tests | Frontend |
 |-------|-------------|-------|----------|
-| 15 | Monitoring & Alerting | 27 | ⏳ Pending |
+| 15 | Monitoring & Alerting | 27 | ✅ Risk status wired into Overview |
 | 16 | AI Provider Interface | 22 | ✅ AIProvidersTab |
 
-**Total Tests (Phases 10-16)**: 163 passing
+### AI Security (Phases 17-18)
+| Phase | Description | Tests | Frontend |
+|-------|-------------|-------|----------|
+| 17 | AI Provider Adapters | ✅ | ✅ All providers integrated |
+| 18 | AI Key Security (KeyVault) | 33 | ✅ API routes ready |
+
+**Total Tests (Phases 10-18)**: 196+ passing
 
 ---
 
-## 🔄 In Progress
+## ✅ Recently Completed
 
-### Phase 17: AI Provider Adapters (Full-Stack)
+### Phase 19: Usage Tracking & Cost Estimation
 
-Following the new full-stack development approach:
+| Feature | Backend | Tests | Frontend | Status |
+|---------|---------|-------|----------|--------|
+| UsageTrackingService | ✅ | 20 | N/A | Complete |
+| Usage API Routes (Express) | ✅ | 12 | N/A | Complete |
+| Usage API Routes (Next.js) | ✅ | N/A | ✅ | Complete |
+| Cost Estimation | ✅ | ✅ | ✅ | Complete |
+| Provider Pricing | ✅ | ✅ | ✅ | Complete |
+| Usage Limits | ✅ | ✅ | ✅ | Complete |
+| Database Migration | ✅ | N/A | N/A | Complete |
 
-| Provider | Backend | Tests | Frontend | Status |
-|----------|---------|-------|----------|--------|
-| OpenAI | ⏳ | ⏳ | ⏳ | Next |
-| Anthropic | ⏳ | ⏳ | ⏳ | Planned |
-| Google | ⏳ | ⏳ | ⏳ | Planned |
-| DeepSeek | ⏳ | ⏳ | ⏳ | Planned |
-| Groq | ⏳ | ⏳ | ⏳ | Planned |
-| Mistral | ⏳ | ⏳ | ⏳ | Planned |
-| xAI | ⏳ | ⏳ | ⏳ | Planned |
-| Ollama | ⏳ | ⏳ | ⏳ | Planned |
+## ✅ Phase 20: Fallback & Reliability - COMPLETE
+
+| Feature | Backend | Tests | Frontend | Status |
+|---------|---------|-------|----------|--------|
+| CircuitBreaker | ✅ | 24 | N/A | Complete |
+| RetryService | ✅ | 16 | N/A | Complete |
+| ResilientAIService | ✅ | 22 | N/A | Complete |
+| Provider Failover | ✅ | ✅ | N/A | Complete |
+
+**Phase 20 Tests**: 62 passing
+
+---
+
+## ✅ Phase 21: RuVector Integration - COMPLETE
+
+| Feature | Backend | Tests | Frontend | Status |
+|---------|---------|-------|----------|--------|
+| RuVectorClient | ✅ | 2 | N/A | Complete |
+| PatternStoreService | ✅ | 9 | N/A | Complete |
+| StrategyGraphService | ✅ | 10 | N/A | Complete |
+| Strategy Recommender | ✅ | 3 | ✅ API | Complete |
+| Strategy Explainer | ✅ | 4 | ✅ API | Complete |
+| Risk Graph | ✅ | 2 | ✅ API | Complete |
+| Pattern Ingestion | ✅ | 2 | N/A | Complete |
+| Strategy Generation | ✅ | 2 | ✅ API | Complete |
+
+**Phase 21 Tests**: 34 passing
+
+---
+
+### Recently Completed: Phase 18 (AI Key Security)
+
+| Feature | Backend | Tests | Frontend | Status |
+|---------|---------|-------|----------|--------|
+| KeyVaultService | ✅ | 19 | N/A | Complete |
+| KeyVault Routes (Express) | ✅ | 14 | N/A | Complete |
+| KeyVault API (Next.js) | ✅ | N/A | ✅ | Complete |
+| Database Migration | ✅ | N/A | N/A | Complete |
+| Audit Logging | ✅ | ✅ | ✅ | Complete |
+| Key Rotation | ✅ | ✅ | ✅ | Complete |
 
 ---
 
@@ -87,6 +131,10 @@ src/
 ├── ai/
 │   ├── AIProviderService.ts       # Provider management
 │   └── AIAnalysisService.ts       # Technical analysis
+│
+├── security/
+│   ├── KeyVaultService.ts         # Encrypted key storage
+│   └── KeyVaultService.test.ts    # KeyVault tests (19)
 │
 ├── trading/
 │   ├── PaperTradingService.ts     # Paper trading
@@ -133,18 +181,20 @@ src/
 
 | Component | File | API Endpoint | Hooks Used |
 |-----------|------|--------------|------------|
-| OverviewTab | `overview/OverviewTab.tsx` | Multiple | useExchanges, useAIProviders, useOnboarding, useTradingMode |
+| OverviewTab | `overview/OverviewTab.tsx` | Multiple | useExchanges, useAIProviders, useOnboarding, useTradingMode, useRiskStatus |
 | ExchangesTab | `exchanges/ExchangesTab.tsx` | `/api/exchanges` | useExchanges |
 | AIProvidersTab | `providers/AIProvidersTab.tsx` | `/api/ai` | useAIProviders |
 | SettingsTab | `settings/SettingsTab.tsx` | `/api/settings`, `/api/privacy` | useUserSettings |
 | TradingModeIndicator | `trading/TradingModeIndicator.tsx` | `/api/trading/mode` | useTradingMode |
+| StrategiesTab | `Dashboard.tsx` (inline) | `/api/strategies`, `/api/strategies/:id/live-eligibility` | useStrategies |
+| OrdersTab | `Dashboard.tsx` (inline) | `/api/orders`, `/api/orders/approvals`, `/api/orders/approvals/:id/*`, `/api/positions` | useOrderApprovals, useOrdersAndPositions |
 
 ### Pending Components
 
 | Component | Waiting For | Planned Features |
 |-----------|-------------|------------------|
-| StrategiesTab | Phase 5 | Strategy CRUD, backtest trigger |
-| OrdersTab | Phase 7 | Order history, open positions |
+| StrategiesTab | Phase 5 | Full CRUD UI, backtest trigger |
+| OrdersTab | Phase 7 | Advanced filtering, PnL analytics, per-strategy view |
 | OnboardingModal | Phase 11 | Disclaimer acceptance flow |
 | MonitoringPanel | Phase 15 | Health status, alerts |
 | ProviderTestPanel | Phase 17 | Real API test, chat |
@@ -241,7 +291,7 @@ For each feature:
 |----------|---------|
 | `plans/00-MASTER-PLAN.md` | Single source of truth |
 | `plans/phases/16-20-ai-provider-layer.md` | AI provider specs |
-| `src/ui/hooks/useApi.ts` | All frontend API hooks |
+| `app/` (Next.js app) | Frontend UI and client-side API calls |
 | `CLAUDE.md` | Development guidelines |
 
 ---

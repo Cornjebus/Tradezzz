@@ -15,7 +15,7 @@ describe('StrategyService', () => {
   let userId: string;
 
   beforeEach(async () => {
-    vi.stubEnv('NODE_ENV', 'development');
+    vi.stubEnv('NODE_ENV', 'test');
     db = createMockDatabase();
     configService = new ConfigService({ db });
     strategyService = new StrategyService({ db, configService });

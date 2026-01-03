@@ -16,7 +16,7 @@ import { z } from 'zod';
 // ============================================================================
 
 const createProviderSchema = z.object({
-  provider: z.enum(['openai', 'anthropic', 'deepseek', 'google', 'cohere', 'mistral'], {
+  provider: z.enum(['openai', 'anthropic', 'deepseek', 'google', 'cohere', 'mistral', 'grok'], {
     message: 'Invalid AI provider',
   }),
   name: z.string().min(1, 'Name is required').max(100),
@@ -55,16 +55,32 @@ const signalSchema = z.object({
   indicators: z.object({}).passthrough().optional(),
 });
 
-// ============================================================================
-// Router Factory
-// ============================================================================
+  // ============================================================================
+  // Router Factory
+  // ============================================================================
 
 export function createAIRouter(
   aiService: AIProviderService,
   authService: AuthService
-): Router {
-  const router = Router();
-  const requireAuth = createAuthMiddleware(authService);
+  ): Router {
+    const router = Router();
+    const requireAuth = createAuthMiddleware(authService);
+
+    // ============================================================================
+    // GET /status - Runtime AI Service Status
+    // ============================================================================
+
+    router.get(
+      '/status',
+      asyncHandler(async (req: Request, res: Response) => {
+        const status = aiService.getRuntimeStatus();
+
+        res.json({
+          success: true,
+          data: status,
+        });
+      })
+    );
 
   // ============================================================================
   // GET /supported - Get Supported Providers

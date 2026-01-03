@@ -41,9 +41,16 @@ interface ProviderConnection {
   id: string;
   provider: string;
   name: string;
-  model: string;
-  is_active: boolean;
-  created_at: string;
+  status: string;
+  defaultModel?: string;
+  totalTokensUsed?: number;
+  totalRequests?: number;
+  lastUsedAt?: string;
+  createdAt: string;
+}
+
+interface AIRuntimeStatus {
+  adapterFactoryConfigured: boolean;
 }
 
 export default function AIProvidersPage() {
@@ -58,6 +65,8 @@ export default function AIProvidersPage() {
   const [apiKey, setApiKey] = useState("");
   const [isConnecting, setIsConnecting] = useState(false);
   const { toast } = useToast();
+  const [runtimeStatus, setRuntimeStatus] = useState<AIRuntimeStatus | null>(null);
+  const [statusLoading, setStatusLoading] = useState(false);
 
   const selectedProviderData = SUPPORTED_PROVIDERS.find(p => p.id === selectedProvider);
 
@@ -82,6 +91,23 @@ export default function AIProvidersPage() {
 
   useEffect(() => {
     fetchConnections();
+    const fetchStatus = async () => {
+      setStatusLoading(true);
+      try {
+        const res = await fetch("/api/ai/status");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.data) {
+            setRuntimeStatus(data.data as AIRuntimeStatus);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch AI runtime status:", error);
+      } finally {
+        setStatusLoading(false);
+      }
+    };
+    fetchStatus();
   }, []);
 
   const handleConnect = async () => {
@@ -213,6 +239,25 @@ export default function AIProvidersPage() {
           <p className="text-muted-foreground mt-1">
             Connect your AI providers for intelligent trading decisions
           </p>
+          {runtimeStatus && (
+            <div className="mt-2 flex items-center gap-2 text-xs">
+              {runtimeStatus.adapterFactoryConfigured ? (
+                <>
+                  <Zap className="h-3 w-3 text-green-400" />
+                  <span className="text-green-400">
+                    Adapter-backed AI runtime is active
+                  </span>
+                </>
+              ) : (
+                <>
+                  <AlertTriangle className="h-3 w-3 text-yellow-400" />
+                  <span className="text-yellow-400">
+                    AI runtime not fully configured
+                  </span>
+                </>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
@@ -357,7 +402,7 @@ export default function AIProvidersPage() {
                       <div>
                         <h3 className="font-semibold">{connection.name || provider.name}</h3>
                         <div className="flex items-center gap-2 mt-1">
-                          {connection.is_active ? (
+                          {connection.status === "active" ? (
                             <Badge variant="secondary" className="bg-green-500/20 text-green-400">
                               <CheckCircle2 className="h-3 w-3 mr-1" />
                               Active
@@ -369,11 +414,16 @@ export default function AIProvidersPage() {
                             </Badge>
                           )}
                           <Badge variant="outline">
-                            {connection.model}
+                            {connection.defaultModel || "default"}
                           </Badge>
                           <span className="text-sm text-muted-foreground">
-                            Added {new Date(connection.created_at).toLocaleDateString()}
+                            Added {new Date(connection.createdAt).toLocaleDateString()}
                           </span>
+                          {typeof connection.totalTokensUsed === "number" && (
+                            <span className="text-xs text-muted-foreground">
+                              · {connection.totalTokensUsed} tokens / {connection.totalRequests ?? 0} requests
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>

@@ -23,7 +23,7 @@ describe('AI Routes', () => {
   let userId: string;
 
   beforeEach(async () => {
-    vi.stubEnv('NODE_ENV', 'development');
+    vi.stubEnv('NODE_ENV', 'test');
     db = createMockDatabase();
     configService = new ConfigService({ db });
     authService = new AuthService({
@@ -51,6 +51,21 @@ describe('AI Routes', () => {
     app.use(express.json());
     app.use('/api/ai', createAIRouter(aiService, authService));
     app.use(errorHandler);
+  });
+
+  // ============================================================================
+  // GET /api/ai/status - Runtime Status
+  // ============================================================================
+
+  describe('GET /api/ai/status', () => {
+    it('should_return_runtime_status', async () => {
+      const response = await request(app)
+        .get('/api/ai/status');
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+      expect(response.body.data).toHaveProperty('adapterFactoryConfigured');
+    });
   });
 
   // ============================================================================

@@ -288,10 +288,7 @@ neural-trading/
 │   ├── strategies/     # Trading strategies
 │   │   ├── MomentumStrategy.ts
 │   │   └── MeanReversionStrategy.ts
-│   ├── ui/             # React UI components
-│   │   ├── NeuralTradingUI.tsx
-│   │   └── components/
-│   ├── server.ts       # Express server
+│   ├── api/            # Express / NeuralTrading API
 │   └── index.ts        # Main entry point
 ├── bin/
 │   └── cli.js          # CLI executable
@@ -309,7 +306,8 @@ neural-trading/
 ├── config/             # Configuration templates
 ├── docs/               # Documentation
 ├── examples/           # Example configurations
-└── tests/              # Test suite
+├── tests/              # Test suite
+└── app/                # Next.js frontend (Clerk + dashboard)
 ```
 
 ### Build from Source

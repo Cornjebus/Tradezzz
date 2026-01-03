@@ -52,10 +52,10 @@ describe('[Feature]', () => {
 
 ### 3. Frontend Second
 
-**Step 3a: Add Hook to useApi.ts**
+**Step 3a: Add a client-side API hook**
 
 ```typescript
-// src/ui/hooks/useApi.ts
+// Example: client-side API hook in the frontend app
 
 export function use[Feature]() {
   const api = useApi();
@@ -87,10 +87,10 @@ export function use[Feature]() {
 }
 ```
 
-**Step 3b: Create/Update UI Component**
+**Step 3b: Create/Update UI Component (Next.js client component)**
 
 ```typescript
-// src/ui/components/[feature]/[Feature]Tab.tsx
+// Example: feature tab component
 
 import { use[Feature] } from '../../hooks/useApi';
 
@@ -116,7 +116,7 @@ export function [Feature]Tab() {
 **Step 3c: Wire to Dashboard (if new tab)**
 
 ```typescript
-// src/ui/components/Dashboard.tsx
+// Dashboard routing / tabs (frontend app)
 
 import { [Feature]Tab } from './[feature]/[Feature]Tab';
 

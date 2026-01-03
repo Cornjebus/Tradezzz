@@ -4,11 +4,45 @@
  */
 
 import { Pool, PoolClient } from 'pg';
+import * as fs from 'fs/promises';
+import * as path from 'path';
 
 export interface NeonConfig {
   connectionString: string;
   poolSize?: number;
   ssl?: boolean;
+}
+
+// ============================================
+// SNAKE_CASE TO CAMELCASE MAPPER
+// ============================================
+
+/**
+ * Convert snake_case string to camelCase
+ */
+function snakeToCamel(str: string): string {
+  return str.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+}
+
+/**
+ * Convert object keys from snake_case to camelCase
+ */
+function mapRowToCamelCase<T>(row: Record<string, unknown>): T {
+  if (!row) return row as T;
+
+  const mapped: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(row)) {
+    const camelKey = snakeToCamel(key);
+    mapped[camelKey] = value;
+  }
+  return mapped as T;
+}
+
+/**
+ * Convert array of objects from snake_case to camelCase
+ */
+function mapRowsToCamelCase<T>(rows: Record<string, unknown>[]): T[] {
+  return rows.map(row => mapRowToCamelCase<T>(row));
 }
 
 export class NeonDatabase {
@@ -50,12 +84,13 @@ export class NeonDatabase {
 
   async query<T = any>(text: string, values?: any[]): Promise<T[]> {
     const result = await this.pool.query(text, values);
-    return result.rows;
+    return mapRowsToCamelCase<T>(result.rows);
   }
 
   async queryOne<T = any>(text: string, values?: any[]): Promise<T | null> {
-    const rows = await this.query<T>(text, values);
-    return rows[0] || null;
+    const result = await this.pool.query(text, values);
+    const row = result.rows[0];
+    return row ? mapRowToCamelCase<T>(row) : null;
   }
 
   async transaction<T>(callback: (client: PoolClient) => Promise<T>): Promise<T> {
@@ -77,6 +112,56 @@ export class NeonDatabase {
     await this.pool.end();
     this.isConnected = false;
     console.log('✓ Disconnected from Neon PostgreSQL');
+  }
+
+  /**
+   * Run SQL migrations from the migrations directory.
+   *
+   * Migrations are applied in filename order and tracked using the `migrations`
+   * table created by the initial schema migration. Each migration SQL file is
+   * expected to insert a row into `migrations` with its name (e.g.
+   * `001_initial_schema`), so re-running this method is safe.
+   */
+  async runMigrations(): Promise<void> {
+    const migrationsDir = path.join(__dirname, 'migrations');
+
+    let files: string[];
+    try {
+      files = await fs.readdir(migrationsDir);
+    } catch (error) {
+      console.warn('Neon migrations directory not found, skipping migrations');
+      return;
+    }
+
+    const sqlFiles = files.filter((f) => f.endsWith('.sql')).sort();
+
+    for (const file of sqlFiles) {
+      const name = file.replace(/\.sql$/, '');
+
+      const alreadyApplied = await this.hasMigrationRun(name);
+      if (alreadyApplied) {
+        continue;
+      }
+
+      const fullPath = path.join(migrationsDir, file);
+      const sql = await fs.readFile(fullPath, 'utf8');
+      await this.pool.query(sql);
+      console.log(`✓ Applied migration ${name}`);
+    }
+  }
+
+  private async hasMigrationRun(name: string): Promise<boolean> {
+    try {
+      const result = await this.pool.query('SELECT 1 FROM migrations WHERE name = $1', [name]);
+      return result.rowCount > 0;
+    } catch (error: any) {
+      // If the migrations table does not exist yet (fresh database),
+      // we treat the migration as not applied.
+      if (error && error.code === '42P01') {
+        return false;
+      }
+      throw error;
+    }
   }
 
   // ============================================
@@ -165,12 +250,14 @@ export class NeonDatabase {
       description?: string;
       type: string;
       config?: Record<string, unknown>;
+      executionMode?: 'manual' | 'auto';
     }) => {
+      const executionMode = data.executionMode || 'manual';
       return this.queryOne<Strategy>(`
-        INSERT INTO strategies (user_id, name, description, type, config)
-        VALUES ($1, $2, $3, $4, $5)
+        INSERT INTO strategies (user_id, name, description, type, config, execution_mode)
+        VALUES ($1, $2, $3, $4, $5, $6)
         RETURNING *
-      `, [data.userId, data.name, data.description, data.type, JSON.stringify(data.config || {})]);
+      `, [data.userId, data.name, data.description, data.type, JSON.stringify(data.config || {}), executionMode]);
     },
 
     findById: async (id: string) => {
@@ -185,7 +272,7 @@ export class NeonDatabase {
       `, [userId]);
     },
 
-    update: async (id: string, data: Partial<Strategy>) => {
+    update: async (id: string, data: Partial<Strategy> & { executionMode?: 'manual' | 'auto' }) => {
       const fields: string[] = [];
       const values: any[] = [];
       let paramIndex = 1;
@@ -205,6 +292,10 @@ export class NeonDatabase {
       if (data.config) {
         fields.push(`config = $${paramIndex++}`);
         values.push(JSON.stringify(data.config));
+      }
+      if ((data as any).executionMode) {
+        fields.push(`execution_mode = $${paramIndex++}`);
+        values.push((data as any).executionMode);
       }
 
       if (fields.length === 0) return this.strategies.findById(id);
@@ -371,6 +462,44 @@ export class NeonDatabase {
   };
 
   // ============================================
+  // AI USAGE LOG REPOSITORY
+  // ============================================
+
+  aiUsageLog = {
+    create: async (data: {
+      userId: string;
+      providerId: string;
+      model: string;
+      requestType: string;
+      promptTokens: number;
+      completionTokens: number;
+      totalTokens: number;
+    }) => {
+      return this.queryOne(`
+        INSERT INTO ai_usage_log (
+          user_id,
+          provider_id,
+          model,
+          prompt_tokens,
+          completion_tokens,
+          total_tokens,
+          request_type
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        RETURNING *
+      `, [
+        data.userId,
+        data.providerId,
+        data.model,
+        data.promptTokens,
+        data.completionTokens,
+        data.totalTokens,
+        data.requestType,
+      ]);
+    },
+  };
+
+  // ============================================
   // ORDERS REPOSITORY
   // ============================================
 
@@ -466,6 +595,87 @@ export class NeonDatabase {
   };
 
   // ============================================
+  // ORDER APPROVALS REPOSITORY
+  // ============================================
+
+  orderApprovals = {
+    create: async (data: {
+      userId: string;
+      strategyId?: string;
+      symbol: string;
+      side: string;
+      type: string;
+      quantity: number;
+      price?: number;
+      stopPrice?: number;
+      mode: string;
+      exchangeConnectionId?: string;
+    }) => {
+      return this.queryOne<OrderApproval>(`
+        INSERT INTO order_approvals (
+          user_id,
+          strategy_id,
+          symbol,
+          side,
+          type,
+          quantity,
+          price,
+          stop_price,
+          mode,
+          exchange_connection_id
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        RETURNING *
+      `, [
+        data.userId,
+        data.strategyId,
+        data.symbol,
+        data.side,
+        data.type,
+        data.quantity,
+        data.price,
+        data.stopPrice,
+        data.mode,
+        data.exchangeConnectionId,
+      ]);
+    },
+
+    findById: async (id: string) => {
+      return this.queryOne<OrderApproval>(`
+        SELECT * FROM order_approvals WHERE id = $1
+      `, [id]);
+    },
+
+    findPendingByUserId: async (userId: string) => {
+      return this.query<OrderApproval>(`
+        SELECT * FROM order_approvals
+        WHERE user_id = $1 AND status = 'pending'
+        ORDER BY created_at DESC
+      `, [userId]);
+    },
+
+    updateStatus: async (id: string, data: { status: 'approved' | 'rejected'; orderId?: string }) => {
+      const fields: string[] = ['status = $1', 'decided_at = NOW()'];
+      const values: any[] = [data.status];
+      let paramIndex = 2;
+
+      if (data.orderId) {
+        fields.push(`order_id = $${paramIndex++}`);
+        values.push(data.orderId);
+      }
+
+      values.push(id);
+
+      return this.queryOne<OrderApproval>(`
+        UPDATE order_approvals
+        SET ${fields.join(', ')}, updated_at = NOW()
+        WHERE id = $${paramIndex}
+        RETURNING *
+      `, values);
+    },
+  };
+
+  // ============================================
   // POSITIONS REPOSITORY
   // ============================================
 
@@ -552,6 +762,88 @@ export class NeonDatabase {
   };
 
   // ============================================
+  // TRADES REPOSITORY
+  // ============================================
+
+  trades = {
+    create: async (data: {
+      userId: string;
+      strategyId?: string;
+      orderId?: string;
+      positionId?: string;
+      symbol: string;
+      side: string;
+      quantity: number;
+      price: number;
+      fee?: number;
+      pnl?: number;
+      mode: string;
+    }) => {
+      return this.queryOne<Trade>(`
+        INSERT INTO trades (
+          user_id,
+          strategy_id,
+          order_id,
+          position_id,
+          symbol,
+          side,
+          quantity,
+          price,
+          fee,
+          pnl,
+          mode
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        RETURNING *
+      `, [
+        data.userId,
+        data.strategyId,
+        data.orderId,
+        data.positionId,
+        data.symbol,
+        data.side,
+        data.quantity,
+        data.price,
+        data.fee ?? 0,
+        data.pnl ?? null,
+        data.mode,
+      ]);
+    },
+
+    findByUserId: async (userId: string, options?: { mode?: string; limit?: number }) => {
+      let query = `SELECT * FROM trades WHERE user_id = $1`;
+      const values: any[] = [userId];
+      let paramIndex = 2;
+
+      if (options?.mode) {
+        query += ` AND mode = $${paramIndex++}`;
+        values.push(options.mode);
+      }
+
+      query += ` ORDER BY executed_at DESC`;
+
+      if (options?.limit) {
+        query += ` LIMIT $${paramIndex}`;
+        values.push(options.limit);
+      }
+
+      return this.query<Trade>(query, values);
+    },
+
+    findByStrategyId: async (strategyId: string, options?: { limit?: number }) => {
+      let query = `SELECT * FROM trades WHERE strategy_id = $1 ORDER BY executed_at DESC`;
+      const values: any[] = [strategyId];
+
+      if (options?.limit) {
+        query += ` LIMIT $2`;
+        values.push(options.limit);
+      }
+
+      return this.query<Trade>(query, values);
+    },
+  };
+
+  // ============================================
   // USER SETTINGS REPOSITORY
   // ============================================
 
@@ -564,8 +856,17 @@ export class NeonDatabase {
 
     upsert: async (userId: string, data: Partial<UserSettings>) => {
       return this.queryOne<UserSettings>(`
-        INSERT INTO user_settings (user_id, timezone, notifications_enabled, email_alerts, default_exchange, default_ai_provider, risk_level)
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        INSERT INTO user_settings (
+          user_id,
+          timezone,
+          notifications_enabled,
+          email_alerts,
+          default_exchange,
+          default_ai_provider,
+          risk_level,
+          graph_risk_mode
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
         ON CONFLICT (user_id) DO UPDATE SET
           timezone = COALESCE($2, user_settings.timezone),
           notifications_enabled = COALESCE($3, user_settings.notifications_enabled),
@@ -573,16 +874,18 @@ export class NeonDatabase {
           default_exchange = COALESCE($5, user_settings.default_exchange),
           default_ai_provider = COALESCE($6, user_settings.default_ai_provider),
           risk_level = COALESCE($7, user_settings.risk_level),
+          graph_risk_mode = COALESCE($8, user_settings.graph_risk_mode),
           updated_at = NOW()
         RETURNING *
       `, [
         userId,
-        data.timezone || 'UTC',
-        data.notificationsEnabled ?? true,
-        data.emailAlerts ?? true,
-        data.defaultExchange,
-        data.defaultAiProvider,
-        data.riskLevel || 'medium',
+        (data as any).timezone || 'UTC',
+        (data as any).notificationsEnabled ?? true,
+        (data as any).emailAlerts ?? true,
+        (data as any).defaultExchange,
+        (data as any).defaultAiProvider,
+        (data as any).risk_level || (data as any).riskLevel || 'medium',
+        (data as any).graph_risk_mode || (data as any).graphRiskMode || 'warn',
       ]);
     },
   };
@@ -614,6 +917,101 @@ export class NeonDatabase {
       `, [userId, limit]);
     },
   };
+
+  // ============================================
+  // BACKTESTS REPOSITORY
+  // ============================================
+
+  backtests = {
+    create: async (data: {
+      userId: string;
+      strategyId: string;
+      symbol: string;
+      startDate: Date;
+      endDate: Date;
+      initialCapital: number;
+    }) => {
+      return this.queryOne(`
+        INSERT INTO backtests (user_id, strategy_id, symbol, start_date, end_date, initial_capital)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        RETURNING *
+      `, [data.userId, data.strategyId, data.symbol, data.startDate, data.endDate, data.initialCapital]);
+    },
+
+    findById: async (id: string) => {
+      return this.queryOne(`
+        SELECT * FROM backtests WHERE id = $1
+      `, [id]);
+    },
+
+    findByUserId: async (userId: string) => {
+      return this.query(`
+        SELECT * FROM backtests WHERE user_id = $1 ORDER BY created_at DESC
+      `, [userId]);
+    },
+
+    findByStrategyId: async (strategyId: string) => {
+      return this.query(`
+        SELECT * FROM backtests WHERE strategy_id = $1 ORDER BY created_at DESC
+      `, [strategyId]);
+    },
+
+    update: async (id: string, data: {
+      status?: 'pending' | 'running' | 'completed' | 'failed';
+      finalCapital?: number;
+      metrics?: any;
+      trades?: any;
+      equityCurve?: any;
+      errorMessage?: string;
+      completedAt?: Date;
+    }) => {
+      const fields: string[] = [];
+      const values: any[] = [];
+      let paramIndex = 1;
+
+      if (data.status) {
+        fields.push(`status = $${paramIndex++}`);
+        values.push(data.status);
+      }
+      if (data.finalCapital !== undefined) {
+        fields.push(`final_capital = $${paramIndex++}`);
+        values.push(data.finalCapital);
+      }
+      if (data.metrics !== undefined) {
+        fields.push(`metrics = $${paramIndex++}`);
+        values.push(JSON.stringify(data.metrics));
+      }
+      if (data.trades !== undefined) {
+        fields.push(`trades = $${paramIndex++}`);
+        values.push(JSON.stringify(data.trades));
+      }
+      if (data.equityCurve !== undefined) {
+        fields.push(`equity_curve = $${paramIndex++}`);
+        values.push(JSON.stringify(data.equityCurve));
+      }
+      if (data.errorMessage !== undefined) {
+        fields.push(`error_message = $${paramIndex++}`);
+        values.push(data.errorMessage);
+      }
+      if (data.completedAt) {
+        fields.push(`completed_at = $${paramIndex++}`);
+        values.push(data.completedAt);
+      }
+
+      if (fields.length === 0) {
+        return this.backtests.findById(id);
+      }
+
+      values.push(id);
+
+      return this.queryOne(`
+        UPDATE backtests
+        SET ${fields.join(', ')}, updated_at = NOW()
+        WHERE id = $${paramIndex}
+        RETURNING *
+      `, values);
+    },
+  };
 }
 
 // Type definitions
@@ -640,6 +1038,7 @@ export interface Strategy {
   config: Record<string, unknown>;
   created_at: Date;
   updated_at: Date;
+  execution_mode?: string;
 }
 
 export interface ExchangeConnection {
@@ -693,6 +1092,25 @@ export interface Order {
   updated_at: Date;
 }
 
+export interface OrderApproval {
+  id: string;
+  user_id: string;
+  strategy_id?: string;
+  symbol: string;
+  side: string;
+  type: string;
+  quantity: number;
+  price?: number;
+  stop_price?: number;
+  mode: string;
+  exchange_connection_id?: string;
+  status: string;
+  order_id?: string;
+  created_at: Date;
+  decided_at?: Date;
+  updated_at: Date;
+}
+
 export interface Position {
   id: string;
   user_id: string;
@@ -711,6 +1129,23 @@ export interface Position {
   updated_at: Date;
 }
 
+export interface Trade {
+  id: string;
+  user_id: string;
+  strategy_id?: string;
+  order_id?: string;
+  position_id?: string;
+  symbol: string;
+  side: string;
+  quantity: number;
+  price: number;
+  fee?: number;
+  pnl?: number;
+  mode: string;
+  executed_at: Date;
+  created_at: Date;
+}
+
 export interface UserSettings {
   id: string;
   user_id: string;
@@ -720,6 +1155,7 @@ export interface UserSettings {
   default_exchange?: string;
   default_ai_provider?: string;
   risk_level: string;
+  graph_risk_mode?: 'off' | 'warn' | 'block';
   created_at: Date;
   updated_at: Date;
 }
@@ -737,5 +1173,6 @@ export function getDatabase(): NeonDatabase {
 export async function initializeDatabase(): Promise<NeonDatabase> {
   const db = getDatabase();
   await db.connect();
+   await db.runMigrations();
   return db;
 }

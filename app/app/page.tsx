@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import { Moon, TrendingUp, Bot, Shield, Zap, BarChart3, Sparkles } from "lucide-react";
+import { Moon, TrendingUp, Bot, Shield, Zap, BarChart3, Sparkles, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 // TradeZZZ Logo Component
@@ -98,9 +98,17 @@ export default async function Home() {
       <header className="border-b border-border">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <TradeZZZLogo />
-          <Link href="/sign-in">
-            <Button>Get Started</Button>
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link href="/explore">
+              <Button variant="outline" className="gap-2">
+                <Eye className="h-4 w-4" />
+                Explore Prices
+              </Button>
+            </Link>
+            <Link href="/sign-in">
+              <Button>Get Started</Button>
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -128,14 +136,17 @@ export default async function Home() {
             set your strategy, and let the bots handle the rest while you dream.
           </p>
           <div className="flex gap-4 justify-center">
+            <Link href="/explore">
+              <Button size="lg" className="text-lg gap-2">
+                <Eye className="h-5 w-5" />
+                Explore Live Prices
+              </Button>
+            </Link>
             <Link href="/sign-in">
-              <Button size="lg" className="text-lg">
+              <Button variant="outline" size="lg" className="text-lg">
                 Start Trading Free →
               </Button>
             </Link>
-            <Button variant="outline" size="lg" className="text-lg">
-              Watch Demo
-            </Button>
           </div>
         </div>
 

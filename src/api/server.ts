@@ -22,6 +22,7 @@ import { createBacktestRouter } from './routes/backtest.routes';
 import { createOrderRouter } from './routes/order.routes';
 import { createExchangeRouter } from './routes/exchange.routes';
 import { createAIRouter } from './routes/ai.routes';
+import { createPublicMarketRouter } from './routes/public-market.routes';
 import { errorHandler } from './middleware/error.middleware';
 import { BinanceAdapter } from '../exchanges/adapters/BinanceAdapter';
 import { CoinbaseAdapter } from '../exchanges/adapters/CoinbaseAdapter';
@@ -158,7 +159,10 @@ export class APIServer {
       });
     });
 
-    // API Routes
+    // Public API Routes (No Authentication Required)
+    this.app.use('/api/public', createPublicMarketRouter(new CoinbaseAdapter()));
+
+    // API Routes (Authentication Required)
     this.app.use('/api/auth', createAuthRouter(this.authService));
     this.app.use('/api/strategies', createStrategyRouter(this.strategyService, this.authService, this.backtestService));
     this.app.use('/api/backtests', createBacktestRouter(this.backtestService, this.strategyService, this.authService));
@@ -226,6 +230,13 @@ export class APIServer {
         console.log(`║   WebSocket:   ws://localhost:${this.port}                      ║`);
         console.log('║                                                            ║');
         console.log('║   API Endpoints:                                           ║');
+        console.log('║   PUBLIC (No Auth):                                        ║');
+        console.log('║   ├─ GET  /api/public/prices    Live prices (all coins)    ║');
+        console.log('║   ├─ GET  /api/public/ticker/:s Single ticker              ║');
+        console.log('║   ├─ GET  /api/public/orderbook Order book                 ║');
+        console.log('║   ├─ GET  /api/public/candles   OHLCV data                 ║');
+        console.log('║   └─ GET  /api/public/symbols   Available symbols          ║');
+        console.log('║   AUTHENTICATED:                                           ║');
         console.log('║   ├─ POST /api/auth/register    Register new user          ║');
         console.log('║   ├─ POST /api/auth/login       Login                      ║');
         console.log('║   ├─ GET  /api/auth/me          Current user               ║');
